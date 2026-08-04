@@ -3492,33 +3492,34 @@ var ORDEM   = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV'
    Campos: mes, ano, colaboradores, horasCarga, faltas, atraso, totalFaltaAtraso,
            absenteismo(%), horasNormais, extra50, extra100, totalExtras, horasTotais,
            producaoReal, prodSemExtras, meta, eficiencia(%), eficienciaAdj(%), margem(%),
-           ticketMedio, custoCap, qtdeFaturado, diasTrabalhados
+           ticketMedio, custoCap, qtdeFaturado, diasTrabalhados, qtdeVendida,
+           previsaoProducao (col Y — Previsão de Produção em unidades), horasFerias
 ── */
 var PLANILHA = [
-  {"id":"mnosbvs8upn","mes":"JAN","ano":2025,"colaboradores":83,"horasCarga":12820,"faltas":1263,"atraso":162,"totalFaltaAtraso":1425,"absenteismo":11.52,"horasNormais":12375,"extra50":1035,"extra100":588,"totalExtras":1623,"horasTotais":13998,"producaoReal":31041,"prodSemExtras":26970,"meta":29964,"eficiencia":90.01,"eficienciaAdj":94.5,"margem":-0.01,"ticketMedio":188.74,"custoCap":674648.54,"qtdeFaturado":30601,"diasTrabalhados":20,"qtdeVendida":42682},
-  {"id":"mnosbvs8dr4","mes":"FEV","ano":2025,"colaboradores":84,"horasCarga":12623,"faltas":1896,"atraso":185,"totalFaltaAtraso":2081,"absenteismo":17.23,"horasNormais":12078,"extra50":1932,"extra100":1267,"totalExtras":3199,"horasTotais":15277,"producaoReal":30042,"prodSemExtras":22085,"meta":28745,"eficiencia":76.83,"eficienciaAdj":82.83,"margem":14.63,"ticketMedio":189.13,"custoCap":978961.04,"qtdeFaturado":28137,"diasTrabalhados":20,"qtdeVendida":35043},
-  {"id":"mnosbvs8bmt","mes":"MAR","ano":2025,"colaboradores":87,"horasCarga":13872,"faltas":1139,"atraso":182,"totalFaltaAtraso":1321,"absenteismo":9.81,"horasNormais":13464,"extra50":2044,"extra100":823,"totalExtras":2867,"horasTotais":16331,"producaoReal":33101,"prodSemExtras":26053,"meta":32127,"eficiencia":81.09,"eficienciaAdj":84.57,"margem":9.9,"ticketMedio":220.14,"custoCap":714937.92,"qtdeFaturado":36844,"diasTrabalhados":21,"qtdeVendida":33672},
-  {"id":"mnosbvs8bt2","mes":"ABR","ano":2025,"colaboradores":91,"horasCarga":14065,"faltas":1150,"atraso":187,"totalFaltaAtraso":1337,"absenteismo":9.86,"horasNormais":13560,"extra50":2231,"extra100":910,"totalExtras":3141,"horasTotais":16701,"producaoReal":35720,"prodSemExtras":27446,"meta":34437,"eficiencia":79.7,"eficienciaAdj":82.92,"margem":11.45,"ticketMedio":185.36,"custoCap":652839.69,"qtdeFaturado":33522,"diasTrabalhados":19,"qtdeVendida":48496},
-  {"id":"mnosbvs896l","mes":"MAI","ano":2025,"colaboradores":95,"horasCarga":15008,"faltas":1150,"atraso":283,"totalFaltaAtraso":1433,"absenteismo":9.95,"horasNormais":14400,"extra50":2040,"extra100":1299,"totalExtras":3339,"horasTotais":17739,"producaoReal":36450,"prodSemExtras":27998,"meta":34973,"eficiencia":80.06,"eficienciaAdj":83.48,"margem":11.05,"ticketMedio":219.47,"custoCap":796085.24,"qtdeFaturado":38603,"diasTrabalhados":21,"qtdeVendida":21863},
-  {"id":"mnosbvs89ew","mes":"JUN","ano":2025,"colaboradores":97,"horasCarga":14604,"faltas":1310,"atraso":273,"totalFaltaAtraso":1583,"absenteismo":11.25,"horasNormais":14070,"extra50":1833,"extra100":845,"totalExtras":2678,"horasTotais":16748,"producaoReal":25468,"prodSemExtras":20621,"meta":24537,"eficiencia":84.04,"eficienciaAdj":89.84,"margem":6.62,"ticketMedio":282.12,"custoCap":808368.64,"qtdeFaturado":22451,"diasTrabalhados":19,"qtdeVendida":20037},
-  {"id":"mnosbvs86x5","mes":"JUL","ano":2025,"colaboradores":99,"horasCarga":17698,"faltas":1692,"atraso":340,"totalFaltaAtraso":2032,"absenteismo":11.79,"horasNormais":17235,"extra50":692,"extra100":446,"totalExtras":1138,"horasTotais":18373,"producaoReal":31810,"prodSemExtras":29710,"meta":30978,"eficiencia":95.91,"eficienciaAdj":102.64,"margem":-6.56,"ticketMedio":265.42,"custoCap":995445.5,"qtdeFaturado":34000,"diasTrabalhados":23,"qtdeVendida":40033},
-  {"id":"mnosbvs8i4k","mes":"AGO","ano":2025,"colaboradores":100,"horasCarga":16503,"faltas":1518,"atraso":360,"totalFaltaAtraso":1878,"absenteismo":11.79,"horasNormais":15931,"extra50":1096,"extra100":684,"totalExtras":1780,"horasTotais":17711,"producaoReal":34096,"prodSemExtras":30286,"meta":32914,"eficiencia":92.02,"eficienciaAdj":97.58,"margem":-2.24,"ticketMedio":242.8,"custoCap":975894.39,"qtdeFaturado":34704,"diasTrabalhados":21,"qtdeVendida":39457},
-  {"id":"mnosbvs85cb","mes":"SET","ano":2025,"colaboradores":98,"horasCarga":17420,"faltas":1654,"atraso":312,"totalFaltaAtraso":1966,"absenteismo":11.65,"horasNormais":16876,"extra50":1695,"extra100":170,"totalExtras":1865,"horasTotais":18741,"producaoReal":36145,"prodSemExtras":32151,"meta":35016,"eficiencia":91.82,"eficienciaAdj":97.28,"margem":-2.02,"ticketMedio":262.43,"custoCap":1105033.24,"qtdeFaturado":32537,"diasTrabalhados":22,"qtdeVendida":39044},
-  {"id":"mnosbvs8635","mes":"OUT","ano":2025,"colaboradores":100,"horasCarga":18459,"faltas":1952,"atraso":333,"totalFaltaAtraso":2285,"absenteismo":12.77,"horasNormais":17899,"extra50":1875,"extra100":423,"totalExtras":2298,"horasTotais":20197,"producaoReal":33123,"prodSemExtras":28870,"meta":32118,"eficiencia":89.89,"eficienciaAdj":96.77,"margem":0.12,"ticketMedio":282.84,"custoCap":1196010.01,"qtdeFaturado":32471,"diasTrabalhados":23,"qtdeVendida":26853},
-  {"id":"mnosbvs8c85","mes":"NOV","ano":2025,"colaboradores":97,"horasCarga":15092,"faltas":1754,"atraso":363,"totalFaltaAtraso":2117,"absenteismo":14.52,"horasNormais":14575,"extra50":1335,"extra100":437,"totalExtras":1772,"horasTotais":16347,"producaoReal":23332,"prodSemExtras":20495,"meta":22533,"eficiencia":90.96,"eficienciaAdj":100.39,"margem":-1.06,"ticketMedio":274.52,"custoCap":930326.61,"qtdeFaturado":29021,"diasTrabalhados":19,"qtdeVendida":28833},
-  {"id":"mnosbvs8v2t","mes":"DEZ","ano":2025,"colaboradores":96,"horasCarga":11470,"faltas":1321,"atraso":356,"totalFaltaAtraso":1677,"absenteismo":14.62,"horasNormais":11470,"extra50":1683,"extra100":652,"totalExtras":2335,"horasTotais":13805,"producaoReal":30939,"prodSemExtras":24641,"meta":30939,"eficiencia":79.64,"eficienciaAdj":84.21,"margem":-1.06,"ticketMedio":226.36,"custoCap":1023921.88,"qtdeFaturado":31353,"diasTrabalhados":15,"qtdeVendida":24236},
-  {"id":"mnosbvs8i0j","mes":"JAN","ano":2026,"colaboradores":97,"horasCarga":13701,"faltas":1040,"atraso":165,"totalFaltaAtraso":1205,"absenteismo":9.02,"horasNormais":13352,"extra50":1476,"extra100":409,"totalExtras":1885,"horasTotais":15237,"producaoReal":22437,"prodSemExtras":19269,"meta":21865,"eficiencia":88.13,"eficienciaAdj":93.27,"margem":2.08,"ticketMedio":303.86,"custoCap":615297.24,"qtdeFaturado":22437,"diasTrabalhados":17,"qtdeVendida":36734},
-  {"id":"mnosbvs864b","mes":"FEV","ano":2026,"colaboradores":102,"horasCarga":16544,"faltas":2029,"atraso":0,"totalFaltaAtraso":2029,"absenteismo":12.56,"horasNormais":16158,"extra50":1932,"extra100":504,"totalExtras":2436,"horasTotais":18594,"producaoReal":32547,"prodSemExtras":27640,"meta":31788,"eficiencia":86.95,"eficienciaAdj":92.88,"margem":3.39,"ticketMedio":279.95,"custoCap":1144160.66,"qtdeFaturado":32547,"diasTrabalhados":20,"qtdeVendida":14063},
-  {"id":"mnosc0ci5n5","mes":"MAR","ano":2026,"colaboradores":97,"horasCarga":17036,"faltas":2258,"atraso":0,"totalFaltaAtraso":2258,"absenteismo":13.89,"horasNormais":16262,"extra50":545.3,"extra100":19.1,"totalExtras":564.4,"horasTotais":16826.4,"producaoReal":27600,"prodSemExtras":26642,"meta":26346,"eficiencia":101.12,"eficienciaAdj":110.6,"margem":-12.36,"ticketMedio":261.11,"custoCap":1000653.03,"qtdeFaturado":30439,"diasTrabalhados":22,"qtdeVendida":52435},
-  {"id":"mnosc0cice5","mes":"ABR","ano":2026,"colaboradores":100,"horasCarga":14889,"faltas":2179.4,"atraso":0,"totalFaltaAtraso":2179.4,"absenteismo":15.08,"horasNormais":14453,"extra50":1150,"extra100":359,"totalExtras":1509,"horasTotais":15962,"producaoReal":29195,"prodSemExtras":26147,"meta":28340,"eficiencia":92.26,"eficienciaAdj":99.95,"margem":-2.51,"ticketMedio":253.63,"custoCap":1116547.71,"qtdeFaturado":28986,"diasTrabalhados":19,"qtdeVendida":40059},
-  {"id":"mnosc0ciswk","mes":"MAI","ano":2026,"colaboradores":100,"horasCarga":16482,"faltas":1662,"atraso":0,"totalFaltaAtraso":1662,"absenteismo":10.41,"horasNormais":15962,"extra50":1724,"extra100":671,"totalExtras":2395,"horasTotais":18357,"producaoReal":33330,"prodSemExtras":28329,"meta":32278,"eficiencia":87.76,"eficienciaAdj":92.53,"margem":2.48,"ticketMedio":276.95,"custoCap":961133.26,"qtdeFaturado":35220,"diasTrabalhados":20,"qtdeVendida":26770},
-  {"id":"mnosc0cijci","mes":"JUN","ano":2026,"colaboradores":99,"horasCarga":14792,"faltas":1532,"atraso":0,"totalFaltaAtraso":1532,"absenteismo":10.65,"horasNormais":14388,"extra50":1545,"extra100":44,"totalExtras":1589,"horasTotais":15977,"producaoReal":30451,"prodSemExtras":27088,"meta":29619,"eficiencia":91.45,"eficienciaAdj":96.44,"margem":-1.62,"ticketMedio":273.58,"custoCap":887055.36,"qtdeFaturado":30451,"diasTrabalhados":20,"qtdeVendida":41709},
-  {"id":"mnosc0ci60o","mes":"JUL","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0},
-  {"id":"mnosc0cio8m","mes":"AGO","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0},
-  {"id":"mnosc0ci2c9","mes":"SET","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0},
-  {"id":"mnosc0cixlv","mes":"OUT","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0},
-  {"id":"mnosc0ciwsw","mes":"NOV","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0},
-  {"id":"mnosc0ci6u6","mes":"DEZ","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":-1.06,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0}
+  {"id":"mnosbvs8upn","mes":"JAN","ano":2025,"colaboradores":83,"horasCarga":12820,"faltas":1263,"atraso":162,"totalFaltaAtraso":1425,"absenteismo":11.52,"horasNormais":12375,"extra50":1035,"extra100":588,"totalExtras":1623,"horasTotais":13998,"producaoReal":31041,"prodSemExtras":26970,"meta":29964,"eficiencia":90.01,"eficienciaAdj":94.5,"margem":-0.01,"ticketMedio":188.74,"custoCap":674648.54,"qtdeFaturado":30601,"diasTrabalhados":20,"qtdeVendida":42682,"previsaoProducao":28717,"horasFerias":0},
+  {"id":"mnosbvs8dr4","mes":"FEV","ano":2025,"colaboradores":84,"horasCarga":12623,"faltas":1896,"atraso":185,"totalFaltaAtraso":2081,"absenteismo":17.23,"horasNormais":12078,"extra50":1932,"extra100":1267,"totalExtras":3199,"horasTotais":15277,"producaoReal":30042,"prodSemExtras":22085,"meta":28745,"eficiencia":76.83,"eficienciaAdj":82.83,"margem":14.63,"ticketMedio":189.13,"custoCap":978961.04,"qtdeFaturado":28137,"diasTrabalhados":20,"qtdeVendida":35043,"previsaoProducao":22970,"horasFerias":0},
+  {"id":"mnosbvs8bmt","mes":"MAR","ano":2025,"colaboradores":87,"horasCarga":13872,"faltas":1139,"atraso":182,"totalFaltaAtraso":1321,"absenteismo":9.81,"horasNormais":13464,"extra50":2044,"extra100":823,"totalExtras":2867,"horasTotais":16331,"producaoReal":33101,"prodSemExtras":26053,"meta":32127,"eficiencia":81.09,"eficienciaAdj":84.57,"margem":9.9,"ticketMedio":220.14,"custoCap":714937.92,"qtdeFaturado":36844,"diasTrabalhados":21,"qtdeVendida":33672,"previsaoProducao":38185,"horasFerias":0},
+  {"id":"mnosbvs8bt2","mes":"ABR","ano":2025,"colaboradores":91,"horasCarga":14065,"faltas":1150,"atraso":187,"totalFaltaAtraso":1337,"absenteismo":9.86,"horasNormais":13560,"extra50":2231,"extra100":910,"totalExtras":3141,"horasTotais":16701,"producaoReal":35720,"prodSemExtras":27446,"meta":34437,"eficiencia":79.7,"eficienciaAdj":82.92,"margem":11.45,"ticketMedio":185.36,"custoCap":652839.69,"qtdeFaturado":33522,"diasTrabalhados":19,"qtdeVendida":48496,"previsaoProducao":31277,"horasFerias":0},
+  {"id":"mnosbvs896l","mes":"MAI","ano":2025,"colaboradores":95,"horasCarga":15008,"faltas":1150,"atraso":283,"totalFaltaAtraso":1433,"absenteismo":9.95,"horasNormais":14400,"extra50":2040,"extra100":1299,"totalExtras":3339,"horasTotais":17739,"producaoReal":36450,"prodSemExtras":27998,"meta":34973,"eficiencia":80.06,"eficienciaAdj":83.48,"margem":11.05,"ticketMedio":219.47,"custoCap":796085.24,"qtdeFaturado":38603,"diasTrabalhados":21,"qtdeVendida":21863,"previsaoProducao":35886,"horasFerias":0},
+  {"id":"mnosbvs89ew","mes":"JUN","ano":2025,"colaboradores":97,"horasCarga":14604,"faltas":1310,"atraso":273,"totalFaltaAtraso":1583,"absenteismo":11.25,"horasNormais":14070,"extra50":1833,"extra100":845,"totalExtras":2678,"horasTotais":16748,"producaoReal":25468,"prodSemExtras":20621,"meta":24537,"eficiencia":84.04,"eficienciaAdj":89.84,"margem":6.62,"ticketMedio":282.12,"custoCap":808368.64,"qtdeFaturado":22451,"diasTrabalhados":19,"qtdeVendida":20037,"previsaoProducao":25785,"horasFerias":0},
+  {"id":"mnosbvs86x5","mes":"JUL","ano":2025,"colaboradores":99,"horasCarga":17698,"faltas":1692,"atraso":340,"totalFaltaAtraso":2032,"absenteismo":11.79,"horasNormais":17235,"extra50":692,"extra100":446,"totalExtras":1138,"horasTotais":18373,"producaoReal":31810,"prodSemExtras":29710,"meta":30978,"eficiencia":95.91,"eficienciaAdj":102.64,"margem":-6.56,"ticketMedio":265.42,"custoCap":995445.5,"qtdeFaturado":34000,"diasTrabalhados":23,"qtdeVendida":40033,"previsaoProducao":31508,"horasFerias":0},
+  {"id":"mnosbvs8i4k","mes":"AGO","ano":2025,"colaboradores":100,"horasCarga":16503,"faltas":1518,"atraso":360,"totalFaltaAtraso":1878,"absenteismo":11.79,"horasNormais":15931,"extra50":1096,"extra100":684,"totalExtras":1780,"horasTotais":17711,"producaoReal":34096,"prodSemExtras":30286,"meta":32914,"eficiencia":92.02,"eficienciaAdj":97.58,"margem":-2.24,"ticketMedio":242.8,"custoCap":975894.39,"qtdeFaturado":34704,"diasTrabalhados":21,"qtdeVendida":39457,"previsaoProducao":33637,"horasFerias":0},
+  {"id":"mnosbvs85cb","mes":"SET","ano":2025,"colaboradores":98,"horasCarga":17420,"faltas":1654,"atraso":312,"totalFaltaAtraso":1966,"absenteismo":11.65,"horasNormais":16876,"extra50":1695,"extra100":170,"totalExtras":1865,"horasTotais":18741,"producaoReal":36145,"prodSemExtras":32151,"meta":35016,"eficiencia":91.82,"eficienciaAdj":97.28,"margem":-2.02,"ticketMedio":262.43,"custoCap":1105033.24,"qtdeFaturado":32537,"diasTrabalhados":22,"qtdeVendida":39044,"previsaoProducao":37176,"horasFerias":0},
+  {"id":"mnosbvs8635","mes":"OUT","ano":2025,"colaboradores":100,"horasCarga":18459,"faltas":1952,"atraso":333,"totalFaltaAtraso":2285,"absenteismo":12.77,"horasNormais":17899,"extra50":1875,"extra100":423,"totalExtras":2298,"horasTotais":20197,"producaoReal":33123,"prodSemExtras":28870,"meta":32118,"eficiencia":89.89,"eficienciaAdj":96.77,"margem":0.12,"ticketMedio":282.84,"custoCap":1196010.01,"qtdeFaturado":32471,"diasTrabalhados":23,"qtdeVendida":26853,"previsaoProducao":32888,"horasFerias":0},
+  {"id":"mnosbvs8c85","mes":"NOV","ano":2025,"colaboradores":97,"horasCarga":15092,"faltas":1754,"atraso":363,"totalFaltaAtraso":2117,"absenteismo":14.52,"horasNormais":14575,"extra50":1335,"extra100":437,"totalExtras":1772,"horasTotais":16347,"producaoReal":23332,"prodSemExtras":20495,"meta":22533,"eficiencia":90.96,"eficienciaAdj":100.39,"margem":-1.06,"ticketMedio":274.52,"custoCap":930326.61,"qtdeFaturado":29021,"diasTrabalhados":19,"qtdeVendida":28833,"previsaoProducao":23705,"horasFerias":0},
+  {"id":"mnosbvs8v2t","mes":"DEZ","ano":2025,"colaboradores":96,"horasCarga":11470,"faltas":1321,"atraso":356,"totalFaltaAtraso":1677,"absenteismo":14.62,"horasNormais":11470,"extra50":1683,"extra100":652,"totalExtras":2335,"horasTotais":13805,"producaoReal":30939,"prodSemExtras":24641,"meta":30939,"eficiencia":79.64,"eficienciaAdj":84.21,"margem":-1.06,"ticketMedio":226.36,"custoCap":1023921.88,"qtdeFaturado":31353,"diasTrabalhados":15,"qtdeVendida":24236,"previsaoProducao":30587,"horasFerias":0},
+  {"id":"mnosbvs8i0j","mes":"JAN","ano":2026,"colaboradores":97,"horasCarga":13701,"faltas":1040,"atraso":165,"totalFaltaAtraso":1205,"absenteismo":9.02,"horasNormais":13352,"extra50":1476,"extra100":409,"totalExtras":1885,"horasTotais":15237,"producaoReal":22437,"prodSemExtras":19269,"meta":21865,"eficiencia":88.13,"eficienciaAdj":93.27,"margem":2.08,"ticketMedio":303.86,"custoCap":615297.24,"qtdeFaturado":22437,"diasTrabalhados":17,"qtdeVendida":36734,"previsaoProducao":22828,"horasFerias":88},
+  {"id":"mnosbvs864b","mes":"FEV","ano":2026,"colaboradores":102,"horasCarga":16544,"faltas":2029,"atraso":0,"totalFaltaAtraso":2029,"absenteismo":12.56,"horasNormais":16158,"extra50":1932,"extra100":504,"totalExtras":2436,"horasTotais":18594,"producaoReal":32547,"prodSemExtras":27640,"meta":31788,"eficiencia":86.95,"eficienciaAdj":92.88,"margem":3.39,"ticketMedio":279.95,"custoCap":1144160.66,"qtdeFaturado":32547,"diasTrabalhados":20,"qtdeVendida":14063,"previsaoProducao":27893,"horasFerias":448},
+  {"id":"mnosc0ci5n5","mes":"MAR","ano":2026,"colaboradores":97,"horasCarga":17036,"faltas":2258,"atraso":0,"totalFaltaAtraso":2258,"absenteismo":13.89,"horasNormais":16262,"extra50":545.3,"extra100":19.1,"totalExtras":564.4,"horasTotais":16826.4,"producaoReal":27600,"prodSemExtras":26642,"meta":26346,"eficiencia":101.12,"eficienciaAdj":110.6,"margem":-12.36,"ticketMedio":261.11,"custoCap":1000653.03,"qtdeFaturado":30439,"diasTrabalhados":22,"qtdeVendida":52435,"previsaoProducao":26700,"horasFerias":555},
+  {"id":"mnosc0cice5","mes":"ABR","ano":2026,"colaboradores":100,"horasCarga":14889,"faltas":2179.4,"atraso":0,"totalFaltaAtraso":2179.4,"absenteismo":15.08,"horasNormais":14453,"extra50":1150,"extra100":359,"totalExtras":1509,"horasTotais":15962,"producaoReal":29195,"prodSemExtras":26147,"meta":28340,"eficiencia":92.26,"eficienciaAdj":99.95,"margem":-2.51,"ticketMedio":253.63,"custoCap":1116547.71,"qtdeFaturado":28986,"diasTrabalhados":19,"qtdeVendida":40059,"previsaoProducao":32944,"horasFerias":493},
+  {"id":"mnosc0ciswk","mes":"MAI","ano":2026,"colaboradores":100,"horasCarga":16482,"faltas":1662,"atraso":0,"totalFaltaAtraso":1662,"absenteismo":10.41,"horasNormais":15962,"extra50":1724,"extra100":671,"totalExtras":2395,"horasTotais":18357,"producaoReal":33330,"prodSemExtras":28329,"meta":32278,"eficiencia":87.76,"eficienciaAdj":92.53,"margem":2.48,"ticketMedio":276.95,"custoCap":961133.26,"qtdeFaturado":35220,"diasTrabalhados":20,"qtdeVendida":26770,"previsaoProducao":31522,"horasFerias":607},
+  {"id":"mnosc0cijci","mes":"JUN","ano":2026,"colaboradores":99,"horasCarga":14792,"faltas":1532,"atraso":0,"totalFaltaAtraso":1532,"absenteismo":10.65,"horasNormais":14388,"extra50":1545,"extra100":44,"totalExtras":1589,"horasTotais":15977,"producaoReal":30451,"prodSemExtras":27088,"meta":29619,"eficiencia":91.45,"eficienciaAdj":96.44,"margem":-1.62,"ticketMedio":273.58,"custoCap":887055.36,"qtdeFaturado":30451,"diasTrabalhados":20,"qtdeVendida":41709,"previsaoProducao":32850,"horasFerias":880},
+  {"id":"mnosc0ci60o","mes":"JUL","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":30780,"horasFerias":0},
+  {"id":"mnosc0cio8m","mes":"AGO","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":0,"horasFerias":0},
+  {"id":"mnosc0ci2c9","mes":"SET","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":0,"horasFerias":0},
+  {"id":"mnosc0cixlv","mes":"OUT","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":0,"horasFerias":0},
+  {"id":"mnosc0ciwsw","mes":"NOV","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":0,"horasFerias":0},
+  {"id":"mnosc0ci6u6","mes":"DEZ","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":-1.06,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":0,"horasFerias":0}
 ];
 
 /* ── UTILITÁRIOS ── */
@@ -3701,6 +3702,42 @@ var CAMPOS_NUM = ['ano','colaboradores','horasCarga','faltas','atraso','totalFal
   'producaoReal','prodSemExtras','meta','eficiencia','eficienciaAdj','margem',
   'ticketMedio','custoCap','qtdeFaturado','diasTrabalhados','qtdeVendida','previsaoProducao','horasFerias'];
 
+/* ── TRADUÇÃO DE CABEÇALHO ──
+   Quase toda coluna da planilha já usa o nome do campo (producaoReal,
+   prodSemExtras...). A exceção é a previsão, que foi criada à mão e se chama
+   "Previsão de Produção em unidades". Sem traduzir, ela chega com esse nome,
+   previsaoProducao fica undefined e a aba Previsão × Capacidade mostra "—"
+   para sempre. Casa pelo começo do nome porque a grafia varia — a planilha
+   chegou a trazer "undiades". */
+function _normNome(s){
+  return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+var _ALIAS_CAMPOS = (function(){
+  var m = {};
+  ['mes','ano'].concat(CAMPOS_NUM).forEach(function(c){ m[_normNome(c)] = c; });
+  m['meses'] = 'mes';
+  return m;
+})();
+function _campoDoCabecalho(k){
+  var n = _normNome(k);
+  if (_ALIAS_CAMPOS[n]) return _ALIAS_CAMPOS[n];
+  if (n.indexOf('previsao') === 0) return 'previsaoProducao';
+  if (n.indexOf('ferias') >= 0)    return 'horasFerias';
+  return k;
+}
+function _traduzirCampos(r){
+  var out = {};
+  Object.keys(r).forEach(function(k){
+    var campo = _campoDoCabecalho(k);
+    /* o nome canônico ganha da tradução, se os dois vierem na mesma linha */
+    var v = r[k];
+    if (out[campo] === undefined || out[campo] === null || out[campo] === '') out[campo] = v;
+    else if (campo === k) out[campo] = v;
+  });
+  return out;
+}
+
 function _carregarDoSheetsAoAbrir(){
   if (!SHEETS_WEBAPP_URL) return;
   /* cache-busting: sem isso, o navegador pode reutilizar uma resposta antiga
@@ -3711,7 +3748,7 @@ function _carregarDoSheetsAoAbrir(){
     .then(function(json){
       if (!json || !json.ok || !json.dados || !json.dados.length) return;
       var dados = json.dados.map(function(r){
-        var rec = Object.assign({id: uid()}, r);
+        var rec = Object.assign({id: uid()}, _traduzirCampos(r));
         CAMPOS_NUM.forEach(function(c){ rec[c] = Number(rec[c]) || 0; });
         rec.mes = String(rec.mes || '').trim();
         return rec;
@@ -5190,6 +5227,17 @@ function importarExcel(input){
           }
         }
 
+        // Previsão de Produção e horas de férias: colunas acrescentadas depois,
+        // em posição que varia de planilha para planilha. Sem achar pelo nome,
+        // a previsão não entra e a aba Previsão × Capacidade fica vazia.
+        var colPrevisao = -1, colFerias = -1;
+        for(var cp=0; cp<headerRow.length; cp++){
+          if(!headerRow[cp]) continue;
+          var hp = _normNome(headerRow[cp]);
+          if(colPrevisao < 0 && hp.indexOf('previsao') === 0) colPrevisao = cp;
+          if(colFerias   < 0 && hp.indexOf('ferias')  >= 0)   colFerias   = cp;
+        }
+
         for(var ri=startRow;ri<rows.length;ri++){
           var row=rows[ri];
           if(!row||!row[0])continue;
@@ -5222,7 +5270,9 @@ function importarExcel(input){
             custoCap:      parseFloat(n(row[24]).toFixed(2)),
             qtdeFaturado:  Math.round(n(row[25])),
             diasTrabalhados: Math.round(n(row[26])),
-            qtdeVendida:   Math.round(n(row[colVendida]))
+            qtdeVendida:   Math.round(n(row[colVendida])),
+            previsaoProducao: colPrevisao>=0 ? Math.round(n(row[colPrevisao])) : 0,
+            horasFerias:      colFerias  >=0 ? parseFloat(n(row[colFerias]).toFixed(1)) : 0
           };
 
           // Fix: absenteísmo já pode estar em % (>1) ou decimal (<1)
@@ -14252,9 +14302,7 @@ input:disabled, select:disabled {
 
     var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
       + '<title>Relat\u00f3rio \u2014 Capacidade &amp; Efici\u00eancia</title>'
-      + '<style>' + _css + '</style>  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./favicon-32.png">
-</head><body>'
+      + '<style>' + _css + '</style></head><body>'
       + corpo
       + '</body></html>';
 
@@ -16553,9 +16601,7 @@ function printAtiva(){
       '.brfg-swot-box li{font-size:8pt;line-height:1.4;color:#2d3748;margin-bottom:2px;}' +
       /* footer */
       '.brfg-footer{background:#f8fafc;border-top:1px solid #edf2f7;padding:5px 20px;font-size:7.5px;color:#a0aec0;display:flex;justify-content:space-between;margin-top:10px;break-inside:avoid;}' +
-      '</style>  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./favicon-32.png">
-</head><body>' +
+      '</style></head><body>' +
       '<div class="brfg-page">' +
       document.querySelector('.brfg-header').outerHTML +
       '<div class="brfg-body">' +
