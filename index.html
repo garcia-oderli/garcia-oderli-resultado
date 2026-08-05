@@ -3499,6 +3499,10 @@ Fórmula: Faltas + Atrasos
     SET:'Setembro',OUT:'Outubro',NOV:'Novembro',DEZ:'Dezembro'
   };
   var ORDEM_MES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  /* Meta de eficiência usada pela planilha para calcular a Margem de Melhoria:
+     margem = (META_EF − eficiência) ÷ META_EF × 100. Positivo = falta para a
+     meta; negativo = meta superada. Não é margem financeira. */
+  var META_EF = 90;
 
   function bFmt(n,dec) { dec=dec||0; if(n==null||isNaN(n))return'—'; return n.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
   function bFmtR(n) { if(n==null||isNaN(n))return'—'; return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -3569,19 +3573,33 @@ Fórmula: Faltas + Atrasos
         ]});
     }
 
-    /* 3 · Eficiência × Margem */
-    if(a.margem<0){
-      out.push({status:'bad',titulo:'Eficiência boa, mas margem negativa',
-        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' e margem de '+bFmtPct(a.margem)+'.',
-        analise:'A fábrica produziu bem, mas o resultado econômico não acompanhou. Pode haver efeito de mix, custo, preço, retrabalho, perdas, desconto ou critério de cálculo da margem.',
-        recomendacao:'Abrir análise por família de produto, margem unitária, custo real, custo padrão, retrabalho e assistência técnica.',
-        calculos:[]});
+    /* 3 · Margem de Melhoria — distância até a meta de eficiência.
+       A coluna da planilha chamada "Margem Melhoria" é (90% − Eficiência) ÷ 90%,
+       não margem financeira. Positivo = falta para a meta; negativo = meta
+       superada. A base não tem receita nem custo de produto, então não há como
+       falar de resultado econômico aqui. */
+    var faltaPP = META_EF - a.eficiencia;
+    if(a.margem>0){
+      out.push({status: a.margem>5?'bad':'warn', titulo:'Eficiência abaixo da meta de '+META_EF+'%',
+        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' contra meta de '+META_EF+'% — margem de melhoria de '
+          +bFmtPct(a.margem)+' ('+bFmt(faltaPP,2)+' pp).',
+        analise:'A margem de melhoria mede a distância até a meta de eficiência, não resultado financeiro. '
+          +'Fechar essa distância significa produzir o mesmo com menos hora disponível, ou mais com a mesma hora.',
+        recomendacao:'Atacar as causas de perda de hora produtiva: absenteísmo, setup, parada de máquina e retrabalho.',
+        calculos:[
+          {label:'Margem de melhoria',formula:'('+META_EF+' − '+bFmt(a.eficiencia,2)+') ÷ '+META_EF+' × 100',resultado:bFmtPct(a.margem)},
+          {label:'Distância em pontos',formula:META_EF+' − '+bFmt(a.eficiencia,2),resultado:bFmt(faltaPP,2)+' pp'}
+        ]});
     } else {
-      out.push({status:'ok',titulo:'Margem positiva no período',
-        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' e margem de '+bFmtPct(a.margem)+'.',
-        analise:'O desempenho operacional se converteu em resultado econômico favorável.',
-        recomendacao:'Sustentar o mix e a estrutura de custo que mantiveram a margem positiva.',
-        calculos:[]});
+      out.push({status:'ok',titulo:'Eficiência acima da meta de '+META_EF+'%',
+        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' contra meta de '+META_EF+'% — margem de melhoria de '
+          +bFmtPct(a.margem)+', ou seja, meta superada em '+bFmt(Math.abs(faltaPP),2)+' pp.',
+        analise:'Margem de melhoria negativa quer dizer meta batida: não há distância a fechar neste indicador. '
+          +'Vale checar se a meta de '+META_EF+'% ainda representa desafio para a operação.',
+        recomendacao:'Registrar o que sustentou o resultado e avaliar se a meta de eficiência deve subir.',
+        calculos:[
+          {label:'Margem de melhoria',formula:'('+META_EF+' − '+bFmt(a.eficiencia,2)+') ÷ '+META_EF+' × 100',resultado:bFmtPct(a.margem)}
+        ]});
     }
 
     /* 4 · Absenteísmo */
@@ -3656,13 +3674,13 @@ Fórmula: Faltas + Atrasos
     if(a.meta>0&&a.producaoReal>=a.meta) s.forcas.push('Meta mensal de produção batida ('+bFmt(a.producaoReal)+' pçs).');
     if(a.eficiencia>=90) s.forcas.push('Eficiência operacional em bom patamar ('+bFmtPct(a.eficiencia)+').');
     if(ant&&a.eficiencia>ant.eficiencia) s.forcas.push('Eficiência em evolução frente a '+ant.mes+'/'+String(ant.ano).slice(2)+'.');
-    if(a.margem>=0) s.forcas.push('Margem positiva no período ('+bFmtPct(a.margem)+').');
+    if(a.margem<0) s.forcas.push('Meta de eficiência superada — margem de melhoria de '+bFmtPct(a.margem)+'.');
     if(ant&&a.totalExtras<ant.totalExtras) s.forcas.push('Redução de horas extras contra o mês anterior.');
     if(anoAnt&&a.producaoReal>anoAnt.producaoReal) s.forcas.push('Produção superior ao mesmo mês do ano anterior.');
     if(!s.forcas.length) s.forcas.push('Base de indicadores consolidada para acompanhamento mensal.');
 
     /* Fraquezas */
-    if(a.margem<0) s.fraquezas.push('Margem negativa ('+bFmtPct(a.margem)+').');
+    if(a.margem>0) s.fraquezas.push('Eficiência abaixo da meta — margem de melhoria de '+bFmtPct(a.margem)+'.');
     if(a.absenteismo>10) s.fraquezas.push('Absenteísmo acima de 10% ('+bFmtPct(a.absenteismo)+').');
     if((a.previsaoProducao||0)>0&&a.producaoReal<a.previsaoProducao) s.fraquezas.push('Previsão de produção não atingida.');
     if(a.meta>0&&a.producaoReal<a.meta) s.fraquezas.push('Produção abaixo da meta mensal.');
@@ -3671,29 +3689,34 @@ Fórmula: Faltas + Atrasos
 
     /* Oportunidades */
     s.oportunidades.push('Usar o CQP para integrar produção, qualidade e finanças.');
-    if(a.margem<0) s.oportunidades.push('Revisar mix de produção e custos para recuperar a margem.');
+    if(a.margem>0) s.oportunidades.push('Fechar a margem de melhoria da eficiência atacando perdas de hora produtiva.');
     if((a.qtdeVendida||0)>(a.qtdeFaturado||0)) s.oportunidades.push('Carteira vendida aquecida — potencial de faturamento se a capacidade acompanhar.');
     s.oportunidades.push('Reduzir perdas e retrabalhos com plano de qualidade.');
     s.oportunidades.push('Melhorar o planejamento de capacidade (meta × previsão × capacidade).');
 
     /* Ameaças */
     if((a.qtdeVendida||0)>(a.qtdeFaturado||0)) s.ameacas.push('Carteira vendida maior que faturada pode gerar pressão e queda de qualidade.');
-    if(a.margem<0) s.ameacas.push('Margem negativa pode comprometer o resultado mesmo com boa produção.');
+    if(a.margem>5) s.ameacas.push('Distância relevante até a meta de eficiência pode exigir hora extra recorrente.');
     if(a.absenteismo>10) s.ameacas.push('Absenteísmo pode afetar a estabilidade de setores críticos.');
     if(depExtra) s.ameacas.push('Horas extras elevadas podem aumentar fadiga e falhas.');
-    if(!s.ameacas.length) s.ameacas.push('Monitorar variações de mix e custo que possam pressionar a margem.');
+    if(!s.ameacas.length) s.ameacas.push('Monitorar absenteísmo e horas extras, que corroem a eficiência.');
 
     return s;
   }
 
   function gerarPauta(a,ant) {
     var itens=[];
-    if(a.margem<0){
+    /* Margem de Melhoria = distância até a meta de eficiência, não margem
+       financeira. Positivo = falta para a meta; negativo = meta superada. */
+    if(a.margem>5){
       itens.push({icon:'🔴',badge:'red',label:'Crítico',
-        texto:'<strong>Margem negativa ('+bFmtPct(a.margem)+')</strong> com eficiência de '+bFmtPct(a.eficiencia)+' — descompasso entre performance operacional e resultado financeiro. Revisar estrutura de custo e mix de produção.'});
+        texto:'<strong>Eficiência '+bFmtPct(a.margem)+' abaixo da meta</strong> ('+bFmtPct(a.eficiencia)+' contra '+META_EF+'%) — a margem de melhoria exige plano para recuperar hora produtiva.'});
+    } else if(a.margem>0){
+      itens.push({icon:'🟡',badge:'yellow',label:'Atenção',
+        texto:'<strong>Eficiência a '+bFmtPct(a.margem)+' da meta</strong> ('+bFmtPct(a.eficiencia)+' contra '+META_EF+'%) — margem de melhoria pequena, mas ainda aberta.'});
     } else {
       itens.push({icon:'🟢',badge:'green',label:'Positivo',
-        texto:'<strong>Margem positiva ('+bFmtPct(a.margem)+')</strong> — resultado financeiro favorável no período.'});
+        texto:'<strong>Meta de eficiência superada</strong> — '+bFmtPct(a.eficiencia)+' contra '+META_EF+'%, margem de melhoria de '+bFmtPct(a.margem)+'.'});
     }
     if(a.absenteismo>10){
       var comp=ant?' (+'+((a.absenteismo-ant.absenteismo).toFixed(2))+'pp vs mês anterior)':'';
@@ -3770,8 +3793,9 @@ Fórmula: Faltas + Atrasos
        delta:ant?bDeltaPp(a.eficiencia,ant.eficiencia)+colRef1:'—'},
       {label:'Efic. Ajustada',value:bFmtPct(a.eficienciaAdj),cls:a.eficienciaAdj>=96?'ok':'warn',
        delta:ant?bDeltaPp(a.eficienciaAdj,ant.eficienciaAdj)+colRef1:'—'},
-      {label:'Margem',value:bFmtPct(a.margem),cls:a.margem>=0?'ok':'bad',
-       delta:ant?bDeltaPp(a.margem,ant.margem)+colRef1:'—'},
+      /* margem = distância até a meta de eficiência: positivo é o que falta */
+      {label:'Margem de Melhoria',value:bFmtPct(a.margem),cls:a.margem<=0?'ok':(a.margem<=5?'warn':'bad'),
+       delta:(a.margem<=0?'Meta de '+META_EF+'% superada':'Falta para a meta de '+META_EF+'%')},
       {label:'Absenteísmo',value:bFmtPct(a.absenteismo),cls:a.absenteismo<=10?'ok':(a.absenteismo<=13?'warn':'bad'),
        delta:ant?bDeltaPp(a.absenteismo,ant.absenteismo,true)+colRef1:'—'},
       {label:'Qtde Vendida',value:bFmt(a.qtdeVendida)+' pçs',cls:'neu',delta:ant?bDelta(a.qtdeVendida,ant.qtdeVendida)+' vs '+colRef1:'—'},
@@ -3796,7 +3820,7 @@ Fórmula: Faltas + Atrasos
       lin('Qtde Vendida',       function(d){return bFmt(d.qtdeVendida)+' pçs';}),
       lin('Eficiência',         function(d){return bFmtPct(d.eficiencia);}),
       lin('Eficiência Ajustada',function(d){return bFmtPct(d.eficienciaAdj);}),
-      lin('Margem',             function(d){return bFmtPct(d.margem);}),
+      lin('Margem de Melhoria', function(d){return bFmtPct(d.margem);}),
       lin('Ticket Médio',       function(d){return bFmtR(d.ticketMedio);}),
       lin('Custo Capital',      function(d){return bFmtR(d.custoCap);})
     ].join('');
@@ -3973,7 +3997,7 @@ Fórmula: Faltas + Atrasos
          +'<div class="brfg-meta-item"><span>'+bFmt(a.diasTrabalhados)+'</span>Dias Trabalhados</div>'
          +'<div class="brfg-meta-item"><span>'+bFmt(a.producaoReal)+' pçs</span>Produção Real</div>'
          +'<div class="brfg-meta-item"><span>'+bFmtPct(a.eficiencia)+'</span>Eficiência</div>'
-         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.margem)+'</span>Margem</div>'
+         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.margem)+'</span>Margem Melhoria</div>'
          +'<div class="brfg-meta-item"><span>'+bFmtPct(a.absenteismo)+'</span>Absenteísmo</div>'
        +'</div>'
       +'</div>'
