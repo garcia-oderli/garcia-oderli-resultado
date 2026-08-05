@@ -16807,7 +16807,9 @@ function printAtiva(){
       +card('Falta produzir', fi(planoAberto)+' pç', diasAbertos+' dias úteis planejados', '#FF9800')
       +card('Dependência de hora extra', fi(heP)+' pç', 'Saíram só por hora extra', heP>0?'#FF9800':'#4CAF50')
       +'</div>'
-      +blocoDemanda(planoFech,fatFech,venFech);
+      +blocoDemanda(planoFech,fatFech,venFech)
+      +blocoProjecao(realAcum,diasFech,planoAno,planoAberto,diasAbertos,ritmoDem)
+      +graficoRitmo(mesesTab,ritmoPlano);
 
     /* Guarda o apurado para a impressão executiva montar o relatório sem
        recalcular nem depender do HTML escuro da tela. */
@@ -16869,6 +16871,139 @@ function printAtiva(){
       +'</div>'
       +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1)">'+msg+'</div>'
       +'</div>';
+  }
+
+
+  /* ── Projeção de fechamento do horizonte planejado ──
+     O plano cobre só até agosto; projetar "o ano" seria enganoso enquanto
+     SET–DEZ não tiverem plano. Então a conta fecha o horizonte que existe. */
+  function blocoProjecao(realAcum,diasFech,planoAno,planoAberto,diasAbertos,ritmoDem){
+    if(planoAberto<=0||diasAbertos<=0||diasFech<=0) return '';
+    var ritmoTotal=realAcum/diasFech;                 /* como a fábrica vem rodando, com HE */
+    var projTotal =realAcum+ritmoTotal*diasAbertos;
+    var projNormal=realAcum+ritmoDem*diasAbertos;     /* se cortar a hora extra */
+    var dif=projTotal-planoAno, pct=planoAno>0?(dif/planoAno)*100:0;
+    var ok=dif>=0, cor=ok?'#4CAF50':'#F44336', rgb=ok?'76,175,80':'244,67,54';
+    var precisa=planoAberto/diasAbertos;
+    return '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Projeção de fechamento do plano</div>'
+      +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid '+cor+';border-radius:var(--r);padding:16px 20px">'
+      +'<div style="display:flex;gap:26px;flex-wrap:wrap;margin-bottom:12px">'
+        +'<div style="flex:1;min-width:160px"><div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Projeção no ritmo atual</div>'
+          +'<div style="font-family:var(--mono);font-size:1.25rem;font-weight:700;color:'+cor+'">'+fi(projTotal)+'</div>'
+          +'<div style="font-size:.63rem;color:var(--t3);margin-top:2px">'+fi(ritmoTotal)+' pç/dia × '+diasAbertos+' dias restantes</div></div>'
+        +'<div style="flex:1;min-width:160px"><div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Plano do horizonte</div>'
+          +'<div style="font-family:var(--mono);font-size:1.25rem;font-weight:700;color:#00E5FF">'+fi(planoAno)+'</div>'
+          +'<div style="font-size:.63rem;color:var(--t3);margin-top:2px">Meses com plano informado</div></div>'
+        +'<div style="flex:1;min-width:160px"><div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Diferença projetada</div>'
+          +'<div style="font-family:var(--mono);font-size:1.25rem;font-weight:700;color:'+cor+'">'+(dif>=0?'+':'')+fi(dif)+'</div>'
+          +'<div style="font-size:.63rem;color:var(--t3);margin-top:2px">'+(pct>=0?'+':'')+fd(pct,1)+'% sobre o plano</div></div>'
+        +'<div style="flex:1;min-width:160px"><div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Sem hora extra</div>'
+          +'<div style="font-family:var(--mono);font-size:1.25rem;font-weight:700;color:'+(projNormal>=planoAno?'#4CAF50':'#FF9800')+'">'+fi(projNormal)+'</div>'
+          +'<div style="font-size:.63rem;color:var(--t3);margin-top:2px">Só na jornada normal</div></div>'
+      +'</div>'
+      +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1)">'
+        +(ok
+          ? 'Mantido o ritmo atual, o horizonte planejado fecha em <b style="color:'+cor+'">'+fi(projTotal)
+            +'</b> peças — <b>'+fd(Math.abs(pct),1)+'% acima</b> do plano. O que resta pede só <b>'+fi(precisa)
+            +'</b> pç/dia, abaixo do que a fábrica já entrega'
+            +(projNormal>=planoAno?', e fecha mesmo sem hora extra.':' — mas ainda depende de hora extra para fechar.')
+          : 'Mantido o ritmo atual, o horizonte planejado fecha em <b style="color:'+cor+'">'+fi(projTotal)
+            +'</b> peças — <b>'+fd(Math.abs(pct),1)+'% abaixo</b> do plano. O que resta pede <b>'+fi(precisa)
+            +'</b> pç/dia contra os '+fi(ritmoTotal)+' que vêm sendo entregues.')
+      +'</div></div>';
+  }
+
+  /* ── Evolução do ritmo — SVG, não canvas: acompanha a largura da tela e
+       sai no PDF sem virar imagem borrada. Três séries por mês:
+       o nominal do plano, o que cada mês cobrou e o que a fábrica entregou. */
+  function graficoRitmo(meses,ritmoPlano){
+    var pts=meses.filter(function(m){ return m.ritmoNec!==null||m.ritmoReal!==null; });
+    if(pts.length<2) return '';
+    var W=1000,H=250,mL=58,mR=14,mT=16,mB=30,gW=W-mL-mR,gH=H-mT-mB;
+    var vals=[]; pts.forEach(function(m){
+      if(m.ritmoNec!==null) vals.push(m.ritmoNec);
+      if(m.ritmoReal!==null) vals.push(m.ritmoReal);
+    });
+    if(ritmoPlano>0) vals.push(ritmoPlano);
+    var mx=Math.max.apply(null,vals)*1.08, mn=Math.min.apply(null,vals)*0.9;
+    if(!(mx>mn)) return '';
+    function X(i){ return mL+(pts.length<2?gW/2:(i/(pts.length-1))*gW); }
+    function Y(v){ return mT+gH-((v-mn)/(mx-mn))*gH; }
+
+    var grade='',eixo='';
+    for(var g=0;g<=4;g++){
+      var v=mn+((mx-mn)*g/4), y=Y(v);
+      grade+='<line x1="'+mL+'" y1="'+y.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+y.toFixed(1)
+        +'" stroke="rgba(255,255,255,.07)" stroke-width="1"/>';
+      eixo+='<text x="'+(mL-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end" font-size="11" fill="#5a86b0">'+fi(v)+'</text>';
+    }
+    var rot=pts.map(function(m,i){
+      return '<text x="'+X(i).toFixed(1)+'" y="'+(H-9)+'" text-anchor="middle" font-size="11" fill="#5a86b0">'+m.mes+'</text>';
+    }).join('');
+
+    function linha(campo,cor,tracejado){
+      var d='',started=false,bolas='';
+      pts.forEach(function(m,i){
+        var v=m[campo]; if(v===null||v===undefined) { started=false; return; }
+        d+=(started?' L ':' M ')+X(i).toFixed(1)+' '+Y(v).toFixed(1); started=true;
+        bolas+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="3.5" fill="'+cor+'"><title>'
+          +m.mes+': '+fi(v)+' pç/dia</title></circle>';
+      });
+      if(!d) return '';
+      return '<path d="'+d+'" fill="none" stroke="'+cor+'" stroke-width="2.4"'
+        +(tracejado?' stroke-dasharray="7 5"':'')+' stroke-linejoin="round"/>'+bolas;
+    }
+    var nominal = ritmoPlano>0
+      ? '<line x1="'+mL+'" y1="'+Y(ritmoPlano).toFixed(1)+'" x2="'+(W-mR)+'" y2="'+Y(ritmoPlano).toFixed(1)
+        +'" stroke="#00E5FF" stroke-width="1.6" stroke-dasharray="4 4" opacity=".75"/>'
+        +'<text x="'+(W-mR-4)+'" y="'+(Y(ritmoPlano)-6).toFixed(1)+'" text-anchor="end" font-size="10" fill="#00E5FF">plano '+fi(ritmoPlano)+'</text>'
+      : '';
+
+    function leg(c,t,tr){ return '<span style="display:inline-flex;align-items:center;gap:6px;font-size:.7rem;color:var(--t2)">'
+      +'<span style="width:16px;height:0;border-top:'+(tr?'2px dashed ':'3px solid ')+c+'"></span>'+t+'</span>'; }
+
+    return '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Evolução do ritmo — peças por dia</div>'
+      +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 16px">'
+      +'<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px">'
+        +leg('#00E5FF','Ritmo do plano (nominal do ano)',true)
+        +leg('#FF9800','Ritmo exigido pelo mês',false)
+        +leg('#F44336','Ritmo entregue na jornada normal',false)
+      +'</div>'
+      +'<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block" preserveAspectRatio="none">'
+        +grade+nominal+linha('ritmoNec','#FF9800',false)+linha('ritmoReal','#F44336',false)+eixo+rot
+      +'</svg>'
+      +'<div style="font-size:.76rem;line-height:1.55;color:var(--t2);margin-top:10px;padding:9px 12px;'
+        +'background:rgba(255,255,255,.03);border-radius:6px">'+leituraRitmo(pts)+'</div>'
+      +'</div>';
+  }
+
+  /* Lê a variação das duas curvas: quando o plano oscila mais que a fábrica,
+     o problema não é só produtividade, é nivelamento do plano. */
+  function leituraRitmo(pts){
+    function disp(campo){
+      var v=pts.map(function(m){return m[campo];}).filter(function(x){return x!==null&&x!==undefined;});
+      if(v.length<2) return null;
+      var mi=Math.min.apply(null,v), ma=Math.max.apply(null,v);
+      var med=v.reduce(function(a,b){return a+b;},0)/v.length;
+      return { min:mi, max:ma, amp:ma-mi, cv:med>0?((ma-mi)/med)*100:0 };
+    }
+    var e=disp('ritmoNec'), r=disp('ritmoReal');
+    if(!e||!r) return 'Poucos meses fechados para leitura de tendência.';
+    var txt='<b>Leitura:</b> o plano pediu de <b>'+fi(e.min)+'</b> a <b>'+fi(e.max)+'</b> pç/dia ('
+      +fi(e.amp)+' de amplitude), enquanto a fábrica entregou entre <b>'+fi(r.min)+'</b> e <b>'+fi(r.max)+'</b> ('
+      +fi(r.amp)+').';
+    if(e.amp>r.amp*1.3){
+      txt+=' <span style="color:var(--t1)">O plano oscila bem mais que a produção — parte do desvio vem de '
+        +'falta de nivelamento do plano, não só de produtividade. Distribuir a carga entre os meses reduz '
+        +'a necessidade de hora extra nos picos.</span>';
+    } else if(r.amp>e.amp*1.3){
+      txt+=' <span style="color:var(--t1)">A produção oscila mais que o plano — a instabilidade está na fábrica: '
+        +'absenteísmo, parada ou mix. Estabilizar o ritmo é o caminho mais curto.</span>';
+    } else {
+      txt+=' <span style="color:var(--t1)">Plano e produção oscilam de forma parecida; a diferença entre eles é '
+        +'de nível, não de estabilidade.</span>';
+    }
+    return txt;
   }
 
   /* ── SWOT do plano — derivado do apurado, não de texto fixo ── */
@@ -17045,9 +17180,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b27';
+var APP_VERSAO = 'b28';
 var APP_DATA   = '05/08/2026';
 var APP_HISTORICO = [
+  { v:'b28', data:'05/08/2026', itens:[
+    'Gráfico de evolução do ritmo: plano, exigido e entregue mês a mês.',
+    'Projeção de fechamento do horizonte planejado, com e sem hora extra.'
+  ]},
   { v:'b27', data:'05/08/2026', itens:[
     'Ritmo do plano e Ritmo exigido lado a lado, na aba e no briefing.',
     'Ritmo exigido usa os dias trabalhados da coluna W, não um quadro fixo.'
