@@ -4131,6 +4131,41 @@ Fórmula: Faltas + Atrasos
 </script>
 </div>
 <!-- ══ FIM PÁGINA: BRIEFING MENSAL ══ -->
+<!-- ══ PÁGINA: PLANEJAMENTO MESTRE ══ -->
+<div class="page" id="page-mestre">
+  <div class="pageHdr">
+    <div class="pageHdrIcon" style="background:var(--cyan)">
+      <svg viewBox="0 0 24 24" fill="var(--bg)"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm0 4c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm6 12H6v-1.4c0-2 4-3.1 6-3.1s6 1.1 6 3.1V19z"></path></svg>
+    </div>
+    <div>
+      <div class="pageHdrTitle">Planejamento Mestre</div>
+      <div class="pageHdrSub">Plano do ano × realizado × ritmo necessário para cumprir o que falta</div>
+    </div>
+    <div style="margin-left:auto;font-family:var(--mono);font-size:.7rem;color:var(--t3)" id="pm-ano-lbl">—</div>
+  </div>
+  <div id="pm-veredito" style="display:none"></div>
+  <div id="pm-kpis"></div>
+  <div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Mês a mês — plano, realizado e ritmo</div>
+  <div class="prod-table-wrap">
+    <table class="prod-table">
+      <thead>
+        <tr>
+          <th>Mês</th>
+          <th>Status</th>
+          <th style="text-align:right">Plano (pç)</th>
+          <th style="text-align:right">Realizado (pç)</th>
+          <th style="text-align:right">Desvio</th>
+          <th style="text-align:right">Dias úteis</th>
+          <th style="text-align:right">Ritmo necessário</th>
+          <th style="text-align:right">Ritmo realizado</th>
+        </tr>
+      </thead>
+      <tbody id="pm-tbody"></tbody>
+    </table>
+  </div>
+  <div class="cEmpty" id="pm-empty" style="display:none">Sem previsão de produção informada para este ano.</div>
+</div>
+<!-- ══ FIM PÁGINA: PLANEJAMENTO MESTRE ══ -->
 </div><!-- /main -->
 </div><!-- /layout -->
 
@@ -11723,6 +11758,7 @@ function cfInicializar() {
       label: 'PPCP / Capacidade',
       cor:   DS.C.demanda,
       pages: [
+        { id: 'mestre', label: 'Planejamento Mestre', icon: '🗓' },
         { id: 'ppcp',   label: 'PPCP',               icon: '⚙' },
         { id: 'capfat', label: 'Cap × Faturamento',  icon: '📈' }
       ]
@@ -16368,6 +16404,172 @@ function printAtiva(){
       } catch(e){}
     }, 500);
   });
+})();
+</script>
+<script>
+/* ══ PLANEJAMENTO MESTRE ══
+   O PDF da planilha mostra o plano e o que já saiu. A pergunta que ele não
+   responde é a que interessa em reunião: com o ritmo que a fábrica vem
+   demonstrando, o plano que falta é alcançável? Esta aba responde isso.
+   Lê os mesmos campos das outras telas (previsaoProducao, producaoReal,
+   prodSemExtras, diasTrabalhados), então acompanha o sync do Sheets. */
+(function(){
+  var ORDEM_M=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  /* Dias úteis planejados (Planejamento Mestre 2026). Mês já fechado usa os
+     dias efetivamente trabalhados que vêm da planilha. */
+  var DIAS_PLAN={JAN:17,FEV:20,MAR:22,ABR:20,MAI:20,JUN:21,JUL:23,AGO:21,SET:22,OUT:22,NOV:21,DEZ:23};
+
+  function fi(n){ return isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—'; }
+  function fd(n,d){ return isFinite(n)?n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'; }
+
+  function semaforo(txt,cor,rgb){
+    return '<span style="display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 8px;border-radius:20px;'
+      +'background:rgba('+rgb+',.12);border:1px solid rgba('+rgb+',.4);color:'+cor+';font-weight:700;font-size:.72rem;white-space:nowrap">'
+      +'<span style="width:10px;height:10px;border-radius:50%;background:'+cor+';box-shadow:0 0 8px rgba('+rgb+',.9);flex-shrink:0"></span>'
+      +txt+'</span>';
+  }
+
+  function statusMes(plano,real,normal){
+    if(plano<=0)      return semaforo('sem plano','#888888','136,136,136');
+    if(real<=0)       return semaforo('A produzir','#00E5FF','0,229,255');
+    if(normal>=plano) return semaforo('Cumpriu','#4CAF50','76,175,80');
+    if(real>=plano)   return semaforo('Cumpriu c/ HE','#FF9800','255,152,0');
+    return semaforo('Não cumpriu','#F44336','244,67,54');
+  }
+
+  function card(lbl,val,sub,cor){
+    return '<div class="kCard" style="border-top:3px solid '+cor+'">'
+      +'<div class="kLbl">'+lbl+'</div>'
+      +'<div class="kVal" style="color:'+cor+'">'+val+'</div>'
+      +'<div class="kSub">'+sub+'</div></div>';
+  }
+
+  function render(){
+    var pagina=document.getElementById('page-mestre'); if(!pagina) return;
+    var todos=(typeof load==='function')?load():[];
+    var ano=(typeof anoAtivo!=='undefined'&&anoAtivo)?anoAtivo:null;
+    if(!ano){ /* sem ano escolhido: usa o mais recente que tenha plano */
+      var comPlano=todos.filter(function(r){ return (r.previsaoProducao||0)>0; });
+      ano=comPlano.length?Math.max.apply(null,comPlano.map(function(r){return r.ano;})):null;
+    }
+    var lbl=document.getElementById('pm-ano-lbl');
+    if(lbl) lbl.textContent=ano?('Plano '+ano):'—';
+
+    var recs=todos.filter(function(r){ return r.ano===ano; })
+      .sort(function(a,b){ return ORDEM_M.indexOf(a.mes)-ORDEM_M.indexOf(b.mes); });
+    var temPlano=recs.some(function(r){ return (r.previsaoProducao||0)>0; });
+
+    var vazio=document.getElementById('pm-empty');
+    var tabela=pagina.querySelector('.prod-table-wrap');
+    if(!temPlano){
+      if(vazio) vazio.style.display='block';
+      if(tabela) tabela.style.display='none';
+      document.getElementById('pm-kpis').innerHTML='';
+      document.getElementById('pm-veredito').style.display='none';
+      return;
+    }
+    if(vazio) vazio.style.display='none';
+    if(tabela) tabela.style.display='';
+
+    var planoAno=0, realAcum=0, planoAberto=0, diasAbertos=0, normalFech=0, diasFech=0, heP=0, linhas='';
+    recs.forEach(function(r){
+      var plano=r.previsaoProducao||0, real=r.producaoReal||0, normal=r.prodSemExtras||0;
+      var fechado=real>0;
+      var diasP=DIAS_PLAN[r.mes]||22;
+      var dias=(fechado&&(r.diasTrabalhados||0)>0)?r.diasTrabalhados:diasP;
+      planoAno+=plano;
+      if(fechado){ realAcum+=real; normalFech+=normal; diasFech+=dias; heP+=Math.max(0,real-normal); }
+      else if(plano>0){ planoAberto+=plano; diasAbertos+=diasP; }
+      if(plano<=0&&!fechado) return; /* mês sem plano e sem realizado não entra */
+
+      var desvio=fechado?(real-plano):null;
+      var ritmoNec=plano>0?plano/diasP:null;
+      var ritmoReal=fechado&&dias>0?normal/dias:null;
+      var corDesvio=desvio===null?'var(--t3)':(desvio>=0?'var(--green)':'var(--red)');
+      var corRitmo=(ritmoReal!==null&&ritmoNec!==null)?(ritmoReal>=ritmoNec?'var(--green)':'var(--red)'):'var(--t1)';
+      linhas+='<tr>'
+        +'<td>'+r.mes+'/'+String(ano).slice(2)+'</td>'
+        +'<td>'+statusMes(plano,real,normal)+'</td>'
+        +'<td style="text-align:right">'+(plano>0?fi(plano):'—')+'</td>'
+        +'<td style="text-align:right">'+(fechado?fi(real):'—')+'</td>'
+        +'<td style="text-align:right;color:'+corDesvio+'">'+(desvio===null?'—':(desvio>=0?'+':'')+fi(desvio))+'</td>'
+        +'<td style="text-align:right">'+dias+'</td>'
+        +'<td style="text-align:right">'+(ritmoNec!==null?fi(ritmoNec):'—')+'</td>'
+        +'<td style="text-align:right;color:'+corRitmo+';font-weight:700">'+(ritmoReal!==null?fi(ritmoReal):'—')+'</td>'
+        +'</tr>';
+    });
+    document.getElementById('pm-tbody').innerHTML=linhas;
+
+    /* ── Ritmo: o que a fábrica demonstrou × o que o plano restante exige ── */
+    var ritmoDem=diasFech>0?normalFech/diasFech:0;
+    var ritmoNecR=diasAbertos>0?planoAberto/diasAbertos:0;
+    var folga=ritmoDem-ritmoNecR;
+    var pctFolga=ritmoNecR>0?(folga/ritmoNecR)*100:0;
+
+    var cor,rgb,titulo,frase,acao;
+    if(planoAberto<=0){
+      cor='#00E5FF'; rgb='0,229,255'; titulo='PLANO CUMPRIDO NO PERÍODO';
+      frase='Não há mais plano em aberto no ano — todos os meses com previsão já foram fechados.';
+      acao='Lançar a previsão dos meses seguintes para voltar a acompanhar o ritmo.';
+    } else if(folga>=0){
+      cor='#4CAF50'; rgb='76,175,80'; titulo='PLANO ALCANÇÁVEL';
+      frase='Faltam <b>'+fi(planoAberto)+'</b> peças em <b>'+diasAbertos+'</b> dias úteis — exige <b>'+fi(ritmoNecR)
+        +'</b> pç/dia. A fábrica vem entregando <b>'+fi(ritmoDem)+'</b> pç/dia na jornada normal, '
+        +'<b>'+fd(Math.abs(pctFolga),1)+'% acima</b> do necessário.';
+      acao='Manter o ritmo atual — não é preciso hora extra estrutural para cumprir o plano restante.';
+    } else if(pctFolga>-10){
+      cor='#FF9800'; rgb='255,152,0'; titulo='PLANO APERTADO';
+      frase='Faltam <b>'+fi(planoAberto)+'</b> peças em <b>'+diasAbertos+'</b> dias úteis — exige <b>'+fi(ritmoNecR)
+        +'</b> pç/dia, e a fábrica vem entregando <b>'+fi(ritmoDem)+'</b> pç/dia na jornada normal ('
+        +fd(Math.abs(pctFolga),1)+'% abaixo). Sem folga para imprevisto.';
+      acao='Cabe com hora extra pontual ou reduzindo absenteísmo — decidir agora, não no fim do mês.';
+    } else {
+      cor='#F44336'; rgb='244,67,54'; titulo='PLANO EM RISCO';
+      frase='Faltam <b>'+fi(planoAberto)+'</b> peças em <b>'+diasAbertos+'</b> dias úteis — exige <b>'+fi(ritmoNecR)
+        +'</b> pç/dia, mas a fábrica vem entregando <b>'+fi(ritmoDem)+'</b> pç/dia na jornada normal, '
+        +'<b>'+fd(Math.abs(pctFolga),1)+'% abaixo</b>. O plano não fecha no ritmo atual.';
+      acao='Decidir entre aumentar capacidade (turno, headcount ou hora extra estrutural) ou repactuar o plano com a área comercial.';
+    }
+
+    document.getElementById('pm-veredito').style.display='';
+    document.getElementById('pm-veredito').innerHTML=
+      '<div style="background:linear-gradient(135deg,var(--panel),rgba('+rgb+',.05));border:1px solid var(--b);'
+      +'border-left:5px solid '+cor+';border-radius:var(--r);padding:22px 26px;margin-bottom:16px">'
+      +'<div style="font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--t2);margin-bottom:9px">▸ Veredito do plano</div>'
+      +'<div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:9px">'
+        +'<span style="font-size:1.8rem;font-weight:800;color:'+cor+'">'+titulo+'</span>'
+        +'<span style="font-size:1.15rem;font-family:var(--mono);font-weight:700;color:'+cor+'">'
+          +(planoAberto>0?((folga>=0?'+':'')+fd(pctFolga,1)+'%'):'—')+'</span>'
+        +'<span style="font-size:.72rem;color:var(--t2)">ritmo demonstrado vs necessário</span>'
+      +'</div>'
+      +'<div style="font-size:.92rem;color:var(--t1);line-height:1.55;max-width:960px">'+frase+'</div>'
+      +'<div style="margin-top:12px;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:6px;'
+        +'font-size:.8rem;color:var(--t2);border-left:2px solid rgba('+rgb+',.45)">'
+        +'<b style="color:var(--t1)">Ação recomendada:</b> '+acao+'</div>'
+      +'</div>';
+
+    var pctPlano=planoAno>0?(realAcum/planoAno)*100:0;
+    document.getElementById('pm-kpis').innerHTML=
+      '<div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(235px,1fr))">'
+      +card('Plano do ano', fi(planoAno)+' pç', 'Soma da previsão informada', '#00E5FF')
+      +card('Realizado até agora', fi(realAcum)+' pç', fd(pctPlano,1)+'% do plano do ano', '#F5A623')
+      +card('Falta produzir', fi(planoAberto)+' pç', diasAbertos+' dias úteis restantes', '#FF9800')
+      +card('Ritmo necessário', fi(ritmoNecR)+' pç/dia', 'Para cumprir o que falta', cor)
+      +card('Ritmo demonstrado', fi(ritmoDem)+' pç/dia', 'Média na jornada normal', '#4CAF50')
+      +card('Dependência de hora extra', fi(heP)+' pç', 'Saíram só por hora extra no ano', heP>0?'#FF9800':'#4CAF50')
+      +'</div>';
+  }
+
+  function ligar(){
+    render();
+    if(window.DashBus&&window.DashBus.on){
+      window.DashBus.on('render:feito',render);
+      window.DashBus.on('dados:salvos',render);
+      window.DashBus.on('pagina:mudou',function(p){ if(p&&p.id==='mestre') setTimeout(render,40); });
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(ligar,500); });
+  else setTimeout(ligar,500);
 })();
 </script>
 <style id="status-pulse">
