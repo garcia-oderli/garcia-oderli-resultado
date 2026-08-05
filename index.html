@@ -1154,9 +1154,9 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
   <!-- Botões de ação -->
   <div class="sBox">
     <div class="sTitle">▸ Ações</div>
-    <button class="sBtn" onclick="exportCSV()">⬇ Exportar CSV</button>
-    <button class="sBtn" onclick="printAtiva()">⎙ Imprimir</button>
-    <button class="sBtn" style="color:var(--amber);border-color:rgba(255,152,0,.4);background:rgba(255,152,0,.05)" onclick="brfgImprimir()">🖨 Briefing</button>
+    <button class="sBtn" onclick="exportCSV()"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;margin-right:6px"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"></path></svg>Exportar CSV</button>
+    <button class="sBtn" onclick="printAtiva()"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;margin-right:6px"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"></path></svg>Imprimir</button>
+    <button class="sBtn" style="color:var(--amber);border-color:rgba(255,152,0,.4);background:rgba(255,152,0,.05)" onclick="brfgImprimir()"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;margin-right:6px"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"></path></svg>Briefing</button>
 
     <div id="acoes-admin-toggle" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--b)">
       <button class="sBtn" style="font-size:.62rem;color:var(--t3);border-color:var(--b);background:transparent;padding:5px 8px" onclick="document.getElementById('acoes-admin-box').style.display='flex';this.parentElement.style.display='none'">⚙ Modo edição (manutenção de dados)</button>
@@ -3325,6 +3325,815 @@ Fórmula: Faltas + Atrasos
 </table>
 </div>
 <div id="ind-industrial-panel" style="cursor: help;"><div class="ind-sec">▸ Indicadores Industriais — Capacidade &amp; Eficiência</div><div class="ind-grid"><div class="ind-card ic-amber">  <div class="ind-lbl">Demanda / Hora<i class="ui-tip-icon" title="" style="cursor: help;">?</i></div>  <div class="ind-val" id="ind-v-dem-hora">84,9</div>  <div class="ind-unit">peças / hora disponível</div>  <div class="ind-form" id="ind-f-dem-hora">180.080 ÷ (241d × 8,8h)</div></div><div class="ind-card ic-cyan">  <div class="ind-lbl">Capacidade / Hora<i class="ui-tip-icon" title="" style="cursor: help;">?</i></div>  <div class="ind-val" id="ind-v-cap-hora">73,1</div>  <div class="ind-unit">peças / hora disponível</div>  <div class="ind-form" id="ind-f-cap-hora">50 func × 1,48 pç/func/h</div></div><div class="ind-card ic-red">  <div class="ind-lbl">GAP de Produção / Hora<i class="ui-tip-icon" title="" style="cursor: help;">?</i></div>  <div class="ind-val" id="ind-v-gap-hora" style="color: rgb(255, 23, 68);">+11,8</div>  <div class="ind-unit" id="ind-u-gap-hora">⚠ Sobrecarga · dem 84,9 − prod 73,1 pç/h</div>  <div class="ind-form" id="ind-f-gap-hora">84,9 − 73,1 pç/h</div></div><div class="ind-card ic-purple">  <div class="ind-lbl">Capacidade Perdida<i class="ui-tip-icon" title="" style="cursor: help;">?</i></div>  <div class="ind-val" id="ind-v-cap-perd">794.694</div>  <div class="ind-unit" id="ind-u-cap-perd">10.865h perdidas × 73,1 pç/h</div>  <div class="ind-form" id="ind-f-cap-perd">H.Perd 10.865h × Prod/h 73,1</div></div><div class="ind-card ic-green">  <div class="ind-lbl">Eficiência de Produção<i class="ui-tip-icon" title="" style="cursor: help;">?</i></div>  <div class="ind-val" id="ind-v-ef-prod" style="color: rgb(0, 230, 118);">91,1%</div>  <div class="ind-unit">produção real ÷ cap. teórica</div>  <div class="ind-form" id="ind-f-ef-prod">155.115 ÷ 170.236 (meta col S)</div></div></div></div></div></div>
+<!-- ══ PÁGINA: BRIEFING MENSAL ══ -->
+<div class="page" id="page-briefing">
+<style>
+/* ── Briefing: wrapper escuro → card branco ── */
+#page-briefing { background: transparent; }
+#brfg-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 32px rgba(0,0,0,.45);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #1a1a2e;
+}
+/* action bar */
+#brfg-action {
+  display: flex; gap: 10px; justify-content: flex-end; align-items: center;
+  padding: 12px 32px; background: #fff; border-bottom: 1px solid #edf2f7; flex-wrap: wrap;
+}
+#brfg-action .brfg-fonte { font-size: 11px; color: #a0aec0; margin-right: auto; }
+.brfg-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 600; letter-spacing: .3px;
+  border: none; border-radius: 7px; padding: 9px 16px;
+  cursor: pointer; transition: opacity .15s, transform .1s;
+  font-family: inherit;
+}
+.brfg-btn:hover { opacity: .85; transform: translateY(-1px); }
+.brfg-btn:active { transform: translateY(0); }
+.brfg-btn-copy  { background: #1a1a2e; color: #fff; }
+.brfg-btn-gmail { background: #ea4335; color: #fff; }
+.brfg-btn-print { background: #f0f2f5; color: #1a1a2e; border: 1px solid #d1d5db; }
+.brfg-btn-copy.copied { background: #38a169; }
+/* header */
+.brfg-header {
+  background: linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);
+  color: #fff; padding: 36px 40px 28px;
+}
+.brfg-header .brfg-label {
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  color: #e94560; font-weight: 700; margin-bottom: 8px;
+}
+.brfg-header h2 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+.brfg-header .brfg-sub { font-size: 13px; color: #a0aec0; }
+.brfg-meta-row { display: flex; gap: 14px; margin-top: 20px; flex-wrap: wrap; }
+.brfg-meta-item {
+  background: rgba(255,255,255,.07); border-radius: 8px;
+  padding: 10px 18px; font-size: 12px; color: #cbd5e0; min-width: 110px;
+}
+.brfg-meta-item span { display: block; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+/* body */
+.brfg-body { padding: 32px 40px; }
+.brfg-section { margin-bottom: 36px; }
+.brfg-section-title {
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  color: #e94560; font-weight: 700; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 2px solid #f0f2f5;
+}
+/* kpi cards */
+.brfg-kpi-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(175px,1fr)); gap: 14px; }
+.brfg-kpi-card { background: #f8fafc; border-radius: 10px; padding: 16px; border-left: 4px solid #e2e8f0; }
+.brfg-kpi-card.ok   { border-left-color: #38a169; }
+.brfg-kpi-card.warn { border-left-color: #d69e2e; }
+.brfg-kpi-card.bad  { border-left-color: #e53e3e; }
+.brfg-kpi-card.neu  { border-left-color: #718096; }
+.brfg-kpi-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px; }
+.brfg-kpi-value { font-size: 22px; font-weight: 700; color: #1a1a2e; line-height: 1.1; }
+.brfg-kpi-delta { font-size: 11px; margin-top: 5px; color: #718096; line-height: 1.5; }
+.brfg-up   { color: #38a169; font-weight: 600; }
+.brfg-down { color: #e53e3e; font-weight: 600; }
+/* tabela */
+#brfg-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#brfg-wrap thead tr { background: #1a1a2e; color: #fff; }
+#brfg-wrap thead th { padding: 10px 14px; text-align: left; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+#brfg-wrap thead th:not(:first-child) { text-align: right; }
+#brfg-wrap tbody tr:nth-child(even) { background: #f8fafc; }
+#brfg-wrap tbody td { padding: 10px 14px; color: #2d3748; border-bottom: 1px solid #edf2f7; }
+#brfg-wrap tbody td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+#brfg-wrap tbody tr td:first-child { font-weight: 600; }
+.brfg-hl { color: #1a1a2e; font-weight: 700 !important; }
+/* pauta */
+.brfg-alert-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.brfg-alert-list li {
+  background: #f8fafc; border-radius: 8px;
+  padding: 14px 16px 14px 50px; font-size: 13px;
+  line-height: 1.6; color: #2d3748; position: relative;
+}
+.brfg-alert-list li .brfg-icon { position: absolute; left: 14px; top: 14px; font-size: 18px; }
+.brfg-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  letter-spacing: .5px; text-transform: uppercase;
+  border-radius: 4px; padding: 2px 7px; margin-right: 6px;
+}
+.brfg-badge.red    { background: #fed7d7; color: #c53030; }
+.brfg-badge.green  { background: #c6f6d5; color: #276749; }
+.brfg-badge.yellow { background: #fefcbf; color: #744210; }
+.brfg-badge.blue   { background: #bee3f8; color: #2a69ac; }
+/* footer */
+.brfg-footer {
+  background: #f8fafc; border-top: 1px solid #edf2f7;
+  padding: 16px 40px; font-size: 11px; color: #a0aec0;
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+}
+/* sem dados */
+.brfg-sem-dados { text-align: center; padding: 60px 40px; color: #718096; }
+.brfg-sem-dados h3 { font-size: 18px; margin-bottom: 12px; color: #1a1a2e; }
+.brfg-sem-dados p { font-size: 13px; line-height: 1.7; }
+/* toast */
+#brfg-toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1a1a2e; color: #fff; font-size: 13px; font-weight: 600;
+  padding: 12px 24px; border-radius: 8px; opacity: 0;
+  pointer-events: none; transition: all .3s; z-index: 9999;
+}
+#brfg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* ── Achados: FATO / ANÁLISE / RECOMENDAÇÃO ── */
+.brfg-achado { border: 1px solid #e2e8f0; border-left: 4px solid #718096; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; background: #fff; }
+.brfg-achado.ok   { border-left-color: #38a169; }
+.brfg-achado.warn { border-left-color: #d69e2e; }
+.brfg-achado.bad  { border-left-color: #e53e3e; }
+.brfg-achado.info { border-left-color: #3182ce; }
+.brfg-achado-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.brfg-achado-ico { font-size: 15px; }
+.brfg-achado-ttl { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+.brfg-achado-box { border-radius: 6px; padding: 9px 12px; margin-bottom: 8px; font-size: 12.5px; line-height: 1.5; color: #2d3748; }
+.brfg-achado-box.fato    { background: #eef4ff; border-left: 3px solid #0f3460; }
+.brfg-achado-box.analise { background: #fff8e1; border-left: 3px solid #d69e2e; }
+.brfg-achado-box.rec     { background: #eaf7ea; border-left: 3px solid #38a169; }
+.brfg-achado-lbl { display: block; font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 700; color: #718096; margin-bottom: 3px; }
+#brfg-wrap .brfg-calc-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 12px; }
+#brfg-wrap .brfg-calc-table thead tr { background: #1a1a2e !important; }
+#brfg-wrap .brfg-calc-table thead th { padding: 5px 9px; text-align: left; font-size: 10px; letter-spacing: .5px; text-transform: uppercase; font-weight: 600; color: #fff !important; background: #1a1a2e !important; }
+#brfg-wrap .brfg-calc-table tbody td { padding: 5px 9px; border-bottom: 1px solid #edf2f7; color: #2d3748 !important; background: #fff !important; }
+#brfg-wrap .brfg-calc-table tbody tr:nth-child(even) td { background: #f8fafc !important; }
+#brfg-wrap .brfg-calc-table tbody td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: #1a1a2e !important; }
+/* ── SWOT ── */
+.brfg-swot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.brfg-swot-box { border-radius: 8px; padding: 14px 16px; border: 1px solid #e2e8f0; }
+.brfg-swot-box.forcas        { background: #e8f5e9; border-color: #c6f6d5; }
+.brfg-swot-box.fraquezas     { background: #fff8e1; border-color: #fefcbf; }
+.brfg-swot-box.oportunidades { background: #e3f2fd; border-color: #bee3f8; }
+.brfg-swot-box.ameacas       { background: #ffebee; border-color: #fed7d7; }
+#brfg-wrap .brfg-swot-ttl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; color: #1a1a2e; }
+#brfg-wrap .brfg-swot-box ul { margin: 0; padding-left: 18px; }
+#brfg-wrap .brfg-swot-box li { font-size: 12.5px; line-height: 1.55; color: #2d3748; margin-bottom: 4px; }
+@media (max-width: 640px) { .brfg-swot-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div id="brfg-toast">✓ Conteúdo copiado! Cole diretamente no Gmail ou Outlook.</div>
+
+<div id="brfg-wrap">
+  <!-- ACTION BAR -->
+  <div id="brfg-action">
+    <span class="brfg-fonte" id="brfg-fonte-label">Dados: Abril/2026 · Gerado em 07/07/2026</span>
+    <button class="brfg-btn brfg-btn-print" onclick="brfgImprimir()">🖨️ Imprimir / PDF</button>
+    <a id="brfg-btn-gmail" class="brfg-btn brfg-btn-gmail" target="_blank" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;su=Briefing%20PPCP%20%E2%80%94%20Abril%2F2026">✉️ Abrir no Gmail</a>
+    <button class="brfg-btn brfg-btn-copy" id="brfg-btn-copy" onclick="brfgCopiar()">📋 Copiar para E-mail</button>
+  </div>
+  <!-- CONTEÚDO GERADO -->
+  <div id="brfg-content"><div class="brfg-header"><div class="brfg-label">PPCP — Planejamento e Controle da Produção</div><h2>Briefing Mensal — Abril / 2026</h2><div class="brfg-sub">Referência para reunião · Comparativo: MAR/26 e ABR/25</div><div class="brfg-meta-row"><div class="brfg-meta-item"><span>100</span>Colaboradores</div><div class="brfg-meta-item"><span>19</span>Dias Trabalhados</div><div class="brfg-meta-item"><span>29.195 pçs</span>Produção Real</div><div class="brfg-meta-item"><span>92,26%</span>Eficiência</div><div class="brfg-meta-item"><span>-2,51%</span>Margem</div><div class="brfg-meta-item"><span>15,08%</span>Absenteísmo</div></div></div><div class="brfg-body"><div class="brfg-section"><div class="brfg-section-title">Indicadores-Chave — Abril/2026</div><div class="brfg-kpi-grid"><div class="brfg-kpi-card ok"><div class="brfg-kpi-label">Produção Real</div><div class="brfg-kpi-value">29.195 pçs</div><div class="brfg-kpi-delta"><span class="brfg-up">✓ Meta batida</span> · meta 28.340</div></div><div class="brfg-kpi-card warn"><div class="brfg-kpi-label">Eficiência</div><div class="brfg-kpi-value">92,26%</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 8.86pp</span> vs MAR/26</div></div><div class="brfg-kpi-card ok"><div class="brfg-kpi-label">Efic. Ajustada</div><div class="brfg-kpi-value">99,95%</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 10.65pp</span> vs MAR/26</div></div><div class="brfg-kpi-card bad"><div class="brfg-kpi-label">Margem</div><div class="brfg-kpi-value">-2,51%</div><div class="brfg-kpi-delta"><span class="brfg-up">▲ 9.85pp</span> vs MAR/26</div></div><div class="brfg-kpi-card bad"><div class="brfg-kpi-label">Absenteísmo</div><div class="brfg-kpi-value">15,08%</div><div class="brfg-kpi-delta"><span class="brfg-down">▲ 1.19pp</span> vs MAR/26</div></div><div class="brfg-kpi-card neu"><div class="brfg-kpi-label">Qtde Vendida</div><div class="brfg-kpi-value">40.059 pçs</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 23.6%</span> vs MAR/26</div></div><div class="brfg-kpi-card neu"><div class="brfg-kpi-label">Qtde Faturada</div><div class="brfg-kpi-value">28.986 pçs</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 4.8%</span> vs MAR/26</div></div><div class="brfg-kpi-card neu"><div class="brfg-kpi-label">Custo Capital</div><div class="brfg-kpi-value">R$ 1.116.547,71</div><div class="brfg-kpi-delta"><span class="brfg-down">▲ 11.6%</span> vs MAR/26</div></div><div class="brfg-kpi-card neu"><div class="brfg-kpi-label">Ticket Médio</div><div class="brfg-kpi-value">R$ 253,63</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 2.9%</span> vs MAR/26</div></div></div></div><div class="brfg-section"><div class="brfg-section-title">Comparativo Mensal</div><table><thead><tr><th>Indicador</th><th>ABR/26</th><th>MAR/26</th><th>ABR/25</th></tr></thead><tbody><tr><td>Colaboradores</td><td class="brfg-hl">100</td><td>97</td><td>91</td></tr><tr><td>Dias Trabalhados</td><td class="brfg-hl">19</td><td>22</td><td>19</td></tr><tr><td>Horas Carga</td><td class="brfg-hl">14.889 h</td><td>17.036 h</td><td>14.065 h</td></tr><tr><td>Faltas (horas)</td><td class="brfg-hl">2.179 h</td><td>2.258 h</td><td>1.150 h</td></tr><tr><td>Total Extras</td><td class="brfg-hl">1.509,0 h</td><td>564,4 h</td><td>3.141,0 h</td></tr><tr><td>Absenteísmo</td><td class="brfg-hl">15,08%</td><td>13,89%</td><td>9,86%</td></tr><tr><td>Produção Real</td><td class="brfg-hl">29.195 pçs</td><td>27.600 pçs</td><td>35.720 pçs</td></tr><tr><td>Meta</td><td class="brfg-hl">28.340 pçs</td><td>26.346 pçs</td><td>34.437 pçs</td></tr><tr><td>Qtde Faturada</td><td class="brfg-hl">28.986 pçs</td><td>30.439 pçs</td><td>33.522 pçs</td></tr><tr><td>Qtde Vendida</td><td class="brfg-hl">40.059 pçs</td><td>52.435 pçs</td><td>48.496 pçs</td></tr><tr><td>Eficiência</td><td class="brfg-hl">92,26%</td><td>101,12%</td><td>79,70%</td></tr><tr><td>Eficiência Ajustada</td><td class="brfg-hl">99,95%</td><td>110,60%</td><td>82,92%</td></tr><tr><td>Margem</td><td class="brfg-hl">-2,51%</td><td>-12,36%</td><td>11,45%</td></tr><tr><td>Ticket Médio</td><td class="brfg-hl">R$ 253,63</td><td>R$ 261,11</td><td>R$ 185,36</td></tr><tr><td>Custo Capital</td><td class="brfg-hl">R$ 1.116.547,71</td><td>R$ 1.000.653,03</td><td>R$ 652.839,69</td></tr></tbody></table></div><div class="brfg-section"><div class="brfg-section-title">Pontos para Pauta da Reunião</div><ul class="brfg-alert-list"><li><span class="brfg-icon">🔴</span><span class="brfg-badge red">Crítico</span><strong>Margem negativa (-2,51%)</strong> com eficiência de 92,26% — descompasso entre performance operacional e resultado financeiro. Revisar estrutura de custo e mix de produção.</li><li><span class="brfg-icon">🟡</span><span class="brfg-badge yellow">Atenção</span><strong>Absenteísmo em 15,08%</strong> (+1.19pp vs mês anterior) — acima do limite de 10%. Necessário plano de ação de RH / gestão de frequência.</li><li><span class="brfg-icon">🟢</span><span class="brfg-badge green">Positivo</span><strong>Meta de produção batida</strong> — 29.195 pçs vs meta de 28.340 pçs, com apenas 1.509,0h de horas extras.</li><li><span class="brfg-icon">🔵</span><span class="brfg-badge blue">Info</span><strong>Equipe cresceu</strong> de 97 para 100 colaboradores — monitorar curva de integração e impacto na eficiência.</li><li><span class="brfg-icon">🔵</span><span class="brfg-badge blue">Info</span><strong>Carteira de vendas aquecida</strong> — 40.059 pçs vendidas vs 28.986 faturadas. Avaliar capacidade de entrega para o próximo período.</li></ul></div></div><div class="brfg-footer"><span>PPCP — Dashboard de Produção · Abril/2026</span><span>Gerado em: 07/07/2026</span></div></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var MESES_NOME = {
+    JAN:'Janeiro',FEV:'Fevereiro',MAR:'Março',ABR:'Abril',
+    MAI:'Maio',JUN:'Junho',JUL:'Julho',AGO:'Agosto',
+    SET:'Setembro',OUT:'Outubro',NOV:'Novembro',DEZ:'Dezembro'
+  };
+  var ORDEM_MES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+  function bFmt(n,dec) { dec=dec||0; if(n==null||isNaN(n))return'—'; return n.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+  function bFmtR(n) { if(n==null||isNaN(n))return'—'; return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function bFmtPct(n) { if(n==null||isNaN(n))return'—'; return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'; }
+
+  function bDelta(atual,ref,inv) {
+    if(ref==null||ref===0||atual==null)return'';
+    var d=atual-ref, pct=((d/Math.abs(ref))*100).toFixed(1);
+    var bom=inv?d<0:d>0;
+    return '<span class="'+(bom?'brfg-up':'brfg-down')+'">'+(d>0?'▲':'▼')+' '+Math.abs(parseFloat(pct))+'%</span>';
+  }
+  function bDeltaPp(atual,ref,inv) {
+    if(ref==null||atual==null)return'';
+    var d=(atual-ref).toFixed(2);
+    var bom=inv?d<0:d>0;
+    return '<span class="'+(bom?'brfg-up':'brfg-down')+'">'+(d>0?'▲':'▼')+' '+Math.abs(d)+'pp</span> vs ';
+  }
+
+  function mesAnt(mes,ano) {
+    var idx=ORDEM_MES.indexOf(mes);
+    if(idx===0)return{mes:'DEZ',ano:ano-1};
+    return{mes:ORDEM_MES[idx-1],ano:ano};
+  }
+
+  /* ── Achados estruturados: FATO → ANÁLISE → RECOMENDAÇÃO ──
+     Mesmo padrão de limiares do gerarPauta / classes dos KPIs. */
+  function gerarAchados(a,ant,anoAnt) {
+    var out=[];
+
+    /* 1 · Produção × Meta */
+    if(a.meta>0){
+      if(a.producaoReal>=a.meta){
+        var acima=a.producaoReal-a.meta, pctA=(acima/a.meta)*100;
+        out.push({status:'ok',titulo:'Produção superou a meta mensal',
+          fato:'Produção real de '+bFmt(a.producaoReal)+' peças contra meta de '+bFmt(a.meta)+' peças.',
+          analise:'O resultado indica cumprimento positivo da meta operacional do mês.',
+          recomendacao:'Manter a rotina que permitiu superar a meta e registrar as práticas que contribuíram para o resultado.',
+          calculos:[
+            {label:'Peças acima da meta',formula:bFmt(a.producaoReal)+' − '+bFmt(a.meta),resultado:bFmt(acima)+' peças'},
+            {label:'% acima da meta',formula:bFmt(acima)+' ÷ '+bFmt(a.meta)+' × 100',resultado:bFmtPct(pctA)}
+          ]});
+      } else {
+        var gapM=a.meta-a.producaoReal, pctG=(gapM/a.meta)*100;
+        out.push({status:'warn',titulo:'Produção abaixo da meta mensal',
+          fato:'Produção real de '+bFmt(a.producaoReal)+' peças contra meta de '+bFmt(a.meta)+' peças.',
+          analise:'A meta não foi atingida no mês. Avaliar restrições de capacidade, absenteísmo, mix e paradas de produção.',
+          recomendacao:'Analisar as causas do gap e preparar plano de recuperação para o próximo mês.',
+          calculos:[
+            {label:'Gap contra a meta',formula:bFmt(a.meta)+' − '+bFmt(a.producaoReal),resultado:bFmt(gapM)+' peças'},
+            {label:'% abaixo da meta',formula:bFmt(gapM)+' ÷ '+bFmt(a.meta)+' × 100',resultado:bFmtPct(pctG)}
+          ]});
+      }
+    }
+
+    /* 2 · Produção × Previsão (só se houver previsão) */
+    if((a.previsaoProducao||0)>0){
+      var gapP=a.previsaoProducao-a.producaoReal, pctReal=(a.producaoReal/a.previsaoProducao)*100;
+      var atingiu=a.producaoReal>=a.previsaoProducao;
+      out.push({status:atingiu?'ok':'warn',titulo:atingiu?'Previsão de produção atingida':'Produção abaixo da previsão',
+        fato:'Previsão de produção de '+bFmt(a.previsaoProducao)+' peças e produção real de '+bFmt(a.producaoReal)+' peças.',
+        analise:atingiu
+          ?'A produção alcançou a necessidade planejada do período.'
+          :'A meta pode ter sido batida, mas a previsão (necessidade planejada) não foi alcançada. Diferenciar meta, previsão e capacidade evita ruído gerencial.',
+        recomendacao:'Acompanhar meta, previsão e capacidade como campos separados no painel.',
+        calculos:[
+          {label:'Gap contra previsão',formula:bFmt(a.previsaoProducao)+' − '+bFmt(a.producaoReal),resultado:bFmt(gapP)+' peças'},
+          {label:'% realizado da previsão',formula:bFmt(a.producaoReal)+' ÷ '+bFmt(a.previsaoProducao)+' × 100',resultado:bFmtPct(pctReal)}
+        ]});
+    }
+
+    /* 3 · Eficiência × Margem */
+    if(a.margem<0){
+      out.push({status:'bad',titulo:'Eficiência boa, mas margem negativa',
+        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' e margem de '+bFmtPct(a.margem)+'.',
+        analise:'A fábrica produziu bem, mas o resultado econômico não acompanhou. Pode haver efeito de mix, custo, preço, retrabalho, perdas, desconto ou critério de cálculo da margem.',
+        recomendacao:'Abrir análise por família de produto, margem unitária, custo real, custo padrão, retrabalho e assistência técnica.',
+        calculos:[]});
+    } else {
+      out.push({status:'ok',titulo:'Margem positiva no período',
+        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' e margem de '+bFmtPct(a.margem)+'.',
+        analise:'O desempenho operacional se converteu em resultado econômico favorável.',
+        recomendacao:'Sustentar o mix e a estrutura de custo que mantiveram a margem positiva.',
+        calculos:[]});
+    }
+
+    /* 4 · Absenteísmo */
+    if(a.absenteismo>10){
+      var comp=ant?' Variação de '+(a.absenteismo-ant.absenteismo>=0?'+':'')+bFmt(a.absenteismo-ant.absenteismo,2)+' pp vs '+ant.mes+'/'+String(ant.ano).slice(2)+'.':'';
+      out.push({status:a.absenteismo>13?'bad':'warn',titulo:'Absenteísmo acima do limite gerencial',
+        fato:'Absenteísmo de '+bFmtPct(a.absenteismo)+', acima do limite de 10%.'+comp,
+        analise:'Faltas afetam ritmo, balanceamento, qualidade e estabilidade de setores críticos, como coladeira, pintura, CNC, embalagem e expedição.',
+        recomendacao:'RH, Produção e CQP devem acompanhar absenteísmo por setor, turno e impacto em qualidade.',
+        calculos:[]});
+    }
+
+    /* 5 · Venda × Faturamento */
+    if((a.qtdeVendida||0)>0&&(a.qtdeFaturado||0)>0&&a.qtdeVendida>a.qtdeFaturado){
+      var difVF=a.qtdeVendida-a.qtdeFaturado, pctNF=(difVF/a.qtdeVendida)*100, razao=a.qtdeVendida/a.qtdeFaturado;
+      out.push({status:'info',titulo:'Venda maior que faturamento pressiona a operação',
+        fato:bFmt(a.qtdeVendida)+' peças vendidas contra '+bFmt(a.qtdeFaturado)+' peças faturadas.',
+        analise:'A diferença indica pressão futura sobre capacidade, embalagem, expedição e qualidade.',
+        recomendacao:'PPCP deve transformar a carteira em plano de capacidade por produto, família, gargalo e prazo.',
+        calculos:[
+          {label:'Diferença venda × faturamento',formula:bFmt(a.qtdeVendida)+' − '+bFmt(a.qtdeFaturado),resultado:bFmt(difVF)+' peças'},
+          {label:'% não faturado sobre vendido',formula:bFmt(difVF)+' ÷ '+bFmt(a.qtdeVendida)+' × 100',resultado:bFmtPct(pctNF)},
+          {label:'Relação vendido/faturado',formula:bFmt(a.qtdeVendida)+' ÷ '+bFmt(a.qtdeFaturado),resultado:bFmt(razao,2)}
+        ]});
+    }
+
+    return out;
+  }
+
+  /* ── SWOT derivada dos indicadores do mês ── */
+  /* ── Achado de Ticket Médio: tendência de TODOS os meses (sem quebra por família) ── */
+  function gerarAchadoTicket(reais) {
+    var rs = (reais||[]).filter(function(r){ return r.ticketMedio > 0; });
+    if (rs.length < 2) return null;
+    var first = rs[0], last = rs[rs.length-1];
+    var delta = (last.ticketMedio - first.ticketMedio) / first.ticketMedio * 100;
+    var minR = rs.reduce(function(x,y){ return y.ticketMedio < x.ticketMedio ? y : x; });
+    var volF = first.qtdeFaturado || 0, volL = last.qtdeFaturado || 0;
+    var volDelta = volF > 0 ? (volL - volF) / volF * 100 : 0;
+    var ref = function(r){ return r.mes + '/' + String(r.ano).slice(2); };
+    var caindo = delta < -2;
+    var status = caindo ? 'warn' : (delta > 2 ? 'ok' : 'info');
+    var titulo = caindo ? 'Ticket médio em queda no período'
+              : (delta > 2 ? 'Ticket médio em recuperação no período' : 'Ticket médio estável no período');
+    var fato = 'Ticket médio foi de ' + bFmtR(first.ticketMedio) + ' (' + ref(first) + ') para '
+             + bFmtR(last.ticketMedio) + ' (' + ref(last) + '), ' + (delta>=0?'+':'') + bFmt(delta,1)
+             + '% no período. Menor valor: ' + bFmtR(minR.ticketMedio) + ' em ' + ref(minR) + '.';
+    var analise;
+    if (caindo && volDelta > 5)
+      analise = 'A queda do ticket acompanha o aumento do volume faturado (' + (volDelta>=0?'+':'') + bFmt(volDelta,0)
+              + '% de peças). Isso aponta para mix de produtos de menor valor e/ou desconto para girar volume — não um problema isolado de um mês.';
+    else if (caindo)
+      analise = 'A queda do ticket não é explicada por aumento de volume (' + (volDelta>=0?'+':'') + bFmt(volDelta,0)
+              + '% de peças). Provável pressão de preço ou mudança de mix — revisar política comercial.';
+    else
+      analise = 'Ticket médio relativamente estável/em recuperação; volume faturado ' + (volDelta>=0?'+':'') + bFmt(volDelta,0) + '% no período.';
+    var recomendacao = 'Acompanhar ticket médio × volume × margem mês a mês. Para cravar a causa exata, seria preciso o faturamento por produto/família (não disponível hoje na base).';
+    return {
+      status: status, titulo: titulo, fato: fato, analise: analise, recomendacao: recomendacao,
+      calculos: [
+        { label: 'Variação do ticket no período', formula: bFmtR(last.ticketMedio) + ' vs ' + bFmtR(first.ticketMedio), resultado: (delta>=0?'+':'') + bFmt(delta,1) + '%' },
+        { label: 'Variação do volume faturado',   formula: bFmt(volL) + ' vs ' + bFmt(volF) + ' pç',                    resultado: (volDelta>=0?'+':'') + bFmt(volDelta,0) + '%' }
+      ]
+    };
+  }
+
+  function gerarSWOT(a,ant,anoAnt) {
+    var s={forcas:[],fraquezas:[],oportunidades:[],ameacas:[]};
+    var depExtra=a.horasCarga>0&&(a.totalExtras/a.horasCarga)>0.10;
+
+    /* Forças */
+    if(a.meta>0&&a.producaoReal>=a.meta) s.forcas.push('Meta mensal de produção batida ('+bFmt(a.producaoReal)+' pçs).');
+    if(a.eficiencia>=90) s.forcas.push('Eficiência operacional em bom patamar ('+bFmtPct(a.eficiencia)+').');
+    if(ant&&a.eficiencia>ant.eficiencia) s.forcas.push('Eficiência em evolução frente a '+ant.mes+'/'+String(ant.ano).slice(2)+'.');
+    if(a.margem>=0) s.forcas.push('Margem positiva no período ('+bFmtPct(a.margem)+').');
+    if(ant&&a.totalExtras<ant.totalExtras) s.forcas.push('Redução de horas extras contra o mês anterior.');
+    if(anoAnt&&a.producaoReal>anoAnt.producaoReal) s.forcas.push('Produção superior ao mesmo mês do ano anterior.');
+    if(!s.forcas.length) s.forcas.push('Base de indicadores consolidada para acompanhamento mensal.');
+
+    /* Fraquezas */
+    if(a.margem<0) s.fraquezas.push('Margem negativa ('+bFmtPct(a.margem)+').');
+    if(a.absenteismo>10) s.fraquezas.push('Absenteísmo acima de 10% ('+bFmtPct(a.absenteismo)+').');
+    if((a.previsaoProducao||0)>0&&a.producaoReal<a.previsaoProducao) s.fraquezas.push('Previsão de produção não atingida.');
+    if(a.meta>0&&a.producaoReal<a.meta) s.fraquezas.push('Produção abaixo da meta mensal.');
+    if(depExtra) s.fraquezas.push('Dependência de hora extra acima de 10% da carga.');
+    if(!s.fraquezas.length) s.fraquezas.push('Sem fraquezas críticas detectadas automaticamente neste mês.');
+
+    /* Oportunidades */
+    s.oportunidades.push('Usar o CQP para integrar produção, qualidade e finanças.');
+    if(a.margem<0) s.oportunidades.push('Revisar mix de produção e custos para recuperar a margem.');
+    if((a.qtdeVendida||0)>(a.qtdeFaturado||0)) s.oportunidades.push('Carteira vendida aquecida — potencial de faturamento se a capacidade acompanhar.');
+    s.oportunidades.push('Reduzir perdas e retrabalhos com plano de qualidade.');
+    s.oportunidades.push('Melhorar o planejamento de capacidade (meta × previsão × capacidade).');
+
+    /* Ameaças */
+    if((a.qtdeVendida||0)>(a.qtdeFaturado||0)) s.ameacas.push('Carteira vendida maior que faturada pode gerar pressão e queda de qualidade.');
+    if(a.margem<0) s.ameacas.push('Margem negativa pode comprometer o resultado mesmo com boa produção.');
+    if(a.absenteismo>10) s.ameacas.push('Absenteísmo pode afetar a estabilidade de setores críticos.');
+    if(depExtra) s.ameacas.push('Horas extras elevadas podem aumentar fadiga e falhas.');
+    if(!s.ameacas.length) s.ameacas.push('Monitorar variações de mix e custo que possam pressionar a margem.');
+
+    return s;
+  }
+
+  function gerarPauta(a,ant) {
+    var itens=[];
+    if(a.margem<0){
+      itens.push({icon:'🔴',badge:'red',label:'Crítico',
+        texto:'<strong>Margem negativa ('+bFmtPct(a.margem)+')</strong> com eficiência de '+bFmtPct(a.eficiencia)+' — descompasso entre performance operacional e resultado financeiro. Revisar estrutura de custo e mix de produção.'});
+    } else {
+      itens.push({icon:'🟢',badge:'green',label:'Positivo',
+        texto:'<strong>Margem positiva ('+bFmtPct(a.margem)+')</strong> — resultado financeiro favorável no período.'});
+    }
+    if(a.absenteismo>10){
+      var comp=ant?' (+'+((a.absenteismo-ant.absenteismo).toFixed(2))+'pp vs mês anterior)':'';
+      itens.push({icon:'🟡',badge:'yellow',label:'Atenção',
+        texto:'<strong>Absenteísmo em '+bFmtPct(a.absenteismo)+'</strong>'+comp+' — acima do limite de 10%. Necessário plano de ação de RH / gestão de frequência.'});
+    } else {
+      itens.push({icon:'🟢',badge:'green',label:'Positivo',
+        texto:'<strong>Absenteísmo controlado em '+bFmtPct(a.absenteismo)+'</strong> — dentro do limite de 10%.'});
+    }
+    if(a.producaoReal>=a.meta){
+      itens.push({icon:'🟢',badge:'green',label:'Positivo',
+        texto:'<strong>Meta de produção batida</strong> — '+bFmt(a.producaoReal)+' pçs vs meta de '+bFmt(a.meta)+' pçs, com apenas '+bFmt(a.totalExtras,1)+'h de horas extras.'});
+    } else {
+      var gap=a.meta-a.producaoReal;
+      itens.push({icon:'🟡',badge:'yellow',label:'Atenção',
+        texto:'<strong>Meta de produção não atingida</strong> — gap de '+bFmt(gap)+' pçs ('+bFmt(((gap/a.meta)*100),1)+'% abaixo da meta de '+bFmt(a.meta)+' pçs). Analisar restrições de capacidade.'});
+    }
+    if(ant&&a.colaboradores<ant.colaboradores){
+      itens.push({icon:'🟡',badge:'yellow',label:'Atenção',
+        texto:'<strong>Headcount recuou</strong> de '+ant.colaboradores+' para '+a.colaboradores+' colaboradores — avaliar impacto na capacidade produtiva do próximo mês.'});
+    } else if(ant&&a.colaboradores>ant.colaboradores){
+      itens.push({icon:'🔵',badge:'blue',label:'Info',
+        texto:'<strong>Equipe cresceu</strong> de '+ant.colaboradores+' para '+a.colaboradores+' colaboradores — monitorar curva de integração e impacto na eficiência.'});
+    }
+    if(a.qtdeVendida>a.qtdeFaturado*1.3){
+      itens.push({icon:'🔵',badge:'blue',label:'Info',
+        texto:'<strong>Carteira de vendas aquecida</strong> — '+bFmt(a.qtdeVendida)+' pçs vendidas vs '+bFmt(a.qtdeFaturado)+' faturadas. Avaliar capacidade de entrega para o próximo período.'});
+    }
+    if(a.totalExtras<700&&a.producaoReal<a.meta){
+      itens.push({icon:'🔵',badge:'blue',label:'Info',
+        texto:'<strong>Horas extras baixas ('+bFmt(a.totalExtras,1)+'h)</strong> com produção abaixo da meta — folga de horas disponível para recuperação via jornada extra no próximo mês.'});
+    }
+    return itens;
+  }
+
+  function renderBriefing(dados) {
+    var reais=dados.filter(function(d){return d.colaboradores>0&&d.producaoReal>0;});
+    if(!reais.length){
+      document.getElementById('brfg-content').innerHTML='<div class="brfg-sem-dados"><h3>Nenhum dado encontrado</h3><p>Importe a planilha no dashboard para carregar o briefing.</p></div>';
+      return;
+    }
+    reais.sort(function(a,b){ return a.ano!==b.ano?a.ano-b.ano:ORDEM_MES.indexOf(a.mes)-ORDEM_MES.indexOf(b.mes); });
+    var a=reais[reais.length-1];
+    var ma=mesAnt(a.mes,a.ano);
+    var ant=reais.find(function(d){return d.mes===ma.mes&&d.ano===ma.ano;})||null;
+    var anoAnt=dados.find(function(d){return d.mes===a.mes&&d.ano===a.ano-1&&d.colaboradores>0;})||null;
+
+    /* Acumulado no ano — meses reais do mesmo ano de "a", até o mês de referência */
+    var idxRef=ORDEM_MES.indexOf(a.mes);
+    var mesesAno=reais.filter(function(d){return d.ano===a.ano&&ORDEM_MES.indexOf(d.mes)<=idxRef;});
+    var producaoAc=0,faturadaAc=0,vendidaAc=0;
+    mesesAno.forEach(function(d){
+      producaoAc+=(d.producaoReal||0);
+      faturadaAc+=(d.qtdeFaturado||0);
+      vendidaAc+=(d.qtdeVendida||0);
+    });
+    var saldoCarteira=vendidaAc-faturadaAc;
+    var pctCarteira=faturadaAc>0?(saldoCarteira/faturadaAc)*100:0;
+    var nMeses=mesesAno.length;
+    var mesIni=nMeses?( (MESES_NOME[mesesAno[0].mes]||mesesAno[0].mes).substring(0,3) ):'—';
+
+    var mesNome=MESES_NOME[a.mes]||a.mes;
+    var colRef1=ant?ant.mes+'/'+String(ant.ano).slice(2):'—';
+    var colRef2=anoAnt?a.mes+'/'+String(anoAnt.ano).slice(2):'—';
+
+    var titulo='Briefing PPCP — '+mesNome+'/'+a.ano;
+    document.getElementById('brfg-btn-gmail').href='https://mail.google.com/mail/?view=cm&fs=1&su='+encodeURIComponent(titulo);
+    document.getElementById('brfg-fonte-label').textContent='Dados: '+mesNome+'/'+a.ano+' · Gerado em '+new Date().toLocaleDateString('pt-BR');
+
+    var kpis=[
+      {label:'Produção Real',value:bFmt(a.producaoReal)+' pçs',cls:a.producaoReal>=a.meta?'ok':'warn',
+       delta:a.producaoReal>=a.meta?'<span class="brfg-up">✓ Meta batida</span> · meta '+bFmt(a.meta):'<span class="brfg-down">✗ Abaixo da meta</span> · meta '+bFmt(a.meta)},
+      {label:'Eficiência',value:bFmtPct(a.eficiencia),cls:a.eficiencia>=96?'ok':'warn',
+       delta:ant?bDeltaPp(a.eficiencia,ant.eficiencia)+colRef1:'—'},
+      {label:'Efic. Ajustada',value:bFmtPct(a.eficienciaAdj),cls:a.eficienciaAdj>=96?'ok':'warn',
+       delta:ant?bDeltaPp(a.eficienciaAdj,ant.eficienciaAdj)+colRef1:'—'},
+      {label:'Margem',value:bFmtPct(a.margem),cls:a.margem>=0?'ok':'bad',
+       delta:ant?bDeltaPp(a.margem,ant.margem)+colRef1:'—'},
+      {label:'Absenteísmo',value:bFmtPct(a.absenteismo),cls:a.absenteismo<=10?'ok':(a.absenteismo<=13?'warn':'bad'),
+       delta:ant?bDeltaPp(a.absenteismo,ant.absenteismo,true)+colRef1:'—'},
+      {label:'Qtde Vendida',value:bFmt(a.qtdeVendida)+' pçs',cls:'neu',delta:ant?bDelta(a.qtdeVendida,ant.qtdeVendida)+' vs '+colRef1:'—'},
+      {label:'Qtde Faturada',value:bFmt(a.qtdeFaturado)+' pçs',cls:'neu',delta:ant?bDelta(a.qtdeFaturado,ant.qtdeFaturado)+' vs '+colRef1:'—'},
+      {label:'Custo Capital',value:bFmtR(a.custoCap),cls:'neu',delta:ant?bDelta(a.custoCap,ant.custoCap,true)+' vs '+colRef1:'—'},
+      {label:'Ticket Médio',value:bFmtR(a.ticketMedio),cls:'neu',delta:ant?bDelta(a.ticketMedio,ant.ticketMedio)+' vs '+colRef1:'—'}
+    ];
+
+    function lin(label,fn){
+      return '<tr><td>'+label+'</td><td class="brfg-hl">'+(fn(a)||'—')+'</td><td>'+(ant?fn(ant)||'—':'—')+'</td><td>'+(anoAnt?fn(anoAnt)||'—':'—')+'</td></tr>';
+    }
+    var tabela=[
+      lin('Colaboradores',      function(d){return bFmt(d.colaboradores);}),
+      lin('Dias Trabalhados',   function(d){return bFmt(d.diasTrabalhados);}),
+      lin('Horas Carga',        function(d){return bFmt(d.horasCarga)+' h';}),
+      lin('Faltas (horas)',     function(d){return bFmt(d.faltas)+' h';}),
+      lin('Total Extras',       function(d){return bFmt(d.totalExtras,1)+' h';}),
+      lin('Absenteísmo',        function(d){return bFmtPct(d.absenteismo);}),
+      lin('Produção Real',      function(d){return bFmt(d.producaoReal)+' pçs';}),
+      lin('Meta',               function(d){return bFmt(d.meta)+' pçs';}),
+      lin('Qtde Faturada',      function(d){return bFmt(d.qtdeFaturado)+' pçs';}),
+      lin('Qtde Vendida',       function(d){return bFmt(d.qtdeVendida)+' pçs';}),
+      lin('Eficiência',         function(d){return bFmtPct(d.eficiencia);}),
+      lin('Eficiência Ajustada',function(d){return bFmtPct(d.eficienciaAdj);}),
+      lin('Margem',             function(d){return bFmtPct(d.margem);}),
+      lin('Ticket Médio',       function(d){return bFmtR(d.ticketMedio);}),
+      lin('Custo Capital',      function(d){return bFmtR(d.custoCap);})
+    ].join('');
+
+    var pauta=gerarPauta(a,ant);
+    var pautaHTML=pauta.map(function(p){
+      return '<li><span class="brfg-icon">'+p.icon+'</span><span class="brfg-badge '+p.badge+'">'+p.label+'</span>'+p.texto+'</li>';
+    }).join('');
+
+    /* Achados estruturados (FATO / ANÁLISE / RECOMENDAÇÃO) */
+    var ACH_META={ok:{ico:'🟢',rot:'Positivo'},warn:{ico:'🟡',rot:'Atenção'},bad:{ico:'🔴',rot:'Crítico'},info:{ico:'🔵',rot:'Informativo'}};
+    var achados=gerarAchados(a,ant,anoAnt);
+    var achTicket=gerarAchadoTicket(reais); if(achTicket) achados.push(achTicket);
+    var achadosHTML=achados.map(function(ac){
+      var m=ACH_META[ac.status]||ACH_META.info;
+      var calc=(ac.calculos&&ac.calculos.length)
+        ? '<table class="brfg-calc-table"><thead><tr><th>Cálculo</th><th>Fórmula</th><th>Resultado</th></tr></thead><tbody>'
+          +ac.calculos.map(function(c){return '<tr><td>'+c.label+'</td><td>'+c.formula+'</td><td class="brfg-hl">'+c.resultado+'</td></tr>';}).join('')
+          +'</tbody></table>'
+        : '';
+      return '<div class="brfg-achado '+ac.status+'">'
+        +'<div class="brfg-achado-hd"><span class="brfg-achado-ico">'+m.ico+'</span>'
+          +'<span class="brfg-achado-ttl">'+ac.titulo+'</span>'
+          +'<span class="brfg-badge '+({ok:'green',warn:'yellow',bad:'red',info:'blue'}[ac.status])+'">'+m.rot+'</span></div>'
+        +'<div class="brfg-achado-box fato"><span class="brfg-achado-lbl">Fato</span>'+ac.fato+'</div>'
+        +'<div class="brfg-achado-box analise"><span class="brfg-achado-lbl">Análise</span>'+ac.analise+'</div>'
+        +'<div class="brfg-achado-box rec"><span class="brfg-achado-lbl">Recomendação</span>'+ac.recomendacao+'</div>'
+        +calc
+      +'</div>';
+    }).join('');
+
+    /* SWOT */
+    var swot=gerarSWOT(a,ant,anoAnt);
+    function swotBox(cls,titulo,itens){
+      return '<div class="brfg-swot-box '+cls+'"><div class="brfg-swot-ttl">'+titulo+'</div><ul>'
+        +itens.map(function(i){return '<li>'+i+'</li>';}).join('')+'</ul></div>';
+    }
+    var swotHTML='<div class="brfg-swot-grid">'
+      +swotBox('forcas','Forças',swot.forcas)
+      +swotBox('fraquezas','Fraquezas',swot.fraquezas)
+      +swotBox('oportunidades','Oportunidades',swot.oportunidades)
+      +swotBox('ameacas','Ameaças',swot.ameacas)
+    +'</div>';
+
+    /* Previsão × Capacidade — mesmo mês de referência (a) */
+    var temPrevisao = (a.previsaoProducao||0) > 0;
+    var atCE = temPrevisao ? (a.producaoReal / a.previsaoProducao) * 100 : null;
+    var atSE = temPrevisao ? (a.prodSemExtras / a.previsaoProducao) * 100 : null;
+    var pctNormCarga = a.horasCarga>0 ? (a.horasNormais / a.horasCarga) * 100 : null;
+    var pctExtCarga  = a.horasCarga>0 ? (a.totalExtras  / a.horasCarga) * 100 : null;
+
+    var previsaoKpis = temPrevisao ? [
+      {label:'Previsão de Produção', value:bFmt(a.previsaoProducao)+' pçs', cls:'neu', delta:'Meta prevista do mês'},
+      {label:'Realizado c/ Extras',  value:bFmtPct(atCE), cls: atCE>=100?'ok':(atCE>=90?'warn':'bad'),
+       delta: atCE>=100?'<span class="brfg-up">✓ Bateu a previsão</span>':'<span class="brfg-down">✗ Abaixo da previsão</span>'},
+      {label:'Realizado s/ Extras',  value:bFmtPct(atSE), cls: atSE>=100?'ok':(atSE>=90?'warn':'bad'),
+       delta: atSE<atCE-5?'<span class="brfg-down">Dependeu de hora extra</span>':'Sem grande diferença c/ extras'},
+      {label:'Horas Carga',          value:bFmt(a.horasCarga)+' h', cls:'neu', delta:'Capacidade teórica (ERP)'},
+      {label:'% Normais / Carga',    value:pctNormCarga!=null?bFmtPct(pctNormCarga):'—', cls: pctNormCarga>=90?'ok':(pctNormCarga>=75?'warn':'bad'), delta:'Coberto sem hora extra'},
+      {label:'% Extras / Carga',     value:pctExtCarga!=null?bFmtPct(pctExtCarga):'—', cls: pctExtCarga<=10?'ok':(pctExtCarga<=15?'warn':'bad'), delta:'Da capacidade em hora extra'}
+    ] : null;
+
+    var previsaoSectionHTML = temPrevisao
+      ? '<div class="brfg-kpi-grid">'+previsaoKpis.map(function(k){
+          return '<div class="brfg-kpi-card '+k.cls+'">'
+            +'<div class="brfg-kpi-label">'+k.label+'</div>'
+            +'<div class="brfg-kpi-value">'+k.value+'</div>'
+            +'<div class="brfg-kpi-delta">'+k.delta+'</div>'
+          +'</div>';
+        }).join('')+'</div>'
+      : '<p style="font-size:12px;color:#718096;padding:8px 0">Previsão de Produção não informada na planilha para '+mesNome+'/'+a.ano+'.</p>';
+
+    /* Acumulado no Ano — cards + frase de contexto para a ameaça mensal */
+    var acumKpis=[
+      {label:'Produção Acum.',           value:bFmt(producaoAc)+' pçs', cls:'neu', delta:nMeses+' meses no ano'},
+      {label:'Faturado Acum.',           value:bFmt(faturadaAc)+' pçs', cls:'neu', delta:'Qtde faturada no período'},
+      {label:'Vendido Acum. (carteira)', value:bFmt(vendidaAc)+' pçs',  cls:'neu', delta:'Qtde vendida no período'},
+      {label:'Carteira − Faturado',      value:(saldoCarteira>=0?'+':'')+bFmt(saldoCarteira)+' pçs', cls:saldoCarteira>0?'warn':'neu',
+       delta:(pctCarteira>=0?'+':'')+bFmt(pctCarteira,1)+'% vendido '+(saldoCarteira>=0?'acima':'abaixo')+' do faturado'}
+    ];
+    var acumSectionHTML='<div class="brfg-kpi-grid">'+acumKpis.map(function(k){
+        return '<div class="brfg-kpi-card '+k.cls+'">'
+          +'<div class="brfg-kpi-label">'+k.label+'</div>'
+          +'<div class="brfg-kpi-value">'+k.value+'</div>'
+          +'<div class="brfg-kpi-delta">'+k.delta+'</div>'
+        +'</div>';
+      }).join('')+'</div>';
+    var acumFrase = saldoCarteira>0
+      ? 'No acumulado do ano a carteira vendida está '+bFmt(pctCarteira,1)+'% acima do faturado ('+bFmt(saldoCarteira)+' pçs) — a pressão vista em '+mesNome.substring(0,3)+'/'+a.ano+' se confirma no período, não é isolada.'
+      : (saldoCarteira<0
+        ? 'No acumulado do ano o faturado supera a carteira vendida em '+bFmt(-saldoCarteira)+' pçs ('+bFmt(-pctCarteira,1)+'%) — a pressão de carteira do mês não se sustenta no período.'
+        : 'No acumulado do ano a carteira vendida e o faturado estão equilibrados no período.');
+    var acumFraseHTML='<p style="font-size:12px;color:#718096;padding:4px 0">'+acumFrase+'</p>';
+
+    document.getElementById('brfg-content').innerHTML=
+      '<div class="brfg-header">'
+       +'<div class="brfg-label">PPCP — Planejamento e Controle da Produção</div>'
+       +'<h2>Briefing Mensal — '+mesNome+' / '+a.ano+'</h2>'
+       +'<div class="brfg-sub">Referência para reunião · Comparativo: '+(colRef1!=='—'?colRef1:'sem mês anterior')+' e '+(colRef2!=='—'?colRef2:'sem ano anterior')+'</div>'
+       +'<div class="brfg-meta-row">'
+         +'<div class="brfg-meta-item"><span>'+bFmt(a.colaboradores)+'</span>Colaboradores</div>'
+         +'<div class="brfg-meta-item"><span>'+bFmt(a.diasTrabalhados)+'</span>Dias Trabalhados</div>'
+         +'<div class="brfg-meta-item"><span>'+bFmt(a.producaoReal)+' pçs</span>Produção Real</div>'
+         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.eficiencia)+'</span>Eficiência</div>'
+         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.margem)+'</span>Margem</div>'
+         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.absenteismo)+'</span>Absenteísmo</div>'
+       +'</div>'
+      +'</div>'
+      +'<div class="brfg-body">'
+        /* 1 · TL;DR — o que precisa de atenção (leitura de 5 segundos) */
+        +'<div class="brfg-section" id="brfg-sec-pauta">'
+          +'<div class="brfg-section-title">Resumo — Pontos de Atenção</div>'
+          +'<ul class="brfg-alert-list">'+pautaHTML+'</ul>'
+        +'</div>'
+        /* 2 · Indicadores-Chave (os números vitais) */
+        +'<div class="brfg-section" id="brfg-sec-kpis">'
+          +'<div class="brfg-section-title">Indicadores-Chave — '+mesNome+'/'+a.ano+'</div>'
+          +'<div class="brfg-kpi-grid">'+kpis.map(function(k){
+            return '<div class="brfg-kpi-card '+k.cls+'">'
+              +'<div class="brfg-kpi-label">'+k.label+'</div>'
+              +'<div class="brfg-kpi-value">'+k.value+'</div>'
+              +'<div class="brfg-kpi-delta">'+k.delta+'</div>'
+            +'</div>';
+          }).join('')+'</div>'
+        +'</div>'
+        /* 2b · Acumulado no Ano — Carteira × Faturamento (contexto da ameaça mensal) */
+        +'<div class="brfg-section" id="brfg-sec-acum">'
+          +'<div class="brfg-section-title">Acumulado no Ano — Carteira × Faturamento ('+mesIni+'–'+mesNome.substring(0,3)+'/'+a.ano+' · '+nMeses+' meses)</div>'
+          +acumFraseHTML
+          +acumSectionHTML
+        +'</div>'
+        /* 3 · Achados (o que os números significam e o que fazer) */
+        +'<div class="brfg-section" id="brfg-sec-achados">'
+          +'<div class="brfg-section-title">Achados — Fato, Análise e Recomendação</div>'
+          +achadosHTML
+        +'</div>'
+        /* 4 · Previsão × Capacidade (detalhe de entrega) */
+        +'<div class="brfg-section" id="brfg-sec-previsao">'
+          +'<div class="brfg-section-title">Previsão × Capacidade — '+mesNome+'/'+a.ano+'</div>'
+          +previsaoSectionHTML
+        +'</div>'
+        /* 5 · Comparativo Mensal (tabela de apoio) */
+        +'<div class="brfg-section" id="brfg-sec-comparativo">'
+          +'<div class="brfg-section-title">Comparativo Mensal</div>'
+          +'<table><thead><tr>'
+            +'<th>Indicador</th>'
+            +'<th>'+mesNome.substring(0,3).toUpperCase()+'/'+String(a.ano).slice(2)+'</th>'
+            +'<th>'+colRef1+'</th>'
+            +'<th>'+colRef2+'</th>'
+          +'</tr></thead><tbody>'+tabela+'</tbody></table>'
+        +'</div>'
+        /* 6 · SWOT (síntese estratégica) */
+        +'<div class="brfg-section" id="brfg-sec-swot">'
+          +'<div class="brfg-section-title">Análise SWOT — Produção '+mesNome+'/'+a.ano+'</div>'
+          +swotHTML
+        +'</div>'
+      +'</div>'
+      +'<div class="brfg-footer">'
+        +'<span>PPCP — Dashboard de Produção · '+mesNome+'/'+a.ano+'</span>'
+        +'<span>Gerado em: '+new Date().toLocaleDateString('pt-BR')+'</span>'
+      +'</div>';
+  }
+
+  window.brfgImprimir = function () {
+    var src = document.getElementById('brfg-content');
+    if (!src) return;
+    var w = window.open('', '_blank', 'width=1250,height=900');
+    w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><title>Briefing PPCP</title><style>' +
+      '@page{size:A4 landscape;margin:8mm 12mm 10mm 12mm;}' +
+      '*{box-sizing:border-box;margin:0;padding:0;}' +
+      'html,body{width:100%;height:100%;}' +
+      'body{font-family:"Segoe UI",Arial,sans-serif;font-size:8.5pt;color:#1a1a2e;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+      /* wrapper — pagina naturalmente (Achados/SWOT podem exceder 1 folha) */
+      '.brfg-page{display:block;}' +
+      /* header */
+      '.brfg-header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;padding:10px 20px 8px;flex-shrink:0;}' +
+      '.brfg-label{font-size:7.5px;letter-spacing:2px;text-transform:uppercase;color:#e94560;font-weight:700;margin-bottom:4px;}' +
+      '.brfg-header h2{font-size:15px;font-weight:700;margin-bottom:2px;}' +
+      '.brfg-header .brfg-sub{font-size:8.5px;color:#a0aec0;}' +
+      '.brfg-meta-row{display:flex;gap:6px;margin-top:7px;}' +
+      '.brfg-meta-item{background:rgba(255,255,255,.08);border-radius:5px;padding:5px 10px;font-size:8px;color:#cbd5e0;min-width:75px;}' +
+      '.brfg-meta-item span{display:block;font-size:12px;font-weight:700;color:#fff;margin-bottom:1px;}' +
+      /* body */
+      '.brfg-body{padding:8px 20px 6px;}' +
+      '.brfg-section{margin-bottom:7px;}' +
+      '.brfg-section-title{font-size:7.5px;letter-spacing:1.8px;text-transform:uppercase;color:#e94560;font-weight:700;margin-bottom:6px;padding-bottom:4px;border-bottom:1.5px solid #f0f2f5;}' +
+      /* KPI grid — auto-fill cobre 9 cards em 1-2 linhas */
+      '.brfg-kpi-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;}' +
+      /* Previsão x Capacidade — banda compacta de 6 itens numa linha só */
+      '#brfg-print-previsao .brfg-kpi-grid{grid-template-columns:repeat(6,1fr);}' +
+      '#brfg-print-previsao .brfg-kpi-card{padding:5px 7px;}' +
+      '#brfg-print-previsao .brfg-kpi-value{font-size:10.5px;}' +
+      '#brfg-print-previsao .brfg-kpi-delta{font-size:6.8px;}' +
+      '.brfg-kpi-card{background:#f8fafc;border-radius:5px;padding:7px 9px;border-left:3px solid #e2e8f0;}' +
+      '.brfg-kpi-card.ok{border-left-color:#38a169;}.brfg-kpi-card.warn{border-left-color:#d69e2e;}.brfg-kpi-card.bad{border-left-color:#e53e3e;}.brfg-kpi-card.neu{border-left-color:#718096;}' +
+      '.brfg-kpi-label{font-size:7px;letter-spacing:.6px;text-transform:uppercase;color:#718096;font-weight:600;margin-bottom:3px;}' +
+      '.brfg-kpi-value{font-size:12px;font-weight:700;color:#1a1a2e;line-height:1.1;}' +
+      '.brfg-kpi-delta{font-size:7.5px;margin-top:2px;color:#718096;line-height:1.35;}' +
+      '.brfg-up{color:#38a169;font-weight:600;}.brfg-down{color:#e53e3e;font-weight:600;}' +
+      /* 2 colunas: tabela (55%) e pauta (45%) */
+      '.brfg-2col{display:grid;grid-template-columns:55% 44%;gap:14px;}' +
+      /* tabela */
+      'table{width:100%;border-collapse:collapse;font-size:8pt;}' +
+      'thead tr{background:#1a1a2e;color:#fff;}' +
+      'thead th{padding:4px 7px;text-align:left;font-size:7.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:600;color:#fff;}' +
+      'thead th:not(:first-child){text-align:right;}' +
+      'tbody tr:nth-child(even){background:#f8fafc;}' +
+      'tbody td{padding:3px 7px;color:#2d3748;border-bottom:1px solid #edf2f7;}' +
+      'tbody td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums;}' +
+      'tbody tr td:first-child{font-weight:600;}' +
+      '.brfg-hl{color:#1a1a2e;font-weight:700;}' +
+      /* pauta */
+      '.brfg-alert-list{list-style:none;display:flex;flex-direction:column;gap:5px;}' +
+      '.brfg-alert-list li{background:#f8fafc;border-radius:5px;padding:7px 8px 7px 30px;font-size:8pt;line-height:1.4;color:#2d3748;position:relative;}' +
+      '.brfg-icon{position:absolute;left:8px;top:8px;font-size:13px;}' +
+      '.brfg-badge{display:inline-block;font-size:7.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;border-radius:3px;padding:1px 5px;margin-right:4px;}' +
+      '.brfg-badge.red{background:#fed7d7;color:#c53030;}.brfg-badge.green{background:#c6f6d5;color:#276749;}.brfg-badge.yellow{background:#fefcbf;color:#744210;}.brfg-badge.blue{background:#bee3f8;color:#2a69ac;}' +
+      /* achados */
+      '#brfg-print-achados{break-before:page;}' +
+      '.brfg-achado{border:1px solid #e2e8f0;border-left:3px solid #718096;border-radius:5px;padding:8px 10px;margin-bottom:8px;break-inside:avoid;}' +
+      '.brfg-achado.ok{border-left-color:#38a169;}.brfg-achado.warn{border-left-color:#d69e2e;}.brfg-achado.bad{border-left-color:#e53e3e;}.brfg-achado.info{border-left-color:#3182ce;}' +
+      '.brfg-achado-hd{display:flex;align-items:center;gap:6px;margin-bottom:6px;}' +
+      '.brfg-achado-ico{font-size:11px;}' +
+      '.brfg-achado-ttl{font-size:9.5px;font-weight:700;color:#1a1a2e;}' +
+      '.brfg-achado-box{border-radius:4px;padding:5px 8px;margin-bottom:4px;font-size:8pt;line-height:1.4;color:#2d3748;}' +
+      '.brfg-achado-box.fato{background:#eef4ff;border-left:2px solid #0f3460;}.brfg-achado-box.analise{background:#fff8e1;border-left:2px solid #d69e2e;}.brfg-achado-box.rec{background:#eaf7ea;border-left:2px solid #38a169;}' +
+      '.brfg-achado-lbl{display:block;font-size:6.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#718096;margin-bottom:2px;}' +
+      '.brfg-calc-table{width:100%;border-collapse:collapse;margin-top:3px;font-size:7.5pt;}' +
+      '.brfg-calc-table th{padding:3px 6px;text-align:left;font-size:6.5px;text-transform:uppercase;font-weight:600;background:#1a1a2e;color:#fff;}' +
+      '.brfg-calc-table td{padding:3px 6px;border-bottom:1px solid #edf2f7;color:#2d3748;}' +
+      '.brfg-calc-table tbody tr:nth-child(even){background:#f8fafc;}' +
+      '.brfg-calc-table td:last-child{text-align:right;font-weight:700;}' +
+      /* swot */
+      '.brfg-swot-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;break-inside:avoid;}' +
+      '.brfg-swot-box{border-radius:5px;padding:8px 10px;border:1px solid #e2e8f0;break-inside:avoid;}' +
+      '.brfg-swot-box.forcas{background:#e8f5e9;}.brfg-swot-box.fraquezas{background:#fff8e1;}.brfg-swot-box.oportunidades{background:#e3f2fd;}.brfg-swot-box.ameacas{background:#ffebee;}' +
+      '.brfg-swot-ttl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;color:#1a1a2e;}' +
+      '.brfg-swot-box ul{margin:0;padding-left:14px;}' +
+      '.brfg-swot-box li{font-size:8pt;line-height:1.4;color:#2d3748;margin-bottom:2px;}' +
+      /* footer */
+      '.brfg-footer{background:#f8fafc;border-top:1px solid #edf2f7;padding:5px 20px;font-size:7.5px;color:#a0aec0;display:flex;justify-content:space-between;margin-top:10px;break-inside:avoid;}' +
+      '</style></head><body>' +
+      '<div class="brfg-page">' +
+      document.querySelector('.brfg-header').outerHTML +
+      '<div class="brfg-body">' +
+        /* 1 · Resumo (TL;DR) */
+        (document.getElementById('brfg-sec-pauta') ? document.getElementById('brfg-sec-pauta').outerHTML : '') +
+        /* 2 · Indicadores-Chave */
+        '<div class="brfg-section">' +
+          '<div class="brfg-section-title">Indicadores-Chave</div>' +
+          document.querySelector('.brfg-kpi-grid').outerHTML +
+        '</div>' +
+        /* 2b · Acumulado no Ano */
+        (document.getElementById('brfg-sec-acum')
+          ? '<div class="brfg-section" id="brfg-print-acum">' + document.getElementById('brfg-sec-acum').innerHTML + '</div>'
+          : '') +
+        /* 3 · Achados */
+        (document.getElementById('brfg-sec-achados')
+          ? '<div class="brfg-section" id="brfg-print-achados">' + document.getElementById('brfg-sec-achados').innerHTML + '</div>'
+          : '') +
+        /* 4 · Previsão × Capacidade */
+        (document.getElementById('brfg-sec-previsao')
+          ? '<div class="brfg-section" id="brfg-print-previsao">' + document.getElementById('brfg-sec-previsao').innerHTML + '</div>'
+          : '') +
+        /* 5 · Comparativo Mensal */
+        (document.getElementById('brfg-sec-comparativo') ? document.getElementById('brfg-sec-comparativo').outerHTML : '') +
+        /* 6 · SWOT */
+        (document.getElementById('brfg-sec-swot') ? document.getElementById('brfg-sec-swot').outerHTML : '') +
+      '</div>' +
+      document.querySelector('.brfg-footer').outerHTML +
+      '</div>' +
+      '</body></html>');
+    w.document.close();
+    w.addEventListener('afterprint', function() { w.close(); });
+    setTimeout(function(){ w.focus(); w.print(); }, 800);
+  };
+
+  window.brfgCopiar = function () {
+    var clone=document.getElementById('brfg-wrap').cloneNode(true);
+    clone.querySelector('#brfg-action').remove();
+    var html=clone.outerHTML;
+    try {
+      navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([clone.innerText],{type:'text/plain'})})]).then(function(){
+        var t=document.getElementById('brfg-toast'); t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},3500);
+        var btn=document.getElementById('brfg-btn-copy'); btn.classList.add('copied'); btn.textContent='✓ Copiado!';
+        setTimeout(function(){btn.classList.remove('copied');btn.innerHTML='📋 Copiar para E-mail';},3000);
+      });
+    } catch(e) {
+      var area=document.createElement('div'); area.contentEditable='true';
+      area.style.cssText='position:fixed;opacity:0;left:0;top:0;'; area.innerHTML=html;
+      document.body.appendChild(area);
+      var sel=window.getSelection(),range=document.createRange();
+      range.selectNodeContents(area); sel.removeAllRanges(); sel.addRange(range);
+      document.execCommand('copy'); sel.removeAllRanges(); document.body.removeChild(area);
+      var t=document.getElementById('brfg-toast'); t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},3500);
+    }
+  };
+
+  /* Inicializa quando a aba for aberta */
+  function brfgInit() {
+    try {
+      var raw=localStorage.getItem('dash_v3');
+      if(raw){var dados=JSON.parse(raw);if(Array.isArray(dados)&&dados.length){renderBriefing(dados);return;}}
+    } catch(e){}
+    document.getElementById('brfg-content').innerHTML=
+      '<div class="brfg-sem-dados"><h3>Dados não encontrados</h3>'
+      +'<p>Importe a planilha pelo botão <strong>Importar XLSX</strong> no dashboard e volte nesta aba.<br><br>'
+      +'O briefing carrega automaticamente assim que os dados estiverem disponíveis.</p></div>';
+  }
+
+  /* Escuta mudança de página para renderizar ao abrir a aba */
+  (function waitNav(){
+    var orig=window.mudarGrupo;
+    var patched=false;
+    function patch(){
+      if(patched||!window.mudarGrupo)return;
+      patched=true;
+      var _orig=window.mudarGrupo;
+      window.mudarGrupo=function(g,btn){
+        _orig(g,btn);
+        if(g==='briefing') brfgInit();
+      };
+    }
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',function(){setTimeout(patch,200);});
+    } else { setTimeout(patch,200); }
+  })();
+
+  /* Render inicial se já tiver dados e página visível */
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){setTimeout(brfgInit,300);});
+  } else { setTimeout(brfgInit,300); }
+
+})();
+</script>
+</div>
+<!-- ══ FIM PÁGINA: BRIEFING MENSAL ══ -->
 </div><!-- /main -->
 </div><!-- /layout -->
 
@@ -13878,8 +14687,11 @@ input:disabled, select:disabled {
   _s.textContent = '#btn-pdf{display:inline-flex;align-items:center;gap:6px;padding:9px 15px;border:1px solid var(--ds-takt);border-radius:6px;font-size:.77rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;background:transparent;color:var(--ds-takt);transition:all .18s}#btn-pdf:hover{background:rgba(120,144,156,.08)}#btn-pdf svg{flex-shrink:0}';
   document.head.appendChild(_s);
 
-  /* ── Injetar botão ── */
+  /* ── Injetar botão ──
+     Desativado a pedido: o PDF sai pelo Briefing (Imprimir / PDF) e pelo
+     Imprimir da barra lateral. exportarPDF segue disponível via console. */
   function injetarBotao() {
+    if (true) return;
     if (document.getElementById('btn-pdf')) return;
     var ref = document.getElementById('btnTV');
     if (!ref || !ref.parentNode) return;
@@ -15463,815 +16275,6 @@ function printAtiva(){
   })();
 })();
 </script>
-<!-- ══ PÁGINA: BRIEFING MENSAL ══ -->
-<div class="page" id="page-briefing">
-<style>
-/* ── Briefing: wrapper escuro → card branco ── */
-#page-briefing { background: transparent; }
-#brfg-wrap {
-  max-width: 860px;
-  margin: 0 auto;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 32px rgba(0,0,0,.45);
-  font-family: 'Segoe UI', Arial, sans-serif;
-  color: #1a1a2e;
-}
-/* action bar */
-#brfg-action {
-  display: flex; gap: 10px; justify-content: flex-end; align-items: center;
-  padding: 12px 32px; background: #fff; border-bottom: 1px solid #edf2f7; flex-wrap: wrap;
-}
-#brfg-action .brfg-fonte { font-size: 11px; color: #a0aec0; margin-right: auto; }
-.brfg-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 12px; font-weight: 600; letter-spacing: .3px;
-  border: none; border-radius: 7px; padding: 9px 16px;
-  cursor: pointer; transition: opacity .15s, transform .1s;
-  font-family: inherit;
-}
-.brfg-btn:hover { opacity: .85; transform: translateY(-1px); }
-.brfg-btn:active { transform: translateY(0); }
-.brfg-btn-copy  { background: #1a1a2e; color: #fff; }
-.brfg-btn-gmail { background: #ea4335; color: #fff; }
-.brfg-btn-print { background: #f0f2f5; color: #1a1a2e; border: 1px solid #d1d5db; }
-.brfg-btn-copy.copied { background: #38a169; }
-/* header */
-.brfg-header {
-  background: linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);
-  color: #fff; padding: 36px 40px 28px;
-}
-.brfg-header .brfg-label {
-  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
-  color: #e94560; font-weight: 700; margin-bottom: 8px;
-}
-.brfg-header h2 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
-.brfg-header .brfg-sub { font-size: 13px; color: #a0aec0; }
-.brfg-meta-row { display: flex; gap: 14px; margin-top: 20px; flex-wrap: wrap; }
-.brfg-meta-item {
-  background: rgba(255,255,255,.07); border-radius: 8px;
-  padding: 10px 18px; font-size: 12px; color: #cbd5e0; min-width: 110px;
-}
-.brfg-meta-item span { display: block; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 2px; }
-/* body */
-.brfg-body { padding: 32px 40px; }
-.brfg-section { margin-bottom: 36px; }
-.brfg-section-title {
-  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
-  color: #e94560; font-weight: 700; margin-bottom: 16px;
-  padding-bottom: 8px; border-bottom: 2px solid #f0f2f5;
-}
-/* kpi cards */
-.brfg-kpi-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(175px,1fr)); gap: 14px; }
-.brfg-kpi-card { background: #f8fafc; border-radius: 10px; padding: 16px; border-left: 4px solid #e2e8f0; }
-.brfg-kpi-card.ok   { border-left-color: #38a169; }
-.brfg-kpi-card.warn { border-left-color: #d69e2e; }
-.brfg-kpi-card.bad  { border-left-color: #e53e3e; }
-.brfg-kpi-card.neu  { border-left-color: #718096; }
-.brfg-kpi-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px; }
-.brfg-kpi-value { font-size: 22px; font-weight: 700; color: #1a1a2e; line-height: 1.1; }
-.brfg-kpi-delta { font-size: 11px; margin-top: 5px; color: #718096; line-height: 1.5; }
-.brfg-up   { color: #38a169; font-weight: 600; }
-.brfg-down { color: #e53e3e; font-weight: 600; }
-/* tabela */
-#brfg-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
-#brfg-wrap thead tr { background: #1a1a2e; color: #fff; }
-#brfg-wrap thead th { padding: 10px 14px; text-align: left; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
-#brfg-wrap thead th:not(:first-child) { text-align: right; }
-#brfg-wrap tbody tr:nth-child(even) { background: #f8fafc; }
-#brfg-wrap tbody td { padding: 10px 14px; color: #2d3748; border-bottom: 1px solid #edf2f7; }
-#brfg-wrap tbody td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
-#brfg-wrap tbody tr td:first-child { font-weight: 600; }
-.brfg-hl { color: #1a1a2e; font-weight: 700 !important; }
-/* pauta */
-.brfg-alert-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.brfg-alert-list li {
-  background: #f8fafc; border-radius: 8px;
-  padding: 14px 16px 14px 50px; font-size: 13px;
-  line-height: 1.6; color: #2d3748; position: relative;
-}
-.brfg-alert-list li .brfg-icon { position: absolute; left: 14px; top: 14px; font-size: 18px; }
-.brfg-badge {
-  display: inline-block; font-size: 10px; font-weight: 700;
-  letter-spacing: .5px; text-transform: uppercase;
-  border-radius: 4px; padding: 2px 7px; margin-right: 6px;
-}
-.brfg-badge.red    { background: #fed7d7; color: #c53030; }
-.brfg-badge.green  { background: #c6f6d5; color: #276749; }
-.brfg-badge.yellow { background: #fefcbf; color: #744210; }
-.brfg-badge.blue   { background: #bee3f8; color: #2a69ac; }
-/* footer */
-.brfg-footer {
-  background: #f8fafc; border-top: 1px solid #edf2f7;
-  padding: 16px 40px; font-size: 11px; color: #a0aec0;
-  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
-}
-/* sem dados */
-.brfg-sem-dados { text-align: center; padding: 60px 40px; color: #718096; }
-.brfg-sem-dados h3 { font-size: 18px; margin-bottom: 12px; color: #1a1a2e; }
-.brfg-sem-dados p { font-size: 13px; line-height: 1.7; }
-/* toast */
-#brfg-toast {
-  position: fixed; bottom: 28px; left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: #1a1a2e; color: #fff; font-size: 13px; font-weight: 600;
-  padding: 12px 24px; border-radius: 8px; opacity: 0;
-  pointer-events: none; transition: all .3s; z-index: 9999;
-}
-#brfg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-/* ── Achados: FATO / ANÁLISE / RECOMENDAÇÃO ── */
-.brfg-achado { border: 1px solid #e2e8f0; border-left: 4px solid #718096; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; background: #fff; }
-.brfg-achado.ok   { border-left-color: #38a169; }
-.brfg-achado.warn { border-left-color: #d69e2e; }
-.brfg-achado.bad  { border-left-color: #e53e3e; }
-.brfg-achado.info { border-left-color: #3182ce; }
-.brfg-achado-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.brfg-achado-ico { font-size: 15px; }
-.brfg-achado-ttl { font-size: 14px; font-weight: 700; color: #1a1a2e; }
-.brfg-achado-box { border-radius: 6px; padding: 9px 12px; margin-bottom: 8px; font-size: 12.5px; line-height: 1.5; color: #2d3748; }
-.brfg-achado-box.fato    { background: #eef4ff; border-left: 3px solid #0f3460; }
-.brfg-achado-box.analise { background: #fff8e1; border-left: 3px solid #d69e2e; }
-.brfg-achado-box.rec     { background: #eaf7ea; border-left: 3px solid #38a169; }
-.brfg-achado-lbl { display: block; font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 700; color: #718096; margin-bottom: 3px; }
-#brfg-wrap .brfg-calc-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 12px; }
-#brfg-wrap .brfg-calc-table thead tr { background: #1a1a2e !important; }
-#brfg-wrap .brfg-calc-table thead th { padding: 5px 9px; text-align: left; font-size: 10px; letter-spacing: .5px; text-transform: uppercase; font-weight: 600; color: #fff !important; background: #1a1a2e !important; }
-#brfg-wrap .brfg-calc-table tbody td { padding: 5px 9px; border-bottom: 1px solid #edf2f7; color: #2d3748 !important; background: #fff !important; }
-#brfg-wrap .brfg-calc-table tbody tr:nth-child(even) td { background: #f8fafc !important; }
-#brfg-wrap .brfg-calc-table tbody td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: #1a1a2e !important; }
-/* ── SWOT ── */
-.brfg-swot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-.brfg-swot-box { border-radius: 8px; padding: 14px 16px; border: 1px solid #e2e8f0; }
-.brfg-swot-box.forcas        { background: #e8f5e9; border-color: #c6f6d5; }
-.brfg-swot-box.fraquezas     { background: #fff8e1; border-color: #fefcbf; }
-.brfg-swot-box.oportunidades { background: #e3f2fd; border-color: #bee3f8; }
-.brfg-swot-box.ameacas       { background: #ffebee; border-color: #fed7d7; }
-#brfg-wrap .brfg-swot-ttl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; color: #1a1a2e; }
-#brfg-wrap .brfg-swot-box ul { margin: 0; padding-left: 18px; }
-#brfg-wrap .brfg-swot-box li { font-size: 12.5px; line-height: 1.55; color: #2d3748; margin-bottom: 4px; }
-@media (max-width: 640px) { .brfg-swot-grid { grid-template-columns: 1fr; } }
-</style>
-
-<div id="brfg-toast">✓ Conteúdo copiado! Cole diretamente no Gmail ou Outlook.</div>
-
-<div id="brfg-wrap">
-  <!-- ACTION BAR -->
-  <div id="brfg-action">
-    <span class="brfg-fonte" id="brfg-fonte-label">Dados: Abril/2026 · Gerado em 07/07/2026</span>
-    <button class="brfg-btn brfg-btn-print" onclick="brfgImprimir()">🖨️ Imprimir / PDF</button>
-    <a id="brfg-btn-gmail" class="brfg-btn brfg-btn-gmail" target="_blank" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;su=Briefing%20PPCP%20%E2%80%94%20Abril%2F2026">✉️ Abrir no Gmail</a>
-    <button class="brfg-btn brfg-btn-copy" id="brfg-btn-copy" onclick="brfgCopiar()">📋 Copiar para E-mail</button>
-  </div>
-  <!-- CONTEÚDO GERADO -->
-  <div id="brfg-content"><div class="brfg-header"><div class="brfg-label">PPCP — Planejamento e Controle da Produção</div><h2>Briefing Mensal — Abril / 2026</h2><div class="brfg-sub">Referência para reunião · Comparativo: MAR/26 e ABR/25</div><div class="brfg-meta-row"><div class="brfg-meta-item"><span>100</span>Colaboradores</div><div class="brfg-meta-item"><span>19</span>Dias Trabalhados</div><div class="brfg-meta-item"><span>29.195 pçs</span>Produção Real</div><div class="brfg-meta-item"><span>92,26%</span>Eficiência</div><div class="brfg-meta-item"><span>-2,51%</span>Margem</div><div class="brfg-meta-item"><span>15,08%</span>Absenteísmo</div></div></div><div class="brfg-body"><div class="brfg-section"><div class="brfg-section-title">Indicadores-Chave — Abril/2026</div><div class="brfg-kpi-grid"><div class="brfg-kpi-card ok"><div class="brfg-kpi-label">Produção Real</div><div class="brfg-kpi-value">29.195 pçs</div><div class="brfg-kpi-delta"><span class="brfg-up">✓ Meta batida</span> · meta 28.340</div></div><div class="brfg-kpi-card warn"><div class="brfg-kpi-label">Eficiência</div><div class="brfg-kpi-value">92,26%</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 8.86pp</span> vs MAR/26</div></div><div class="brfg-kpi-card ok"><div class="brfg-kpi-label">Efic. Ajustada</div><div class="brfg-kpi-value">99,95%</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 10.65pp</span> vs MAR/26</div></div><div class="brfg-kpi-card bad"><div class="brfg-kpi-label">Margem</div><div class="brfg-kpi-value">-2,51%</div><div class="brfg-kpi-delta"><span class="brfg-up">▲ 9.85pp</span> vs MAR/26</div></div><div class="brfg-kpi-card bad"><div class="brfg-kpi-label">Absenteísmo</div><div class="brfg-kpi-value">15,08%</div><div class="brfg-kpi-delta"><span class="brfg-down">▲ 1.19pp</span> vs MAR/26</div></div><div class="brfg-kpi-card neu"><div class="brfg-kpi-label">Qtde Vendida</div><div class="brfg-kpi-value">40.059 pçs</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 23.6%</span> vs MAR/26</div></div><div class="brfg-kpi-card neu"><div class="brfg-kpi-label">Qtde Faturada</div><div class="brfg-kpi-value">28.986 pçs</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 4.8%</span> vs MAR/26</div></div><div class="brfg-kpi-card neu"><div class="brfg-kpi-label">Custo Capital</div><div class="brfg-kpi-value">R$ 1.116.547,71</div><div class="brfg-kpi-delta"><span class="brfg-down">▲ 11.6%</span> vs MAR/26</div></div><div class="brfg-kpi-card neu"><div class="brfg-kpi-label">Ticket Médio</div><div class="brfg-kpi-value">R$ 253,63</div><div class="brfg-kpi-delta"><span class="brfg-down">▼ 2.9%</span> vs MAR/26</div></div></div></div><div class="brfg-section"><div class="brfg-section-title">Comparativo Mensal</div><table><thead><tr><th>Indicador</th><th>ABR/26</th><th>MAR/26</th><th>ABR/25</th></tr></thead><tbody><tr><td>Colaboradores</td><td class="brfg-hl">100</td><td>97</td><td>91</td></tr><tr><td>Dias Trabalhados</td><td class="brfg-hl">19</td><td>22</td><td>19</td></tr><tr><td>Horas Carga</td><td class="brfg-hl">14.889 h</td><td>17.036 h</td><td>14.065 h</td></tr><tr><td>Faltas (horas)</td><td class="brfg-hl">2.179 h</td><td>2.258 h</td><td>1.150 h</td></tr><tr><td>Total Extras</td><td class="brfg-hl">1.509,0 h</td><td>564,4 h</td><td>3.141,0 h</td></tr><tr><td>Absenteísmo</td><td class="brfg-hl">15,08%</td><td>13,89%</td><td>9,86%</td></tr><tr><td>Produção Real</td><td class="brfg-hl">29.195 pçs</td><td>27.600 pçs</td><td>35.720 pçs</td></tr><tr><td>Meta</td><td class="brfg-hl">28.340 pçs</td><td>26.346 pçs</td><td>34.437 pçs</td></tr><tr><td>Qtde Faturada</td><td class="brfg-hl">28.986 pçs</td><td>30.439 pçs</td><td>33.522 pçs</td></tr><tr><td>Qtde Vendida</td><td class="brfg-hl">40.059 pçs</td><td>52.435 pçs</td><td>48.496 pçs</td></tr><tr><td>Eficiência</td><td class="brfg-hl">92,26%</td><td>101,12%</td><td>79,70%</td></tr><tr><td>Eficiência Ajustada</td><td class="brfg-hl">99,95%</td><td>110,60%</td><td>82,92%</td></tr><tr><td>Margem</td><td class="brfg-hl">-2,51%</td><td>-12,36%</td><td>11,45%</td></tr><tr><td>Ticket Médio</td><td class="brfg-hl">R$ 253,63</td><td>R$ 261,11</td><td>R$ 185,36</td></tr><tr><td>Custo Capital</td><td class="brfg-hl">R$ 1.116.547,71</td><td>R$ 1.000.653,03</td><td>R$ 652.839,69</td></tr></tbody></table></div><div class="brfg-section"><div class="brfg-section-title">Pontos para Pauta da Reunião</div><ul class="brfg-alert-list"><li><span class="brfg-icon">🔴</span><span class="brfg-badge red">Crítico</span><strong>Margem negativa (-2,51%)</strong> com eficiência de 92,26% — descompasso entre performance operacional e resultado financeiro. Revisar estrutura de custo e mix de produção.</li><li><span class="brfg-icon">🟡</span><span class="brfg-badge yellow">Atenção</span><strong>Absenteísmo em 15,08%</strong> (+1.19pp vs mês anterior) — acima do limite de 10%. Necessário plano de ação de RH / gestão de frequência.</li><li><span class="brfg-icon">🟢</span><span class="brfg-badge green">Positivo</span><strong>Meta de produção batida</strong> — 29.195 pçs vs meta de 28.340 pçs, com apenas 1.509,0h de horas extras.</li><li><span class="brfg-icon">🔵</span><span class="brfg-badge blue">Info</span><strong>Equipe cresceu</strong> de 97 para 100 colaboradores — monitorar curva de integração e impacto na eficiência.</li><li><span class="brfg-icon">🔵</span><span class="brfg-badge blue">Info</span><strong>Carteira de vendas aquecida</strong> — 40.059 pçs vendidas vs 28.986 faturadas. Avaliar capacidade de entrega para o próximo período.</li></ul></div></div><div class="brfg-footer"><span>PPCP — Dashboard de Produção · Abril/2026</span><span>Gerado em: 07/07/2026</span></div></div>
-</div>
-
-<script>
-(function () {
-  'use strict';
-
-  var MESES_NOME = {
-    JAN:'Janeiro',FEV:'Fevereiro',MAR:'Março',ABR:'Abril',
-    MAI:'Maio',JUN:'Junho',JUL:'Julho',AGO:'Agosto',
-    SET:'Setembro',OUT:'Outubro',NOV:'Novembro',DEZ:'Dezembro'
-  };
-  var ORDEM_MES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-
-  function bFmt(n,dec) { dec=dec||0; if(n==null||isNaN(n))return'—'; return n.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
-  function bFmtR(n) { if(n==null||isNaN(n))return'—'; return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-  function bFmtPct(n) { if(n==null||isNaN(n))return'—'; return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'; }
-
-  function bDelta(atual,ref,inv) {
-    if(ref==null||ref===0||atual==null)return'';
-    var d=atual-ref, pct=((d/Math.abs(ref))*100).toFixed(1);
-    var bom=inv?d<0:d>0;
-    return '<span class="'+(bom?'brfg-up':'brfg-down')+'">'+(d>0?'▲':'▼')+' '+Math.abs(parseFloat(pct))+'%</span>';
-  }
-  function bDeltaPp(atual,ref,inv) {
-    if(ref==null||atual==null)return'';
-    var d=(atual-ref).toFixed(2);
-    var bom=inv?d<0:d>0;
-    return '<span class="'+(bom?'brfg-up':'brfg-down')+'">'+(d>0?'▲':'▼')+' '+Math.abs(d)+'pp</span> vs ';
-  }
-
-  function mesAnt(mes,ano) {
-    var idx=ORDEM_MES.indexOf(mes);
-    if(idx===0)return{mes:'DEZ',ano:ano-1};
-    return{mes:ORDEM_MES[idx-1],ano:ano};
-  }
-
-  /* ── Achados estruturados: FATO → ANÁLISE → RECOMENDAÇÃO ──
-     Mesmo padrão de limiares do gerarPauta / classes dos KPIs. */
-  function gerarAchados(a,ant,anoAnt) {
-    var out=[];
-
-    /* 1 · Produção × Meta */
-    if(a.meta>0){
-      if(a.producaoReal>=a.meta){
-        var acima=a.producaoReal-a.meta, pctA=(acima/a.meta)*100;
-        out.push({status:'ok',titulo:'Produção superou a meta mensal',
-          fato:'Produção real de '+bFmt(a.producaoReal)+' peças contra meta de '+bFmt(a.meta)+' peças.',
-          analise:'O resultado indica cumprimento positivo da meta operacional do mês.',
-          recomendacao:'Manter a rotina que permitiu superar a meta e registrar as práticas que contribuíram para o resultado.',
-          calculos:[
-            {label:'Peças acima da meta',formula:bFmt(a.producaoReal)+' − '+bFmt(a.meta),resultado:bFmt(acima)+' peças'},
-            {label:'% acima da meta',formula:bFmt(acima)+' ÷ '+bFmt(a.meta)+' × 100',resultado:bFmtPct(pctA)}
-          ]});
-      } else {
-        var gapM=a.meta-a.producaoReal, pctG=(gapM/a.meta)*100;
-        out.push({status:'warn',titulo:'Produção abaixo da meta mensal',
-          fato:'Produção real de '+bFmt(a.producaoReal)+' peças contra meta de '+bFmt(a.meta)+' peças.',
-          analise:'A meta não foi atingida no mês. Avaliar restrições de capacidade, absenteísmo, mix e paradas de produção.',
-          recomendacao:'Analisar as causas do gap e preparar plano de recuperação para o próximo mês.',
-          calculos:[
-            {label:'Gap contra a meta',formula:bFmt(a.meta)+' − '+bFmt(a.producaoReal),resultado:bFmt(gapM)+' peças'},
-            {label:'% abaixo da meta',formula:bFmt(gapM)+' ÷ '+bFmt(a.meta)+' × 100',resultado:bFmtPct(pctG)}
-          ]});
-      }
-    }
-
-    /* 2 · Produção × Previsão (só se houver previsão) */
-    if((a.previsaoProducao||0)>0){
-      var gapP=a.previsaoProducao-a.producaoReal, pctReal=(a.producaoReal/a.previsaoProducao)*100;
-      var atingiu=a.producaoReal>=a.previsaoProducao;
-      out.push({status:atingiu?'ok':'warn',titulo:atingiu?'Previsão de produção atingida':'Produção abaixo da previsão',
-        fato:'Previsão de produção de '+bFmt(a.previsaoProducao)+' peças e produção real de '+bFmt(a.producaoReal)+' peças.',
-        analise:atingiu
-          ?'A produção alcançou a necessidade planejada do período.'
-          :'A meta pode ter sido batida, mas a previsão (necessidade planejada) não foi alcançada. Diferenciar meta, previsão e capacidade evita ruído gerencial.',
-        recomendacao:'Acompanhar meta, previsão e capacidade como campos separados no painel.',
-        calculos:[
-          {label:'Gap contra previsão',formula:bFmt(a.previsaoProducao)+' − '+bFmt(a.producaoReal),resultado:bFmt(gapP)+' peças'},
-          {label:'% realizado da previsão',formula:bFmt(a.producaoReal)+' ÷ '+bFmt(a.previsaoProducao)+' × 100',resultado:bFmtPct(pctReal)}
-        ]});
-    }
-
-    /* 3 · Eficiência × Margem */
-    if(a.margem<0){
-      out.push({status:'bad',titulo:'Eficiência boa, mas margem negativa',
-        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' e margem de '+bFmtPct(a.margem)+'.',
-        analise:'A fábrica produziu bem, mas o resultado econômico não acompanhou. Pode haver efeito de mix, custo, preço, retrabalho, perdas, desconto ou critério de cálculo da margem.',
-        recomendacao:'Abrir análise por família de produto, margem unitária, custo real, custo padrão, retrabalho e assistência técnica.',
-        calculos:[]});
-    } else {
-      out.push({status:'ok',titulo:'Margem positiva no período',
-        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' e margem de '+bFmtPct(a.margem)+'.',
-        analise:'O desempenho operacional se converteu em resultado econômico favorável.',
-        recomendacao:'Sustentar o mix e a estrutura de custo que mantiveram a margem positiva.',
-        calculos:[]});
-    }
-
-    /* 4 · Absenteísmo */
-    if(a.absenteismo>10){
-      var comp=ant?' Variação de '+(a.absenteismo-ant.absenteismo>=0?'+':'')+bFmt(a.absenteismo-ant.absenteismo,2)+' pp vs '+ant.mes+'/'+String(ant.ano).slice(2)+'.':'';
-      out.push({status:a.absenteismo>13?'bad':'warn',titulo:'Absenteísmo acima do limite gerencial',
-        fato:'Absenteísmo de '+bFmtPct(a.absenteismo)+', acima do limite de 10%.'+comp,
-        analise:'Faltas afetam ritmo, balanceamento, qualidade e estabilidade de setores críticos, como coladeira, pintura, CNC, embalagem e expedição.',
-        recomendacao:'RH, Produção e CQP devem acompanhar absenteísmo por setor, turno e impacto em qualidade.',
-        calculos:[]});
-    }
-
-    /* 5 · Venda × Faturamento */
-    if((a.qtdeVendida||0)>0&&(a.qtdeFaturado||0)>0&&a.qtdeVendida>a.qtdeFaturado){
-      var difVF=a.qtdeVendida-a.qtdeFaturado, pctNF=(difVF/a.qtdeVendida)*100, razao=a.qtdeVendida/a.qtdeFaturado;
-      out.push({status:'info',titulo:'Venda maior que faturamento pressiona a operação',
-        fato:bFmt(a.qtdeVendida)+' peças vendidas contra '+bFmt(a.qtdeFaturado)+' peças faturadas.',
-        analise:'A diferença indica pressão futura sobre capacidade, embalagem, expedição e qualidade.',
-        recomendacao:'PPCP deve transformar a carteira em plano de capacidade por produto, família, gargalo e prazo.',
-        calculos:[
-          {label:'Diferença venda × faturamento',formula:bFmt(a.qtdeVendida)+' − '+bFmt(a.qtdeFaturado),resultado:bFmt(difVF)+' peças'},
-          {label:'% não faturado sobre vendido',formula:bFmt(difVF)+' ÷ '+bFmt(a.qtdeVendida)+' × 100',resultado:bFmtPct(pctNF)},
-          {label:'Relação vendido/faturado',formula:bFmt(a.qtdeVendida)+' ÷ '+bFmt(a.qtdeFaturado),resultado:bFmt(razao,2)}
-        ]});
-    }
-
-    return out;
-  }
-
-  /* ── SWOT derivada dos indicadores do mês ── */
-  /* ── Achado de Ticket Médio: tendência de TODOS os meses (sem quebra por família) ── */
-  function gerarAchadoTicket(reais) {
-    var rs = (reais||[]).filter(function(r){ return r.ticketMedio > 0; });
-    if (rs.length < 2) return null;
-    var first = rs[0], last = rs[rs.length-1];
-    var delta = (last.ticketMedio - first.ticketMedio) / first.ticketMedio * 100;
-    var minR = rs.reduce(function(x,y){ return y.ticketMedio < x.ticketMedio ? y : x; });
-    var volF = first.qtdeFaturado || 0, volL = last.qtdeFaturado || 0;
-    var volDelta = volF > 0 ? (volL - volF) / volF * 100 : 0;
-    var ref = function(r){ return r.mes + '/' + String(r.ano).slice(2); };
-    var caindo = delta < -2;
-    var status = caindo ? 'warn' : (delta > 2 ? 'ok' : 'info');
-    var titulo = caindo ? 'Ticket médio em queda no período'
-              : (delta > 2 ? 'Ticket médio em recuperação no período' : 'Ticket médio estável no período');
-    var fato = 'Ticket médio foi de ' + bFmtR(first.ticketMedio) + ' (' + ref(first) + ') para '
-             + bFmtR(last.ticketMedio) + ' (' + ref(last) + '), ' + (delta>=0?'+':'') + bFmt(delta,1)
-             + '% no período. Menor valor: ' + bFmtR(minR.ticketMedio) + ' em ' + ref(minR) + '.';
-    var analise;
-    if (caindo && volDelta > 5)
-      analise = 'A queda do ticket acompanha o aumento do volume faturado (' + (volDelta>=0?'+':'') + bFmt(volDelta,0)
-              + '% de peças). Isso aponta para mix de produtos de menor valor e/ou desconto para girar volume — não um problema isolado de um mês.';
-    else if (caindo)
-      analise = 'A queda do ticket não é explicada por aumento de volume (' + (volDelta>=0?'+':'') + bFmt(volDelta,0)
-              + '% de peças). Provável pressão de preço ou mudança de mix — revisar política comercial.';
-    else
-      analise = 'Ticket médio relativamente estável/em recuperação; volume faturado ' + (volDelta>=0?'+':'') + bFmt(volDelta,0) + '% no período.';
-    var recomendacao = 'Acompanhar ticket médio × volume × margem mês a mês. Para cravar a causa exata, seria preciso o faturamento por produto/família (não disponível hoje na base).';
-    return {
-      status: status, titulo: titulo, fato: fato, analise: analise, recomendacao: recomendacao,
-      calculos: [
-        { label: 'Variação do ticket no período', formula: bFmtR(last.ticketMedio) + ' vs ' + bFmtR(first.ticketMedio), resultado: (delta>=0?'+':'') + bFmt(delta,1) + '%' },
-        { label: 'Variação do volume faturado',   formula: bFmt(volL) + ' vs ' + bFmt(volF) + ' pç',                    resultado: (volDelta>=0?'+':'') + bFmt(volDelta,0) + '%' }
-      ]
-    };
-  }
-
-  function gerarSWOT(a,ant,anoAnt) {
-    var s={forcas:[],fraquezas:[],oportunidades:[],ameacas:[]};
-    var depExtra=a.horasCarga>0&&(a.totalExtras/a.horasCarga)>0.10;
-
-    /* Forças */
-    if(a.meta>0&&a.producaoReal>=a.meta) s.forcas.push('Meta mensal de produção batida ('+bFmt(a.producaoReal)+' pçs).');
-    if(a.eficiencia>=90) s.forcas.push('Eficiência operacional em bom patamar ('+bFmtPct(a.eficiencia)+').');
-    if(ant&&a.eficiencia>ant.eficiencia) s.forcas.push('Eficiência em evolução frente a '+ant.mes+'/'+String(ant.ano).slice(2)+'.');
-    if(a.margem>=0) s.forcas.push('Margem positiva no período ('+bFmtPct(a.margem)+').');
-    if(ant&&a.totalExtras<ant.totalExtras) s.forcas.push('Redução de horas extras contra o mês anterior.');
-    if(anoAnt&&a.producaoReal>anoAnt.producaoReal) s.forcas.push('Produção superior ao mesmo mês do ano anterior.');
-    if(!s.forcas.length) s.forcas.push('Base de indicadores consolidada para acompanhamento mensal.');
-
-    /* Fraquezas */
-    if(a.margem<0) s.fraquezas.push('Margem negativa ('+bFmtPct(a.margem)+').');
-    if(a.absenteismo>10) s.fraquezas.push('Absenteísmo acima de 10% ('+bFmtPct(a.absenteismo)+').');
-    if((a.previsaoProducao||0)>0&&a.producaoReal<a.previsaoProducao) s.fraquezas.push('Previsão de produção não atingida.');
-    if(a.meta>0&&a.producaoReal<a.meta) s.fraquezas.push('Produção abaixo da meta mensal.');
-    if(depExtra) s.fraquezas.push('Dependência de hora extra acima de 10% da carga.');
-    if(!s.fraquezas.length) s.fraquezas.push('Sem fraquezas críticas detectadas automaticamente neste mês.');
-
-    /* Oportunidades */
-    s.oportunidades.push('Usar o CQP para integrar produção, qualidade e finanças.');
-    if(a.margem<0) s.oportunidades.push('Revisar mix de produção e custos para recuperar a margem.');
-    if((a.qtdeVendida||0)>(a.qtdeFaturado||0)) s.oportunidades.push('Carteira vendida aquecida — potencial de faturamento se a capacidade acompanhar.');
-    s.oportunidades.push('Reduzir perdas e retrabalhos com plano de qualidade.');
-    s.oportunidades.push('Melhorar o planejamento de capacidade (meta × previsão × capacidade).');
-
-    /* Ameaças */
-    if((a.qtdeVendida||0)>(a.qtdeFaturado||0)) s.ameacas.push('Carteira vendida maior que faturada pode gerar pressão e queda de qualidade.');
-    if(a.margem<0) s.ameacas.push('Margem negativa pode comprometer o resultado mesmo com boa produção.');
-    if(a.absenteismo>10) s.ameacas.push('Absenteísmo pode afetar a estabilidade de setores críticos.');
-    if(depExtra) s.ameacas.push('Horas extras elevadas podem aumentar fadiga e falhas.');
-    if(!s.ameacas.length) s.ameacas.push('Monitorar variações de mix e custo que possam pressionar a margem.');
-
-    return s;
-  }
-
-  function gerarPauta(a,ant) {
-    var itens=[];
-    if(a.margem<0){
-      itens.push({icon:'🔴',badge:'red',label:'Crítico',
-        texto:'<strong>Margem negativa ('+bFmtPct(a.margem)+')</strong> com eficiência de '+bFmtPct(a.eficiencia)+' — descompasso entre performance operacional e resultado financeiro. Revisar estrutura de custo e mix de produção.'});
-    } else {
-      itens.push({icon:'🟢',badge:'green',label:'Positivo',
-        texto:'<strong>Margem positiva ('+bFmtPct(a.margem)+')</strong> — resultado financeiro favorável no período.'});
-    }
-    if(a.absenteismo>10){
-      var comp=ant?' (+'+((a.absenteismo-ant.absenteismo).toFixed(2))+'pp vs mês anterior)':'';
-      itens.push({icon:'🟡',badge:'yellow',label:'Atenção',
-        texto:'<strong>Absenteísmo em '+bFmtPct(a.absenteismo)+'</strong>'+comp+' — acima do limite de 10%. Necessário plano de ação de RH / gestão de frequência.'});
-    } else {
-      itens.push({icon:'🟢',badge:'green',label:'Positivo',
-        texto:'<strong>Absenteísmo controlado em '+bFmtPct(a.absenteismo)+'</strong> — dentro do limite de 10%.'});
-    }
-    if(a.producaoReal>=a.meta){
-      itens.push({icon:'🟢',badge:'green',label:'Positivo',
-        texto:'<strong>Meta de produção batida</strong> — '+bFmt(a.producaoReal)+' pçs vs meta de '+bFmt(a.meta)+' pçs, com apenas '+bFmt(a.totalExtras,1)+'h de horas extras.'});
-    } else {
-      var gap=a.meta-a.producaoReal;
-      itens.push({icon:'🟡',badge:'yellow',label:'Atenção',
-        texto:'<strong>Meta de produção não atingida</strong> — gap de '+bFmt(gap)+' pçs ('+bFmt(((gap/a.meta)*100),1)+'% abaixo da meta de '+bFmt(a.meta)+' pçs). Analisar restrições de capacidade.'});
-    }
-    if(ant&&a.colaboradores<ant.colaboradores){
-      itens.push({icon:'🟡',badge:'yellow',label:'Atenção',
-        texto:'<strong>Headcount recuou</strong> de '+ant.colaboradores+' para '+a.colaboradores+' colaboradores — avaliar impacto na capacidade produtiva do próximo mês.'});
-    } else if(ant&&a.colaboradores>ant.colaboradores){
-      itens.push({icon:'🔵',badge:'blue',label:'Info',
-        texto:'<strong>Equipe cresceu</strong> de '+ant.colaboradores+' para '+a.colaboradores+' colaboradores — monitorar curva de integração e impacto na eficiência.'});
-    }
-    if(a.qtdeVendida>a.qtdeFaturado*1.3){
-      itens.push({icon:'🔵',badge:'blue',label:'Info',
-        texto:'<strong>Carteira de vendas aquecida</strong> — '+bFmt(a.qtdeVendida)+' pçs vendidas vs '+bFmt(a.qtdeFaturado)+' faturadas. Avaliar capacidade de entrega para o próximo período.'});
-    }
-    if(a.totalExtras<700&&a.producaoReal<a.meta){
-      itens.push({icon:'🔵',badge:'blue',label:'Info',
-        texto:'<strong>Horas extras baixas ('+bFmt(a.totalExtras,1)+'h)</strong> com produção abaixo da meta — folga de horas disponível para recuperação via jornada extra no próximo mês.'});
-    }
-    return itens;
-  }
-
-  function renderBriefing(dados) {
-    var reais=dados.filter(function(d){return d.colaboradores>0&&d.producaoReal>0;});
-    if(!reais.length){
-      document.getElementById('brfg-content').innerHTML='<div class="brfg-sem-dados"><h3>Nenhum dado encontrado</h3><p>Importe a planilha no dashboard para carregar o briefing.</p></div>';
-      return;
-    }
-    reais.sort(function(a,b){ return a.ano!==b.ano?a.ano-b.ano:ORDEM_MES.indexOf(a.mes)-ORDEM_MES.indexOf(b.mes); });
-    var a=reais[reais.length-1];
-    var ma=mesAnt(a.mes,a.ano);
-    var ant=reais.find(function(d){return d.mes===ma.mes&&d.ano===ma.ano;})||null;
-    var anoAnt=dados.find(function(d){return d.mes===a.mes&&d.ano===a.ano-1&&d.colaboradores>0;})||null;
-
-    /* Acumulado no ano — meses reais do mesmo ano de "a", até o mês de referência */
-    var idxRef=ORDEM_MES.indexOf(a.mes);
-    var mesesAno=reais.filter(function(d){return d.ano===a.ano&&ORDEM_MES.indexOf(d.mes)<=idxRef;});
-    var producaoAc=0,faturadaAc=0,vendidaAc=0;
-    mesesAno.forEach(function(d){
-      producaoAc+=(d.producaoReal||0);
-      faturadaAc+=(d.qtdeFaturado||0);
-      vendidaAc+=(d.qtdeVendida||0);
-    });
-    var saldoCarteira=vendidaAc-faturadaAc;
-    var pctCarteira=faturadaAc>0?(saldoCarteira/faturadaAc)*100:0;
-    var nMeses=mesesAno.length;
-    var mesIni=nMeses?( (MESES_NOME[mesesAno[0].mes]||mesesAno[0].mes).substring(0,3) ):'—';
-
-    var mesNome=MESES_NOME[a.mes]||a.mes;
-    var colRef1=ant?ant.mes+'/'+String(ant.ano).slice(2):'—';
-    var colRef2=anoAnt?a.mes+'/'+String(anoAnt.ano).slice(2):'—';
-
-    var titulo='Briefing PPCP — '+mesNome+'/'+a.ano;
-    document.getElementById('brfg-btn-gmail').href='https://mail.google.com/mail/?view=cm&fs=1&su='+encodeURIComponent(titulo);
-    document.getElementById('brfg-fonte-label').textContent='Dados: '+mesNome+'/'+a.ano+' · Gerado em '+new Date().toLocaleDateString('pt-BR');
-
-    var kpis=[
-      {label:'Produção Real',value:bFmt(a.producaoReal)+' pçs',cls:a.producaoReal>=a.meta?'ok':'warn',
-       delta:a.producaoReal>=a.meta?'<span class="brfg-up">✓ Meta batida</span> · meta '+bFmt(a.meta):'<span class="brfg-down">✗ Abaixo da meta</span> · meta '+bFmt(a.meta)},
-      {label:'Eficiência',value:bFmtPct(a.eficiencia),cls:a.eficiencia>=96?'ok':'warn',
-       delta:ant?bDeltaPp(a.eficiencia,ant.eficiencia)+colRef1:'—'},
-      {label:'Efic. Ajustada',value:bFmtPct(a.eficienciaAdj),cls:a.eficienciaAdj>=96?'ok':'warn',
-       delta:ant?bDeltaPp(a.eficienciaAdj,ant.eficienciaAdj)+colRef1:'—'},
-      {label:'Margem',value:bFmtPct(a.margem),cls:a.margem>=0?'ok':'bad',
-       delta:ant?bDeltaPp(a.margem,ant.margem)+colRef1:'—'},
-      {label:'Absenteísmo',value:bFmtPct(a.absenteismo),cls:a.absenteismo<=10?'ok':(a.absenteismo<=13?'warn':'bad'),
-       delta:ant?bDeltaPp(a.absenteismo,ant.absenteismo,true)+colRef1:'—'},
-      {label:'Qtde Vendida',value:bFmt(a.qtdeVendida)+' pçs',cls:'neu',delta:ant?bDelta(a.qtdeVendida,ant.qtdeVendida)+' vs '+colRef1:'—'},
-      {label:'Qtde Faturada',value:bFmt(a.qtdeFaturado)+' pçs',cls:'neu',delta:ant?bDelta(a.qtdeFaturado,ant.qtdeFaturado)+' vs '+colRef1:'—'},
-      {label:'Custo Capital',value:bFmtR(a.custoCap),cls:'neu',delta:ant?bDelta(a.custoCap,ant.custoCap,true)+' vs '+colRef1:'—'},
-      {label:'Ticket Médio',value:bFmtR(a.ticketMedio),cls:'neu',delta:ant?bDelta(a.ticketMedio,ant.ticketMedio)+' vs '+colRef1:'—'}
-    ];
-
-    function lin(label,fn){
-      return '<tr><td>'+label+'</td><td class="brfg-hl">'+(fn(a)||'—')+'</td><td>'+(ant?fn(ant)||'—':'—')+'</td><td>'+(anoAnt?fn(anoAnt)||'—':'—')+'</td></tr>';
-    }
-    var tabela=[
-      lin('Colaboradores',      function(d){return bFmt(d.colaboradores);}),
-      lin('Dias Trabalhados',   function(d){return bFmt(d.diasTrabalhados);}),
-      lin('Horas Carga',        function(d){return bFmt(d.horasCarga)+' h';}),
-      lin('Faltas (horas)',     function(d){return bFmt(d.faltas)+' h';}),
-      lin('Total Extras',       function(d){return bFmt(d.totalExtras,1)+' h';}),
-      lin('Absenteísmo',        function(d){return bFmtPct(d.absenteismo);}),
-      lin('Produção Real',      function(d){return bFmt(d.producaoReal)+' pçs';}),
-      lin('Meta',               function(d){return bFmt(d.meta)+' pçs';}),
-      lin('Qtde Faturada',      function(d){return bFmt(d.qtdeFaturado)+' pçs';}),
-      lin('Qtde Vendida',       function(d){return bFmt(d.qtdeVendida)+' pçs';}),
-      lin('Eficiência',         function(d){return bFmtPct(d.eficiencia);}),
-      lin('Eficiência Ajustada',function(d){return bFmtPct(d.eficienciaAdj);}),
-      lin('Margem',             function(d){return bFmtPct(d.margem);}),
-      lin('Ticket Médio',       function(d){return bFmtR(d.ticketMedio);}),
-      lin('Custo Capital',      function(d){return bFmtR(d.custoCap);})
-    ].join('');
-
-    var pauta=gerarPauta(a,ant);
-    var pautaHTML=pauta.map(function(p){
-      return '<li><span class="brfg-icon">'+p.icon+'</span><span class="brfg-badge '+p.badge+'">'+p.label+'</span>'+p.texto+'</li>';
-    }).join('');
-
-    /* Achados estruturados (FATO / ANÁLISE / RECOMENDAÇÃO) */
-    var ACH_META={ok:{ico:'🟢',rot:'Positivo'},warn:{ico:'🟡',rot:'Atenção'},bad:{ico:'🔴',rot:'Crítico'},info:{ico:'🔵',rot:'Informativo'}};
-    var achados=gerarAchados(a,ant,anoAnt);
-    var achTicket=gerarAchadoTicket(reais); if(achTicket) achados.push(achTicket);
-    var achadosHTML=achados.map(function(ac){
-      var m=ACH_META[ac.status]||ACH_META.info;
-      var calc=(ac.calculos&&ac.calculos.length)
-        ? '<table class="brfg-calc-table"><thead><tr><th>Cálculo</th><th>Fórmula</th><th>Resultado</th></tr></thead><tbody>'
-          +ac.calculos.map(function(c){return '<tr><td>'+c.label+'</td><td>'+c.formula+'</td><td class="brfg-hl">'+c.resultado+'</td></tr>';}).join('')
-          +'</tbody></table>'
-        : '';
-      return '<div class="brfg-achado '+ac.status+'">'
-        +'<div class="brfg-achado-hd"><span class="brfg-achado-ico">'+m.ico+'</span>'
-          +'<span class="brfg-achado-ttl">'+ac.titulo+'</span>'
-          +'<span class="brfg-badge '+({ok:'green',warn:'yellow',bad:'red',info:'blue'}[ac.status])+'">'+m.rot+'</span></div>'
-        +'<div class="brfg-achado-box fato"><span class="brfg-achado-lbl">Fato</span>'+ac.fato+'</div>'
-        +'<div class="brfg-achado-box analise"><span class="brfg-achado-lbl">Análise</span>'+ac.analise+'</div>'
-        +'<div class="brfg-achado-box rec"><span class="brfg-achado-lbl">Recomendação</span>'+ac.recomendacao+'</div>'
-        +calc
-      +'</div>';
-    }).join('');
-
-    /* SWOT */
-    var swot=gerarSWOT(a,ant,anoAnt);
-    function swotBox(cls,titulo,itens){
-      return '<div class="brfg-swot-box '+cls+'"><div class="brfg-swot-ttl">'+titulo+'</div><ul>'
-        +itens.map(function(i){return '<li>'+i+'</li>';}).join('')+'</ul></div>';
-    }
-    var swotHTML='<div class="brfg-swot-grid">'
-      +swotBox('forcas','Forças',swot.forcas)
-      +swotBox('fraquezas','Fraquezas',swot.fraquezas)
-      +swotBox('oportunidades','Oportunidades',swot.oportunidades)
-      +swotBox('ameacas','Ameaças',swot.ameacas)
-    +'</div>';
-
-    /* Previsão × Capacidade — mesmo mês de referência (a) */
-    var temPrevisao = (a.previsaoProducao||0) > 0;
-    var atCE = temPrevisao ? (a.producaoReal / a.previsaoProducao) * 100 : null;
-    var atSE = temPrevisao ? (a.prodSemExtras / a.previsaoProducao) * 100 : null;
-    var pctNormCarga = a.horasCarga>0 ? (a.horasNormais / a.horasCarga) * 100 : null;
-    var pctExtCarga  = a.horasCarga>0 ? (a.totalExtras  / a.horasCarga) * 100 : null;
-
-    var previsaoKpis = temPrevisao ? [
-      {label:'Previsão de Produção', value:bFmt(a.previsaoProducao)+' pçs', cls:'neu', delta:'Meta prevista do mês'},
-      {label:'Realizado c/ Extras',  value:bFmtPct(atCE), cls: atCE>=100?'ok':(atCE>=90?'warn':'bad'),
-       delta: atCE>=100?'<span class="brfg-up">✓ Bateu a previsão</span>':'<span class="brfg-down">✗ Abaixo da previsão</span>'},
-      {label:'Realizado s/ Extras',  value:bFmtPct(atSE), cls: atSE>=100?'ok':(atSE>=90?'warn':'bad'),
-       delta: atSE<atCE-5?'<span class="brfg-down">Dependeu de hora extra</span>':'Sem grande diferença c/ extras'},
-      {label:'Horas Carga',          value:bFmt(a.horasCarga)+' h', cls:'neu', delta:'Capacidade teórica (ERP)'},
-      {label:'% Normais / Carga',    value:pctNormCarga!=null?bFmtPct(pctNormCarga):'—', cls: pctNormCarga>=90?'ok':(pctNormCarga>=75?'warn':'bad'), delta:'Coberto sem hora extra'},
-      {label:'% Extras / Carga',     value:pctExtCarga!=null?bFmtPct(pctExtCarga):'—', cls: pctExtCarga<=10?'ok':(pctExtCarga<=15?'warn':'bad'), delta:'Da capacidade em hora extra'}
-    ] : null;
-
-    var previsaoSectionHTML = temPrevisao
-      ? '<div class="brfg-kpi-grid">'+previsaoKpis.map(function(k){
-          return '<div class="brfg-kpi-card '+k.cls+'">'
-            +'<div class="brfg-kpi-label">'+k.label+'</div>'
-            +'<div class="brfg-kpi-value">'+k.value+'</div>'
-            +'<div class="brfg-kpi-delta">'+k.delta+'</div>'
-          +'</div>';
-        }).join('')+'</div>'
-      : '<p style="font-size:12px;color:#718096;padding:8px 0">Previsão de Produção não informada na planilha para '+mesNome+'/'+a.ano+'.</p>';
-
-    /* Acumulado no Ano — cards + frase de contexto para a ameaça mensal */
-    var acumKpis=[
-      {label:'Produção Acum.',           value:bFmt(producaoAc)+' pçs', cls:'neu', delta:nMeses+' meses no ano'},
-      {label:'Faturado Acum.',           value:bFmt(faturadaAc)+' pçs', cls:'neu', delta:'Qtde faturada no período'},
-      {label:'Vendido Acum. (carteira)', value:bFmt(vendidaAc)+' pçs',  cls:'neu', delta:'Qtde vendida no período'},
-      {label:'Carteira − Faturado',      value:(saldoCarteira>=0?'+':'')+bFmt(saldoCarteira)+' pçs', cls:saldoCarteira>0?'warn':'neu',
-       delta:(pctCarteira>=0?'+':'')+bFmt(pctCarteira,1)+'% vendido '+(saldoCarteira>=0?'acima':'abaixo')+' do faturado'}
-    ];
-    var acumSectionHTML='<div class="brfg-kpi-grid">'+acumKpis.map(function(k){
-        return '<div class="brfg-kpi-card '+k.cls+'">'
-          +'<div class="brfg-kpi-label">'+k.label+'</div>'
-          +'<div class="brfg-kpi-value">'+k.value+'</div>'
-          +'<div class="brfg-kpi-delta">'+k.delta+'</div>'
-        +'</div>';
-      }).join('')+'</div>';
-    var acumFrase = saldoCarteira>0
-      ? 'No acumulado do ano a carteira vendida está '+bFmt(pctCarteira,1)+'% acima do faturado ('+bFmt(saldoCarteira)+' pçs) — a pressão vista em '+mesNome.substring(0,3)+'/'+a.ano+' se confirma no período, não é isolada.'
-      : (saldoCarteira<0
-        ? 'No acumulado do ano o faturado supera a carteira vendida em '+bFmt(-saldoCarteira)+' pçs ('+bFmt(-pctCarteira,1)+'%) — a pressão de carteira do mês não se sustenta no período.'
-        : 'No acumulado do ano a carteira vendida e o faturado estão equilibrados no período.');
-    var acumFraseHTML='<p style="font-size:12px;color:#718096;padding:4px 0">'+acumFrase+'</p>';
-
-    document.getElementById('brfg-content').innerHTML=
-      '<div class="brfg-header">'
-       +'<div class="brfg-label">PPCP — Planejamento e Controle da Produção</div>'
-       +'<h2>Briefing Mensal — '+mesNome+' / '+a.ano+'</h2>'
-       +'<div class="brfg-sub">Referência para reunião · Comparativo: '+(colRef1!=='—'?colRef1:'sem mês anterior')+' e '+(colRef2!=='—'?colRef2:'sem ano anterior')+'</div>'
-       +'<div class="brfg-meta-row">'
-         +'<div class="brfg-meta-item"><span>'+bFmt(a.colaboradores)+'</span>Colaboradores</div>'
-         +'<div class="brfg-meta-item"><span>'+bFmt(a.diasTrabalhados)+'</span>Dias Trabalhados</div>'
-         +'<div class="brfg-meta-item"><span>'+bFmt(a.producaoReal)+' pçs</span>Produção Real</div>'
-         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.eficiencia)+'</span>Eficiência</div>'
-         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.margem)+'</span>Margem</div>'
-         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.absenteismo)+'</span>Absenteísmo</div>'
-       +'</div>'
-      +'</div>'
-      +'<div class="brfg-body">'
-        /* 1 · TL;DR — o que precisa de atenção (leitura de 5 segundos) */
-        +'<div class="brfg-section" id="brfg-sec-pauta">'
-          +'<div class="brfg-section-title">Resumo — Pontos de Atenção</div>'
-          +'<ul class="brfg-alert-list">'+pautaHTML+'</ul>'
-        +'</div>'
-        /* 2 · Indicadores-Chave (os números vitais) */
-        +'<div class="brfg-section" id="brfg-sec-kpis">'
-          +'<div class="brfg-section-title">Indicadores-Chave — '+mesNome+'/'+a.ano+'</div>'
-          +'<div class="brfg-kpi-grid">'+kpis.map(function(k){
-            return '<div class="brfg-kpi-card '+k.cls+'">'
-              +'<div class="brfg-kpi-label">'+k.label+'</div>'
-              +'<div class="brfg-kpi-value">'+k.value+'</div>'
-              +'<div class="brfg-kpi-delta">'+k.delta+'</div>'
-            +'</div>';
-          }).join('')+'</div>'
-        +'</div>'
-        /* 2b · Acumulado no Ano — Carteira × Faturamento (contexto da ameaça mensal) */
-        +'<div class="brfg-section" id="brfg-sec-acum">'
-          +'<div class="brfg-section-title">Acumulado no Ano — Carteira × Faturamento ('+mesIni+'–'+mesNome.substring(0,3)+'/'+a.ano+' · '+nMeses+' meses)</div>'
-          +acumFraseHTML
-          +acumSectionHTML
-        +'</div>'
-        /* 3 · Achados (o que os números significam e o que fazer) */
-        +'<div class="brfg-section" id="brfg-sec-achados">'
-          +'<div class="brfg-section-title">Achados — Fato, Análise e Recomendação</div>'
-          +achadosHTML
-        +'</div>'
-        /* 4 · Previsão × Capacidade (detalhe de entrega) */
-        +'<div class="brfg-section" id="brfg-sec-previsao">'
-          +'<div class="brfg-section-title">Previsão × Capacidade — '+mesNome+'/'+a.ano+'</div>'
-          +previsaoSectionHTML
-        +'</div>'
-        /* 5 · Comparativo Mensal (tabela de apoio) */
-        +'<div class="brfg-section" id="brfg-sec-comparativo">'
-          +'<div class="brfg-section-title">Comparativo Mensal</div>'
-          +'<table><thead><tr>'
-            +'<th>Indicador</th>'
-            +'<th>'+mesNome.substring(0,3).toUpperCase()+'/'+String(a.ano).slice(2)+'</th>'
-            +'<th>'+colRef1+'</th>'
-            +'<th>'+colRef2+'</th>'
-          +'</tr></thead><tbody>'+tabela+'</tbody></table>'
-        +'</div>'
-        /* 6 · SWOT (síntese estratégica) */
-        +'<div class="brfg-section" id="brfg-sec-swot">'
-          +'<div class="brfg-section-title">Análise SWOT — Produção '+mesNome+'/'+a.ano+'</div>'
-          +swotHTML
-        +'</div>'
-      +'</div>'
-      +'<div class="brfg-footer">'
-        +'<span>PPCP — Dashboard de Produção · '+mesNome+'/'+a.ano+'</span>'
-        +'<span>Gerado em: '+new Date().toLocaleDateString('pt-BR')+'</span>'
-      +'</div>';
-  }
-
-  window.brfgImprimir = function () {
-    var src = document.getElementById('brfg-content');
-    if (!src) return;
-    var w = window.open('', '_blank', 'width=1250,height=900');
-    w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><title>Briefing PPCP</title><style>' +
-      '@page{size:A4 landscape;margin:8mm 12mm 10mm 12mm;}' +
-      '*{box-sizing:border-box;margin:0;padding:0;}' +
-      'html,body{width:100%;height:100%;}' +
-      'body{font-family:"Segoe UI",Arial,sans-serif;font-size:8.5pt;color:#1a1a2e;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
-      /* wrapper — pagina naturalmente (Achados/SWOT podem exceder 1 folha) */
-      '.brfg-page{display:block;}' +
-      /* header */
-      '.brfg-header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;padding:10px 20px 8px;flex-shrink:0;}' +
-      '.brfg-label{font-size:7.5px;letter-spacing:2px;text-transform:uppercase;color:#e94560;font-weight:700;margin-bottom:4px;}' +
-      '.brfg-header h2{font-size:15px;font-weight:700;margin-bottom:2px;}' +
-      '.brfg-header .brfg-sub{font-size:8.5px;color:#a0aec0;}' +
-      '.brfg-meta-row{display:flex;gap:6px;margin-top:7px;}' +
-      '.brfg-meta-item{background:rgba(255,255,255,.08);border-radius:5px;padding:5px 10px;font-size:8px;color:#cbd5e0;min-width:75px;}' +
-      '.brfg-meta-item span{display:block;font-size:12px;font-weight:700;color:#fff;margin-bottom:1px;}' +
-      /* body */
-      '.brfg-body{padding:8px 20px 6px;}' +
-      '.brfg-section{margin-bottom:7px;}' +
-      '.brfg-section-title{font-size:7.5px;letter-spacing:1.8px;text-transform:uppercase;color:#e94560;font-weight:700;margin-bottom:6px;padding-bottom:4px;border-bottom:1.5px solid #f0f2f5;}' +
-      /* KPI grid — auto-fill cobre 9 cards em 1-2 linhas */
-      '.brfg-kpi-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;}' +
-      /* Previsão x Capacidade — banda compacta de 6 itens numa linha só */
-      '#brfg-print-previsao .brfg-kpi-grid{grid-template-columns:repeat(6,1fr);}' +
-      '#brfg-print-previsao .brfg-kpi-card{padding:5px 7px;}' +
-      '#brfg-print-previsao .brfg-kpi-value{font-size:10.5px;}' +
-      '#brfg-print-previsao .brfg-kpi-delta{font-size:6.8px;}' +
-      '.brfg-kpi-card{background:#f8fafc;border-radius:5px;padding:7px 9px;border-left:3px solid #e2e8f0;}' +
-      '.brfg-kpi-card.ok{border-left-color:#38a169;}.brfg-kpi-card.warn{border-left-color:#d69e2e;}.brfg-kpi-card.bad{border-left-color:#e53e3e;}.brfg-kpi-card.neu{border-left-color:#718096;}' +
-      '.brfg-kpi-label{font-size:7px;letter-spacing:.6px;text-transform:uppercase;color:#718096;font-weight:600;margin-bottom:3px;}' +
-      '.brfg-kpi-value{font-size:12px;font-weight:700;color:#1a1a2e;line-height:1.1;}' +
-      '.brfg-kpi-delta{font-size:7.5px;margin-top:2px;color:#718096;line-height:1.35;}' +
-      '.brfg-up{color:#38a169;font-weight:600;}.brfg-down{color:#e53e3e;font-weight:600;}' +
-      /* 2 colunas: tabela (55%) e pauta (45%) */
-      '.brfg-2col{display:grid;grid-template-columns:55% 44%;gap:14px;}' +
-      /* tabela */
-      'table{width:100%;border-collapse:collapse;font-size:8pt;}' +
-      'thead tr{background:#1a1a2e;color:#fff;}' +
-      'thead th{padding:4px 7px;text-align:left;font-size:7.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:600;color:#fff;}' +
-      'thead th:not(:first-child){text-align:right;}' +
-      'tbody tr:nth-child(even){background:#f8fafc;}' +
-      'tbody td{padding:3px 7px;color:#2d3748;border-bottom:1px solid #edf2f7;}' +
-      'tbody td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums;}' +
-      'tbody tr td:first-child{font-weight:600;}' +
-      '.brfg-hl{color:#1a1a2e;font-weight:700;}' +
-      /* pauta */
-      '.brfg-alert-list{list-style:none;display:flex;flex-direction:column;gap:5px;}' +
-      '.brfg-alert-list li{background:#f8fafc;border-radius:5px;padding:7px 8px 7px 30px;font-size:8pt;line-height:1.4;color:#2d3748;position:relative;}' +
-      '.brfg-icon{position:absolute;left:8px;top:8px;font-size:13px;}' +
-      '.brfg-badge{display:inline-block;font-size:7.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;border-radius:3px;padding:1px 5px;margin-right:4px;}' +
-      '.brfg-badge.red{background:#fed7d7;color:#c53030;}.brfg-badge.green{background:#c6f6d5;color:#276749;}.brfg-badge.yellow{background:#fefcbf;color:#744210;}.brfg-badge.blue{background:#bee3f8;color:#2a69ac;}' +
-      /* achados */
-      '#brfg-print-achados{break-before:page;}' +
-      '.brfg-achado{border:1px solid #e2e8f0;border-left:3px solid #718096;border-radius:5px;padding:8px 10px;margin-bottom:8px;break-inside:avoid;}' +
-      '.brfg-achado.ok{border-left-color:#38a169;}.brfg-achado.warn{border-left-color:#d69e2e;}.brfg-achado.bad{border-left-color:#e53e3e;}.brfg-achado.info{border-left-color:#3182ce;}' +
-      '.brfg-achado-hd{display:flex;align-items:center;gap:6px;margin-bottom:6px;}' +
-      '.brfg-achado-ico{font-size:11px;}' +
-      '.brfg-achado-ttl{font-size:9.5px;font-weight:700;color:#1a1a2e;}' +
-      '.brfg-achado-box{border-radius:4px;padding:5px 8px;margin-bottom:4px;font-size:8pt;line-height:1.4;color:#2d3748;}' +
-      '.brfg-achado-box.fato{background:#eef4ff;border-left:2px solid #0f3460;}.brfg-achado-box.analise{background:#fff8e1;border-left:2px solid #d69e2e;}.brfg-achado-box.rec{background:#eaf7ea;border-left:2px solid #38a169;}' +
-      '.brfg-achado-lbl{display:block;font-size:6.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#718096;margin-bottom:2px;}' +
-      '.brfg-calc-table{width:100%;border-collapse:collapse;margin-top:3px;font-size:7.5pt;}' +
-      '.brfg-calc-table th{padding:3px 6px;text-align:left;font-size:6.5px;text-transform:uppercase;font-weight:600;background:#1a1a2e;color:#fff;}' +
-      '.brfg-calc-table td{padding:3px 6px;border-bottom:1px solid #edf2f7;color:#2d3748;}' +
-      '.brfg-calc-table tbody tr:nth-child(even){background:#f8fafc;}' +
-      '.brfg-calc-table td:last-child{text-align:right;font-weight:700;}' +
-      /* swot */
-      '.brfg-swot-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;break-inside:avoid;}' +
-      '.brfg-swot-box{border-radius:5px;padding:8px 10px;border:1px solid #e2e8f0;break-inside:avoid;}' +
-      '.brfg-swot-box.forcas{background:#e8f5e9;}.brfg-swot-box.fraquezas{background:#fff8e1;}.brfg-swot-box.oportunidades{background:#e3f2fd;}.brfg-swot-box.ameacas{background:#ffebee;}' +
-      '.brfg-swot-ttl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;color:#1a1a2e;}' +
-      '.brfg-swot-box ul{margin:0;padding-left:14px;}' +
-      '.brfg-swot-box li{font-size:8pt;line-height:1.4;color:#2d3748;margin-bottom:2px;}' +
-      /* footer */
-      '.brfg-footer{background:#f8fafc;border-top:1px solid #edf2f7;padding:5px 20px;font-size:7.5px;color:#a0aec0;display:flex;justify-content:space-between;margin-top:10px;break-inside:avoid;}' +
-      '</style></head><body>' +
-      '<div class="brfg-page">' +
-      document.querySelector('.brfg-header').outerHTML +
-      '<div class="brfg-body">' +
-        /* 1 · Resumo (TL;DR) */
-        (document.getElementById('brfg-sec-pauta') ? document.getElementById('brfg-sec-pauta').outerHTML : '') +
-        /* 2 · Indicadores-Chave */
-        '<div class="brfg-section">' +
-          '<div class="brfg-section-title">Indicadores-Chave</div>' +
-          document.querySelector('.brfg-kpi-grid').outerHTML +
-        '</div>' +
-        /* 2b · Acumulado no Ano */
-        (document.getElementById('brfg-sec-acum')
-          ? '<div class="brfg-section" id="brfg-print-acum">' + document.getElementById('brfg-sec-acum').innerHTML + '</div>'
-          : '') +
-        /* 3 · Achados */
-        (document.getElementById('brfg-sec-achados')
-          ? '<div class="brfg-section" id="brfg-print-achados">' + document.getElementById('brfg-sec-achados').innerHTML + '</div>'
-          : '') +
-        /* 4 · Previsão × Capacidade */
-        (document.getElementById('brfg-sec-previsao')
-          ? '<div class="brfg-section" id="brfg-print-previsao">' + document.getElementById('brfg-sec-previsao').innerHTML + '</div>'
-          : '') +
-        /* 5 · Comparativo Mensal */
-        (document.getElementById('brfg-sec-comparativo') ? document.getElementById('brfg-sec-comparativo').outerHTML : '') +
-        /* 6 · SWOT */
-        (document.getElementById('brfg-sec-swot') ? document.getElementById('brfg-sec-swot').outerHTML : '') +
-      '</div>' +
-      document.querySelector('.brfg-footer').outerHTML +
-      '</div>' +
-      '</body></html>');
-    w.document.close();
-    w.addEventListener('afterprint', function() { w.close(); });
-    setTimeout(function(){ w.focus(); w.print(); }, 800);
-  };
-
-  window.brfgCopiar = function () {
-    var clone=document.getElementById('brfg-wrap').cloneNode(true);
-    clone.querySelector('#brfg-action').remove();
-    var html=clone.outerHTML;
-    try {
-      navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([clone.innerText],{type:'text/plain'})})]).then(function(){
-        var t=document.getElementById('brfg-toast'); t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},3500);
-        var btn=document.getElementById('brfg-btn-copy'); btn.classList.add('copied'); btn.textContent='✓ Copiado!';
-        setTimeout(function(){btn.classList.remove('copied');btn.innerHTML='📋 Copiar para E-mail';},3000);
-      });
-    } catch(e) {
-      var area=document.createElement('div'); area.contentEditable='true';
-      area.style.cssText='position:fixed;opacity:0;left:0;top:0;'; area.innerHTML=html;
-      document.body.appendChild(area);
-      var sel=window.getSelection(),range=document.createRange();
-      range.selectNodeContents(area); sel.removeAllRanges(); sel.addRange(range);
-      document.execCommand('copy'); sel.removeAllRanges(); document.body.removeChild(area);
-      var t=document.getElementById('brfg-toast'); t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},3500);
-    }
-  };
-
-  /* Inicializa quando a aba for aberta */
-  function brfgInit() {
-    try {
-      var raw=localStorage.getItem('dash_v3');
-      if(raw){var dados=JSON.parse(raw);if(Array.isArray(dados)&&dados.length){renderBriefing(dados);return;}}
-    } catch(e){}
-    document.getElementById('brfg-content').innerHTML=
-      '<div class="brfg-sem-dados"><h3>Dados não encontrados</h3>'
-      +'<p>Importe a planilha pelo botão <strong>Importar XLSX</strong> no dashboard e volte nesta aba.<br><br>'
-      +'O briefing carrega automaticamente assim que os dados estiverem disponíveis.</p></div>';
-  }
-
-  /* Escuta mudança de página para renderizar ao abrir a aba */
-  (function waitNav(){
-    var orig=window.mudarGrupo;
-    var patched=false;
-    function patch(){
-      if(patched||!window.mudarGrupo)return;
-      patched=true;
-      var _orig=window.mudarGrupo;
-      window.mudarGrupo=function(g,btn){
-        _orig(g,btn);
-        if(g==='briefing') brfgInit();
-      };
-    }
-    if(document.readyState==='loading'){
-      document.addEventListener('DOMContentLoaded',function(){setTimeout(patch,200);});
-    } else { setTimeout(patch,200); }
-  })();
-
-  /* Render inicial se já tiver dados e página visível */
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',function(){setTimeout(brfgInit,300);});
-  } else { setTimeout(brfgInit,300); }
-
-})();
-</script>
-</div>
-<!-- ══ FIM PÁGINA: BRIEFING MENSAL ══ -->
 
 <!-- ══ FIM MÓDULO v11 ══ -->
 
@@ -16375,8 +16378,9 @@ function printAtiva(){
     { id:'ano-a-ano', nome:'Ano a Ano' },
     { id:'producao',  nome:'Produção & Vendas' }
   ];
-  var DUR = 15000;
-  var _on=false, _idx=0, _timer=null, _pausado=false, _tvAntes=false;
+  var DUR = 15000;        /* página que cabe inteira na tela */
+  var DUR_PAN = 22000;    /* página que precisa deslizar — dá tempo de ler */
+  var _on=false, _idx=0, _timer=null, _pausado=false, _tvAntes=false, _dur=DUR;
 
   /* ── CSS ── */
   var st=document.createElement('style');
@@ -16384,8 +16388,11 @@ function printAtiva(){
     /* atenção: o status grande pulsa suavemente na cor do veredito */
     '#ev-status-txt,#mes-sf-status{animation:statusPulse 2.6s ease-in-out infinite}',
     '@keyframes statusPulse{0%,100%{text-shadow:0 0 0 rgba(0,0,0,0)}50%{text-shadow:0 0 24px currentColor}}',
-    /* modo apresentação: sem sidebar, página desliza ao entrar */
+    /* modo apresentação: sem sidebar, sem rolagem — cada página cabe na tela */
     'body.apresenta-mode aside.sidebar,body.apresenta-mode #app-version{display:none!important}',
+    'body.apresenta-mode{overflow:hidden!important}',
+    'body.apresenta-mode header{margin-bottom:8px!important;padding:10px 18px!important}',
+    'body.apresenta-mode .main{overflow:hidden}',
     'body.apresenta-mode .page.on{animation:aprSlide .5s cubic-bezier(.22,.9,.35,1)}',
     '@keyframes aprSlide{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}',
     'body.apresenta-mode #btnApresentar{background:var(--cyan)!important;color:#111!important}',
@@ -16398,7 +16405,7 @@ function printAtiva(){
     '.apr-dot.on{background:var(--cyan);transform:scale(1.3)}',
     '#apr-track{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}',
     '#apr-fill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),#FF9800);border-radius:2px}',
-    '#apr-fill.anda{animation:aprFill '+(DUR/1000)+'s linear forwards}',
+    '#apr-fill.anda{animation:aprFill 15s linear forwards}',
     '@keyframes aprFill{from{width:0}to{width:100%}}',
     '#apr-hint{font-size:.66rem;color:var(--t3);white-space:nowrap}',
     '#apr-pausado{display:none;font-size:.7rem;font-weight:700;color:#FF9800}',
@@ -16429,7 +16436,74 @@ function printAtiva(){
       return '<span class="apr-dot'+(i===_idx?' on':'')+'" onclick="window._aprIr('+i+')"></span>';
     }).join('');
     var fill=document.getElementById('apr-fill');
-    if(fill){ fill.classList.remove('anda'); void fill.offsetWidth; if(!_pausado) fill.classList.add('anda'); }
+    if(fill){
+      fill.classList.remove('anda'); void fill.offsetWidth;
+      fill.style.animationDuration=(_dur/1000)+'s';
+      if(!_pausado) fill.classList.add('anda');
+    }
+  }
+
+  /* Encaixa a página inteira na tela: sem rolagem durante a apresentação.
+     Escala para baixo quando o conteúdo é mais alto que a área livre e para
+     cima (até 1.25×) quando sobra espaço, aproveitando o telão. */
+  var _pan=null, _panK=1, _panMax=0;
+
+  function encaixar(){
+    if(!_on) return;
+    cancelarPan();
+    var pg=document.querySelector('.page.on'); if(!pg) return;
+    pg.style.transform='none'; pg.style.width=''; pg.style.marginLeft='';
+    var topo=pg.getBoundingClientRect().top;
+    var livre=window.innerHeight-topo-56; /* 56 = barra de progresso */
+    var alto=pg.scrollHeight;
+    if(!alto||livre<80) return;
+
+    /* Encolhe até 0,62× — abaixo disso fica ilegível de longe. */
+    var k=Math.min(1.25, livre/alto);
+    k=Math.max(0.62,k);
+    _panK=k;
+    pg.style.transformOrigin='top center';
+    pg.style.width=(100/k).toFixed(2)+'%';
+    pg.style.marginLeft=(50-50/k).toFixed(2)+'%';
+    aplicar(pg,0);
+
+    /* Se ainda sobra conteúdo, o slide desliza sozinho: nada é cortado e
+       ninguém precisa rolar na mão durante a apresentação. */
+    _panMax=Math.max(0, alto-(livre/k));
+    /* slide que desliza fica mais tempo no ar — a barra e o timer acompanham */
+    _dur = _panMax>20 ? DUR_PAN : DUR;
+    renderBarra();
+    armar();
+    if(_panMax>20) iniciarPan(pg);
+  }
+
+  function aplicar(pg,y){
+    pg.style.transform='scale('+_panK.toFixed(3)+') translateY('+(-y).toFixed(1)+'px)';
+  }
+
+  function iniciarPan(pg){
+    var espera=2500, desce=Math.max(3000, _dur-espera-2500), t0=null;
+    function passo(ts){
+      if(!_on||_pausado){ _pan=requestAnimationFrame(passo); return; }
+      if(t0===null) t0=ts;
+      var dt=ts-t0;
+      if(dt>espera){
+        var p=Math.min(1,(dt-espera)/desce);
+        var suave=p<.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2; /* ease-in-out */
+        aplicar(pg,_panMax*suave);
+      }
+      _pan=requestAnimationFrame(passo);
+    }
+    _pan=requestAnimationFrame(passo);
+  }
+
+  function cancelarPan(){ if(_pan){ cancelAnimationFrame(_pan); _pan=null; } }
+
+  function limparEncaixe(){
+    cancelarPan();
+    document.querySelectorAll('.page').forEach(function(p){
+      p.style.transform=''; p.style.width=''; p.style.marginLeft=''; p.style.transformOrigin='';
+    });
   }
 
   function ir(i){
@@ -16437,14 +16511,18 @@ function printAtiva(){
     _idx=((i%ss.length)+ss.length)%ss.length;
     mudarPagina(ss[_idx].id); /* o wrapper do NAV4 sincroniza grupo e subnav */
     renderBarra();
+    /* espera os gráficos desenharem (mudarPagina redesenha em ~30ms) antes de medir */
+    setTimeout(encaixar,300);
     armar();
   }
+
+  window.addEventListener('resize',function(){ if(_on) setTimeout(encaixar,150); });
   window._aprIr=function(i){ ir(i); };
 
   function armar(){
     clearTimeout(_timer);
     if(_pausado) return;
-    _timer=setTimeout(function(){ ir(_idx+1); }, DUR);
+    _timer=setTimeout(function(){ ir(_idx+1); }, _dur);
   }
 
   function tecla(e){
@@ -16466,8 +16544,11 @@ function printAtiva(){
     _on=true; _pausado=false; _idx=0;
     montarBarra();
     document.body.classList.add('apresenta-mode');
+    /* Sem Modo TV aqui: ele dobra as fontes e a página não cabe na tela.
+       Quem dá o tamanho é o encaixe automático — escala até 1,25× quando sobra
+       espaço, que é o efeito de telão sem cortar conteúdo. */
     _tvAntes=document.body.classList.contains('tv-mode');
-    if(!_tvAntes && typeof toggleTVMode==='function') toggleTVMode();
+    if(_tvAntes && typeof toggleTVMode==='function') toggleTVMode();
     try{ var fp=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); if(fp&&fp.catch)fp.catch(function(){}); }catch(e){}
     document.addEventListener('keydown',tecla);
     ir(0);
@@ -16478,7 +16559,8 @@ function printAtiva(){
     clearTimeout(_timer);
     document.removeEventListener('keydown',tecla);
     document.body.classList.remove('apresenta-mode','apr-pause');
-    if(!_tvAntes && document.body.classList.contains('tv-mode') && typeof toggleTVMode==='function') toggleTVMode();
+    limparEncaixe();
+    if(_tvAntes && !document.body.classList.contains('tv-mode') && typeof toggleTVMode==='function') toggleTVMode();
     try{ var xp=document.fullscreenElement&&document.exitFullscreen&&document.exitFullscreen(); if(xp&&xp.catch)xp.catch(function(){}); }catch(e){}
     mudarPagina('resumo');
   }
