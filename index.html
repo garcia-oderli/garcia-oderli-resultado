@@ -16492,12 +16492,14 @@ function printAtiva(){
     if(tabela) tabela.style.display='';
 
     var planoAno=0, realAcum=0, planoAberto=0, diasAbertos=0, normalFech=0, diasFech=0, heP=0, linhas='';
+    var diasPlanoAno=0, fatFech=0, venFech=0, planoFech=0, semPlano=[];
     recs.forEach(function(r){
       var plano=r.previsaoProducao||0, real=r.producaoReal||0, normal=r.prodSemExtras||0;
       var fechado=real>0;
       var diasP=DIAS_PLAN[r.mes]||22;
       var dias=(fechado&&(r.diasTrabalhados||0)>0)?r.diasTrabalhados:diasP;
       planoAno+=plano;
+      if(plano>0) diasPlanoAno+=diasP; else if(!fechado) semPlano.push(r.mes);
       /* Ritmo demonstrado só usa mês com horas fechadas: mês recém-lançado tem
          produção mas ainda não tem prodSemExtras nem dias, e entraria no
          cálculo como zero peças em N dias, puxando a média para baixo. */
@@ -16505,7 +16507,12 @@ function printAtiva(){
       if(fechado){ realAcum+=real; }
       /* HE só é atribuível quando as horas do mês já entraram; senão o mês
          inteiro seria contado como hora extra. */
-      if(horasFechadas){ normalFech+=normal; diasFech+=dias; heP+=Math.max(0,real-normal); }
+      if(horasFechadas){
+        normalFech+=normal; diasFech+=dias; heP+=Math.max(0,real-normal);
+        /* Demanda do mesmo período: só compara plano com faturado/vendido
+           em mês já fechado, senão a conta mistura horizontes diferentes. */
+        planoFech+=plano; fatFech+=(r.qtdeFaturado||0); venFech+=(r.qtdeVendida||0);
+      }
       if(!fechado&&plano>0){ planoAberto+=plano; diasAbertos+=diasP; }
       if(plano<=0&&!fechado) return; /* mês sem plano e sem realizado não entra */
 
@@ -16527,36 +16534,52 @@ function printAtiva(){
     });
     document.getElementById('pm-tbody').innerHTML=linhas;
 
-    /* ── Ritmo: o que a fábrica demonstrou × o que o plano restante exige ── */
+    /* ── Ritmo ──
+       O veredito compara o ritmo demonstrado com o ritmo que o PLANO INTEIRO
+       exige, não com o que sobrou. Medir só contra o que falta engana quando o
+       mês restante é leve: em 2026, agosto pede 1.148 pç/dia e daria "folga",
+       enquanto todo mês fechado rodou abaixo do exigido. */
     var ritmoDem=diasFech>0?normalFech/diasFech:0;
-    var ritmoNecR=diasAbertos>0?planoAberto/diasAbertos:0;
-    var folga=ritmoDem-ritmoNecR;
-    var pctFolga=ritmoNecR>0?(folga/ritmoNecR)*100:0;
+    var ritmoPlano=diasPlanoAno>0?planoAno/diasPlanoAno:0;    /* nominal do plano */
+    var ritmoNecR=diasAbertos>0?planoAberto/diasAbertos:0;    /* só o que falta */
+    var pctFolga=ritmoPlano>0?((ritmoDem/ritmoPlano)-1)*100:0;
 
     var cor,rgb,titulo,frase,acao;
-    if(planoAberto<=0){
-      cor='#00E5FF'; rgb='0,229,255'; titulo='PLANO CUMPRIDO NO PERÍODO';
-      frase='Não há mais plano em aberto no ano — todos os meses com previsão já foram fechados.';
-      acao='Lançar a previsão dos meses seguintes para voltar a acompanhar o ritmo.';
-    } else if(folga>=0){
-      cor='#4CAF50'; rgb='76,175,80'; titulo='PLANO ALCANÇÁVEL';
-      frase='Faltam <b>'+fi(planoAberto)+'</b> peças em <b>'+diasAbertos+'</b> dias úteis — exige <b>'+fi(ritmoNecR)
-        +'</b> pç/dia. A fábrica vem entregando <b>'+fi(ritmoDem)+'</b> pç/dia na jornada normal, '
-        +'<b>'+fd(Math.abs(pctFolga),1)+'% acima</b> do necessário.';
-      acao='Manter o ritmo atual — não é preciso hora extra estrutural para cumprir o plano restante.';
-    } else if(pctFolga>-10){
-      cor='#FF9800'; rgb='255,152,0'; titulo='PLANO APERTADO';
-      frase='Faltam <b>'+fi(planoAberto)+'</b> peças em <b>'+diasAbertos+'</b> dias úteis — exige <b>'+fi(ritmoNecR)
-        +'</b> pç/dia, e a fábrica vem entregando <b>'+fi(ritmoDem)+'</b> pç/dia na jornada normal ('
-        +fd(Math.abs(pctFolga),1)+'% abaixo). Sem folga para imprevisto.';
-      acao='Cabe com hora extra pontual ou reduzindo absenteísmo — decidir agora, não no fim do mês.';
+    var restante = planoAberto>0
+      ? ' O que resta do plano (<b>'+fi(planoAberto)+'</b> peças em <b>'+diasAbertos
+        +'</b> dias) pede <b>'+fi(ritmoNecR)+'</b> pç/dia — mês mais leve que a média do ano.'
+      : '';
+
+    if(ritmoPlano<=0||ritmoDem<=0){
+      cor='#888888'; rgb='136,136,136'; titulo='SEM BASE PARA COMPARAR';
+      frase='Falta plano ou faltam meses fechados com horas lançadas para calcular o ritmo.';
+      acao='Lançar a previsão na planilha e fechar as horas do mês corrente.';
+    } else if(pctFolga>=0){
+      cor='#4CAF50'; rgb='76,175,80'; titulo='RITMO COBRE O PLANO';
+      frase='O plano do ano é construído a <b>'+fi(ritmoPlano)+'</b> pç/dia e a fábrica vem entregando <b>'
+        +fi(ritmoDem)+'</b> pç/dia na jornada normal — <b>'+fd(Math.abs(pctFolga),1)+'% acima</b>.'+restante;
+      acao='Manter o ritmo — o plano cabe na jornada normal, sem hora extra estrutural.';
+    } else if(pctFolga>-5){
+      cor='#FF9800'; rgb='255,152,0'; titulo='RITMO NO LIMITE DO PLANO';
+      frase='O plano do ano é construído a <b>'+fi(ritmoPlano)+'</b> pç/dia e a fábrica entrega <b>'
+        +fi(ritmoDem)+'</b> pç/dia na jornada normal — <b>'+fd(Math.abs(pctFolga),1)+'% abaixo</b>. '
+        +'A diferença vem sendo coberta com hora extra.'+restante;
+      acao='Sem folga para imprevisto: reduzir absenteísmo ou assumir a hora extra como custo recorrente.';
     } else {
-      cor='#F44336'; rgb='244,67,54'; titulo='PLANO EM RISCO';
-      frase='Faltam <b>'+fi(planoAberto)+'</b> peças em <b>'+diasAbertos+'</b> dias úteis — exige <b>'+fi(ritmoNecR)
-        +'</b> pç/dia, mas a fábrica vem entregando <b>'+fi(ritmoDem)+'</b> pç/dia na jornada normal, '
-        +'<b>'+fd(Math.abs(pctFolga),1)+'% abaixo</b>. O plano não fecha no ritmo atual.';
+      cor='#F44336'; rgb='244,67,54'; titulo='RITMO ABAIXO DO PLANO';
+      frase='O plano do ano é construído a <b>'+fi(ritmoPlano)+'</b> pç/dia, mas a fábrica entrega <b>'
+        +fi(ritmoDem)+'</b> pç/dia na jornada normal — <b>'+fd(Math.abs(pctFolga),1)+'% abaixo</b>. '
+        +'Por isso nenhum mês do ano fechou a previsão sem hora extra.'+restante;
       acao='Decidir entre aumentar capacidade (turno, headcount ou hora extra estrutural) ou repactuar o plano com a área comercial.';
     }
+
+    /* Aviso: plano incompleto invalida qualquer leitura de "falta produzir" */
+    var avisoPlano = semPlano.length
+      ? '<div style="margin-top:10px;padding:9px 13px;background:rgba(255,152,0,.08);border-left:2px solid rgba(255,152,0,.5);'
+        +'border-radius:6px;font-size:.76rem;color:var(--t2)"><b style="color:#FF9800">Atenção:</b> '
+        +semPlano.length+' '+(semPlano.length>1?'meses ainda sem plano':'mês ainda sem plano')+' ('
+        +semPlano.join(', ')+'). O "falta produzir" cobre só o horizonte já planejado, não o ano.</div>'
+      : '';
 
     document.getElementById('pm-veredito').style.display='';
     document.getElementById('pm-veredito').innerHTML=
@@ -16566,24 +16589,61 @@ function printAtiva(){
       +'<div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:9px">'
         +'<span style="font-size:1.8rem;font-weight:800;color:'+cor+'">'+titulo+'</span>'
         +'<span style="font-size:1.15rem;font-family:var(--mono);font-weight:700;color:'+cor+'">'
-          +(planoAberto>0?((folga>=0?'+':'')+fd(pctFolga,1)+'%'):'—')+'</span>'
-        +'<span style="font-size:.72rem;color:var(--t2)">ritmo demonstrado vs necessário</span>'
+          +(ritmoPlano>0?((pctFolga>=0?'+':'')+fd(pctFolga,1)+'%'):'—')+'</span>'
+        +'<span style="font-size:.72rem;color:var(--t2)">ritmo demonstrado vs exigido pelo plano</span>'
       +'</div>'
       +'<div style="font-size:.92rem;color:var(--t1);line-height:1.55;max-width:960px">'+frase+'</div>'
       +'<div style="margin-top:12px;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:6px;'
         +'font-size:.8rem;color:var(--t2);border-left:2px solid rgba('+rgb+',.45)">'
         +'<b style="color:var(--t1)">Ação recomendada:</b> '+acao+'</div>'
+      +avisoPlano
       +'</div>';
 
     var pctPlano=planoAno>0?(realAcum/planoAno)*100:0;
     document.getElementById('pm-kpis').innerHTML=
       '<div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(235px,1fr))">'
-      +card('Plano do ano', fi(planoAno)+' pç', 'Soma da previsão informada', '#00E5FF')
-      +card('Realizado até agora', fi(realAcum)+' pç', fd(pctPlano,1)+'% do plano do ano', '#F5A623')
-      +card('Falta produzir', fi(planoAberto)+' pç', diasAbertos+' dias úteis restantes', '#FF9800')
-      +card('Ritmo necessário', fi(ritmoNecR)+' pç/dia', 'Para cumprir o que falta', cor)
-      +card('Ritmo demonstrado', fi(ritmoDem)+' pç/dia', 'Média na jornada normal', '#4CAF50')
-      +card('Dependência de hora extra', fi(heP)+' pç', 'Saíram só por hora extra no ano', heP>0?'#FF9800':'#4CAF50')
+      +card('Plano do ano', fi(planoAno)+' pç', diasPlanoAno+' dias úteis planejados', '#00E5FF')
+      +card('Realizado até agora', fi(realAcum)+' pç', fd(pctPlano,1)+'% do plano', '#F5A623')
+      +card('Ritmo do plano', fi(ritmoPlano)+' pç/dia', 'O que o plano exige por dia', '#00E5FF')
+      +card('Ritmo demonstrado', fi(ritmoDem)+' pç/dia', 'Entregue na jornada normal', cor)
+      +card('Falta produzir', fi(planoAberto)+' pç', diasAbertos+' dias úteis planejados', '#FF9800')
+      +card('Dependência de hora extra', fi(heP)+' pç', 'Saíram só por hora extra', heP>0?'#FF9800':'#4CAF50')
+      +'</div>'
+      +blocoDemanda(planoFech,fatFech,venFech);
+  }
+
+  /* ── O plano cobre a demanda? ──
+     Cumprir o plano não basta se o plano for menor que o que se vende. Compara
+     o plano com o faturado e com a carteira vendida do mesmo período fechado. */
+  function blocoDemanda(plano,fat,ven){
+    if(plano<=0||(fat<=0&&ven<=0)) return '';
+    var pf=fat>0?((plano/fat)-1)*100:null;
+    var pv=ven>0?((plano/ven)-1)*100:null;
+    var critico=pv!==null&&pv<-10;
+    var cor=critico?'#F44336':(pv!==null&&pv<0?'#FF9800':'#4CAF50');
+    var rgb=critico?'244,67,54':(pv!==null&&pv<0?'255,152,0':'76,175,80');
+    var msg;
+    if(pv===null){
+      msg='Sem quantidade vendida no período para comparar.';
+    } else if(pv<0){
+      msg='A carteira vendida do período é <b style="color:'+cor+'">'+fd(Math.abs(pv),0)+'% maior</b> que o plano. '
+        +'Cumprir o plano não zera a fila: o plano está dimensionado abaixo do que a área comercial vem vendendo.';
+    } else {
+      msg='O plano cobre a carteira vendida do período com <b style="color:'+cor+'">'+fd(pv,0)+'%</b> de margem.';
+    }
+    function item(lbl,val,sub,c){
+      return '<div style="flex:1;min-width:150px"><div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">'+lbl+'</div>'
+        +'<div style="font-family:var(--mono);font-size:1.25rem;font-weight:700;color:'+c+'">'+fi(val)+'</div>'
+        +'<div style="font-size:.63rem;color:var(--t3);margin-top:2px">'+sub+'</div></div>';
+    }
+    return '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ O plano cobre a demanda?</div>'
+      +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid '+cor+';border-radius:var(--r);padding:16px 20px">'
+      +'<div style="display:flex;gap:26px;flex-wrap:wrap;margin-bottom:12px">'
+        +item('Plano do período', plano, 'Meses já fechados', '#00E5FF')
+        +item('Faturado', fat, pf!==null?('plano '+(pf>=0?'+':'')+fd(pf,0)+'% vs faturado'):'', '#F5A623')
+        +item('Vendido (carteira)', ven, pv!==null?('plano '+(pv>=0?'+':'')+fd(pv,0)+'% vs vendido'):'', cor)
+      +'</div>'
+      +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1)">'+msg+'</div>'
       +'</div>';
   }
 
