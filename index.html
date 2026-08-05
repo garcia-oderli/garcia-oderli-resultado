@@ -4525,6 +4525,24 @@ var _ALIAS_CAMPOS = (function(){
   m['meses'] = 'mes';
   return m;
 })();
+/* ── NÚMERO EM FORMATO BRASILEIRO ──
+   Célula gravada como texto chega assim do Sheets. Number("33.291") daria
+   33,291 (trinta e três) e Number("11,52") daria NaN → 0. Os dois casos já
+   apareceram na planilha, então a conversão é feita à mão. */
+function _numBR(v){
+  if (v === null || v === undefined || v === '') return 0;
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  var s = String(v).trim();
+  if (!s || s === '-' || s === '—') return 0;
+  s = s.replace(/\s| /g, '').replace(/R\$/gi, '').replace(/%/g, '');
+  if (s.indexOf(',') >= 0) {
+    s = s.replace(/\./g, '').replace(',', '.');      /* 1.234,56 → 1234.56 */
+  } else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+    s = s.replace(/\./g, '');                        /* 33.291   → 33291   */
+  }
+  var n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
 function _campoDoCabecalho(k){
   var n = _normNome(k);
   if (_ALIAS_CAMPOS[n]) return _ALIAS_CAMPOS[n];
@@ -4555,7 +4573,7 @@ function _carregarDoSheetsAoAbrir(){
       if (!json || !json.ok || !json.dados || !json.dados.length) return;
       var dados = json.dados.map(function(r){
         var rec = Object.assign({id: uid()}, _traduzirCampos(r));
-        CAMPOS_NUM.forEach(function(c){ rec[c] = Number(rec[c]) || 0; });
+        CAMPOS_NUM.forEach(function(c){ rec[c] = _numBR(rec[c]); });
         rec.mes = String(rec.mes || '').trim();
         return rec;
       });
@@ -16432,6 +16450,8 @@ function printAtiva(){
   function statusMes(plano,real,normal){
     if(plano<=0)      return semaforo('sem plano','#888888','136,136,136');
     if(real<=0)       return semaforo('A produzir','#00E5FF','0,229,255');
+    /* produção lançada mas horas ainda não: não dá para dizer se dependeu de HE */
+    if(normal<=0)     return semaforo('Em fechamento','#00E5FF','0,229,255');
     if(normal>=plano) return semaforo('Cumpriu','#4CAF50','76,175,80');
     if(real>=plano)   return semaforo('Cumpriu c/ HE','#FF9800','255,152,0');
     return semaforo('Não cumpriu','#F44336','244,67,54');
@@ -16478,13 +16498,20 @@ function printAtiva(){
       var diasP=DIAS_PLAN[r.mes]||22;
       var dias=(fechado&&(r.diasTrabalhados||0)>0)?r.diasTrabalhados:diasP;
       planoAno+=plano;
-      if(fechado){ realAcum+=real; normalFech+=normal; diasFech+=dias; heP+=Math.max(0,real-normal); }
-      else if(plano>0){ planoAberto+=plano; diasAbertos+=diasP; }
+      /* Ritmo demonstrado só usa mês com horas fechadas: mês recém-lançado tem
+         produção mas ainda não tem prodSemExtras nem dias, e entraria no
+         cálculo como zero peças em N dias, puxando a média para baixo. */
+      var horasFechadas=fechado&&normal>0&&dias>0;
+      if(fechado){ realAcum+=real; }
+      /* HE só é atribuível quando as horas do mês já entraram; senão o mês
+         inteiro seria contado como hora extra. */
+      if(horasFechadas){ normalFech+=normal; diasFech+=dias; heP+=Math.max(0,real-normal); }
+      if(!fechado&&plano>0){ planoAberto+=plano; diasAbertos+=diasP; }
       if(plano<=0&&!fechado) return; /* mês sem plano e sem realizado não entra */
 
       var desvio=fechado?(real-plano):null;
       var ritmoNec=plano>0?plano/diasP:null;
-      var ritmoReal=fechado&&dias>0?normal/dias:null;
+      var ritmoReal=horasFechadas?normal/dias:null;
       var corDesvio=desvio===null?'var(--t3)':(desvio>=0?'var(--green)':'var(--red)');
       var corRitmo=(ritmoReal!==null&&ritmoNec!==null)?(ritmoReal>=ritmoNec?'var(--green)':'var(--red)'):'var(--t1)';
       linhas+='<tr>'
