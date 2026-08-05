@@ -4074,6 +4074,7 @@ Fórmula: Faltas + Atrasos
       '.brfg-page{display:block;}' +
       /* header */
       '.brfg-header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;padding:10px 20px 8px;flex-shrink:0;}' +
+      '.brfg-hd-logo{display:flex;align-items:center;gap:16px;}' +
       '.brfg-label{font-size:7.5px;letter-spacing:2px;text-transform:uppercase;color:#e94560;font-weight:700;margin-bottom:4px;}' +
       '.brfg-header h2{font-size:15px;font-weight:700;margin-bottom:2px;}' +
       '.brfg-header .brfg-sub{font-size:8.5px;color:#a0aec0;}' +
@@ -4147,7 +4148,15 @@ Fórmula: Faltas + Atrasos
       '.brfg-footer{background:#f8fafc;border-top:1px solid #edf2f7;padding:5px 20px;font-size:7.5px;color:#a0aec0;display:flex;justify-content:space-between;margin-top:10px;break-inside:avoid;}' +
       '</style></head><body>' +
       '<div class="brfg-page">' +
-      document.querySelector('.brfg-header').outerHTML +
+      (function(){
+        /* O cabeçalho da tela referencia a logo por caminho relativo, que não
+           resolve na janela de impressão. Recria com a versão embutida. */
+        var h = document.querySelector('.brfg-header');
+        var lg = logoImprimir(28);
+        return lg ? '<div class="brfg-header brfg-hd-logo">' + lg
+                    + '<div style="flex:1">' + h.innerHTML + '</div></div>'
+                  : h.outerHTML;
+      })() +
       '<div class="brfg-body">' +
         /* 1 · Resumo (TL;DR) */
         (document.getElementById('brfg-sec-pauta') ? document.getElementById('brfg-sec-pauta').outerHTML : '') +
@@ -4481,6 +4490,35 @@ function toast(msg,tipo){
   var el=document.getElementById('toast');
   el.textContent=msg; el.className='on '+(tipo||'ok');
   clearTimeout(el._t); el._t=setTimeout(function(){el.className=''},2800)
+}
+
+/* ── LOGO PARA IMPRESSÃO ──
+   As janelas de impressão (briefing e relatório) são documentos novos abertos
+   em about:blank, onde caminho relativo não resolve — <img src="/logo..."> sai
+   quebrado. Converte a logo já carregada na página para data URI, que viaja
+   dentro do próprio HTML. Resultado fica em cache; se falhar, devolve vazio e
+   a impressão sai sem logo em vez de quebrar. */
+var _logoCache = null;
+function logoPatrimar(){
+  if (_logoCache !== null) return _logoCache;
+  _logoCache = '';
+  try {
+    var img = document.querySelector('.hIcon-logo img');
+    if (img && img.complete && img.naturalWidth) {
+      var c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      _logoCache = c.toDataURL('image/jpeg', 0.85);
+    }
+  } catch(e) { _logoCache = ''; }   /* canvas tainted (file://) — segue sem logo */
+  return _logoCache;
+}
+/* Bloco pronto para o cabeçalho escuro das impressões */
+function logoImprimir(altura){
+  var d = logoPatrimar();
+  if (!d) return '';
+  return '<img src="'+d+'" alt="Patrimar" style="height:'+(altura||26)+'px;width:auto;display:block;'
+    + 'background:#fff;padding:4px 8px;border-radius:4px;flex-shrink:0">';
 }
 
 /* ── HFP: Horas Perdidas (Faltas + Atrasos) ──
@@ -16864,6 +16902,7 @@ function printAtiva(){
       +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:9pt;color:#1a1a2e;background:#fff;'
         +'-webkit-print-color-adjust:exact;print-color-adjust:exact}'
       +'.hd{background:linear-gradient(135deg,#1a1a2e,#16213e 60%,#0f3460);color:#fff;padding:13px 22px}'
+      +'.hd .hdrow{display:flex;align-items:center;gap:16px}'
       +'.hd .lb{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#F5A623;font-weight:700}'
       +'.hd h1{font-size:17px;margin:3px 0 2px}.hd .sb{font-size:9px;color:#a0aec0}'
       +'.bd{padding:11px 22px}'
@@ -16893,9 +16932,11 @@ function printAtiva(){
       +'.ft{background:#f8fafc;border-top:1px solid #edf2f7;padding:6px 22px;font-size:7.5px;color:#a0aec0;'
         +'display:flex;justify-content:space-between;margin-top:11px}'
       +'</style></head><body>'
-      +'<div class="hd"><div class="lb">PPCP — Planejamento e Controle da Produção</div>'
+      +'<div class="hd"><div class="hdrow">'+logoImprimir(30)+'<div>'
+        +'<div class="lb">PPCP — Planejamento e Controle da Produção</div>'
         +'<h1>Planejamento Mestre — Plano '+u.ano+'</h1>'
-        +'<div class="sb">Plano do ano × ritmo demonstrado × carteira · relatório para reunião</div></div>'
+        +'<div class="sb">Plano do ano × ritmo demonstrado × carteira · relatório para reunião</div>'
+        +'</div></div></div>'
       +'<div class="bd">'
       +'<div class="st">Veredito do Plano</div>'
       +'<div class="ver"><h2>'+u.titulo+' &nbsp;<span style="font-size:12px">'
@@ -16969,9 +17010,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b24';
+var APP_VERSAO = 'b25';
 var APP_DATA   = '05/08/2026';
 var APP_HISTORICO = [
+  { v:'b25', data:'05/08/2026', itens:[
+    'Logo Patrimar em todas as impressões (briefing, relatório e impressão nativa).',
+    'Módulo atualizacao.js avulso, para levar o aviso de versão aos outros painéis.'
+  ]},
   { v:'b24', data:'05/08/2026', itens:[
     'Relatório executivo do Planejamento Mestre em PDF, com análise SWOT.',
     'Fonte maior na aba Planejamento Mestre para leitura em reunião.'
