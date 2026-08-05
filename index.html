@@ -93,6 +93,10 @@ header{
 .hIcon{width:46px;height:46px;background:var(--cyan);border-radius:5px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .hIcon svg{width:26px;height:26px;fill:var(--bg)}
+.hIcon.hIcon-logo{width:auto !important;height:auto !important;background:#fff !important;box-shadow:none !important;padding:6px 12px}
+.hIcon.hIcon-logo img{height:36px;width:auto;display:block}
+.tv-mode .hIcon.hIcon-logo{width:auto !important;height:auto !important}
+.tv-mode .hIcon.hIcon-logo img{height:46px}
 h1{font-size:1.3rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1.2}
 h1 span{color:var(--cyan)}
 .hBadge{font-family:var(--mono);font-size:.64rem;color:var(--t2);margin-top:3px;letter-spacing:.08em}
@@ -1055,14 +1059,15 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;left:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.07.14 · b20</div><div id="alertas-banner" style="display: none;"><div class="alerta-bar warn"><span class="ab-ico">📋</span><span class="ab-txt">Absenteísmo acima do limite (10%)</span><span class="ab-val">12.1%</span><button class="ab-close" onclick="this.parentElement.remove();var b=document.getElementById('alertas-banner');if(!b.children.length)b.style.display='none'">✕</button></div></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.07.14 · b20</div><div id="alertas-banner" style="display: none;"><div class="alerta-bar warn"><span class="ab-ico">📋</span><span class="ab-txt">Absenteísmo acima do limite (10%)</span><span class="ab-val">12.1%</span><button class="ab-close" onclick="this.parentElement.remove();var b=document.getElementById('alertas-banner');if(!b.children.length)b.style.display='none'">✕</button></div></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
 <header>
   <div class="hL">
-    <div class="hIcon">
-      <svg viewBox="0 0 24 24"><path d="M3 13h4v8H3v-8zm7-6h4v14h-4V7zm7-4h4v18h-4V3z"></path></svg>
+    <div class="hIcon hIcon-logo">
+      <img src="logo-patrimar.jpg" alt="Patrimar Móveis"
+           onerror="this.parentElement.innerHTML='<svg viewBox=&quot;0 0 24 24&quot;><path d=&quot;M3 13h4v8H3v-8zm7-6h4v14h-4V7zm7-4h4v18h-4V3z&quot;></path></svg>';this.parentElement.classList.remove('hIcon-logo')">
     </div>
     <div>
       <h1>Capacidade &amp; <span>Eficiência</span></h1>
@@ -1639,9 +1644,9 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
   </div>
   <div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
     <div class="kCard kc"><div class="kLbl">Produção Total</div><div class="kVal" id="kv5-prod">556.827 pç</div><div class="kSub">Peças acumuladas</div></div>
-    <div class="kCard ka"><div class="kLbl">Média Mensal</div><div class="kVal" id="kv5-med">30.935 pç</div><div class="kSub">Peças/mês</div></div>
+    <div class="kCard ka" id="card5-med"><div class="kLbl">Média Mensal</div><div class="kVal" id="kv5-med">30.935 pç</div><div class="kSub">Peças/mês</div></div>
     <div class="kCard kp"><div class="kLbl">Ticket Médio</div><div class="kVal" id="kv5-tkt">R$ 249,36</div><div class="kSub">R$ por peça</div></div>
-    <div class="kCard kg"><div class="kLbl">Melhor Mês</div><div class="kVal" id="kv5-best">36.450 pç</div><div class="kSub" id="ks5-best">MAI/2025</div></div>
+    <div class="kCard kg" id="card5-best"><div class="kLbl">Melhor Mês</div><div class="kVal" id="kv5-best">36.450 pç</div><div class="kSub" id="ks5-best">MAI/2025</div></div>
     <div class="kCard kc"><div class="kLbl">Meta Acumulada</div><div class="kVal" id="kv5-meta">539.517 pç</div><div class="kSub">Cap. teórica s/ extras</div></div>
     <div class="kCard ka" id="card5-var"><div class="kLbl">Atingimento Médio</div><div class="kVal" id="kv5-var" style="color: var(--amber);">87,6%</div><div class="kSub">Prod. s/ extras ÷ Meta</div></div>
   </div>
@@ -1752,6 +1757,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
     <div class="kCard ka" id="card5-prevce"><div class="kLbl">Realizado c/ Extras vs Previsão</div><div class="kVal" id="kv5-prevce">—</div><div class="kSub">Produção real ÷ Previsão</div></div>
     <div class="kCard ka" id="card5-prevse"><div class="kLbl">Realizado s/ Extras vs Previsão</div><div class="kVal" id="kv5-prevse">—</div><div class="kSub">Prod. s/ extras ÷ Previsão</div></div>
   </div>
+  <div id="previsao-leitura" style="display:none;margin-top:10px;font-size:.8rem;line-height:1.55;color:var(--t1);padding:10px 14px;background:rgba(255,255,255,.03);border-left:3px solid var(--amber);border-radius:6px"></div>
 
   <div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Horas Carga vs Normais vs Extras</div>
   <div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
@@ -1766,6 +1772,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
       <thead>
         <tr>
           <th>Mês/Ano</th>
+          <th>Status</th>
           <th style="text-align:right">Previsão</th>
           <th style="text-align:right">Realizado c/ Extras</th>
           <th style="text-align:right">Realizado s/ Extras</th>
@@ -1792,8 +1799,8 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
   <div style="font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--t2);margin-bottom:10px">▸ VEREDITO DO PERÍODO</div>
   <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:10px">
     <span id="ev-status-txt" style="font-size:2.1rem;font-weight:800;letter-spacing:.02em;color:#F44336">🔴 SOBRECARGA</span>
-    <span id="ev-gap-pct" style="font-size:1.3rem;font-family:var(--mono);font-weight:700;color:#F44336">-16,3%</span>
-    <span style="font-size:.72rem;color:var(--t2)">gap capacidade × demanda</span>
+    <span id="ev-gap-pct" style="font-size:1.3rem;font-family:var(--mono);font-weight:700;color:#F44336">+16,3%</span>
+    <span id="ev-gap-lbl" style="font-size:.72rem;color:var(--t2)">da demanda sem cobertura</span>
   </div>
   <div id="ev-frase" style="font-size:.95rem;color:var(--t1);line-height:1.5;max-width:900px">
     A fábrica produziu <b id="ev-prod-inline">472.441</b> peças contra uma demanda de <b id="ev-dem-inline">564.324</b> — déficit de <b id="ev-gap-inline">91.883</b> peças no período. Isso não se resolve apertando eficiência: é capacidade instalada abaixo da demanda.
@@ -3515,7 +3522,7 @@ var PLANILHA = [
   {"id":"mnosc0ciswk","mes":"MAI","ano":2026,"colaboradores":100,"horasCarga":16482,"faltas":1662,"atraso":0,"totalFaltaAtraso":1662,"absenteismo":10.41,"horasNormais":15962,"extra50":1724,"extra100":671,"totalExtras":2395,"horasTotais":18357,"producaoReal":33330,"prodSemExtras":28329,"meta":32278,"eficiencia":87.76,"eficienciaAdj":92.53,"margem":2.48,"ticketMedio":276.95,"custoCap":961133.26,"qtdeFaturado":35220,"diasTrabalhados":20,"qtdeVendida":26770,"previsaoProducao":31522,"horasFerias":607},
   {"id":"mnosc0cijci","mes":"JUN","ano":2026,"colaboradores":99,"horasCarga":14792,"faltas":1532,"atraso":0,"totalFaltaAtraso":1532,"absenteismo":10.65,"horasNormais":14388,"extra50":1545,"extra100":44,"totalExtras":1589,"horasTotais":15977,"producaoReal":30451,"prodSemExtras":27088,"meta":29619,"eficiencia":91.45,"eficienciaAdj":96.44,"margem":-1.62,"ticketMedio":273.58,"custoCap":887055.36,"qtdeFaturado":30451,"diasTrabalhados":20,"qtdeVendida":41709,"previsaoProducao":32850,"horasFerias":880},
   {"id":"mnosc0ci60o","mes":"JUL","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":30780,"horasFerias":0},
-  {"id":"mnosc0cio8m","mes":"AGO","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":0,"horasFerias":0},
+  {"id":"mnosc0cio8m","mes":"AGO","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":24110,"horasFerias":0},
   {"id":"mnosc0ci2c9","mes":"SET","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":0,"horasFerias":0},
   {"id":"mnosc0cixlv","mes":"OUT","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":0,"horasFerias":0},
   {"id":"mnosc0ciwsw","mes":"NOV","ano":2026,"colaboradores":0,"horasCarga":0,"faltas":0,"atraso":0,"totalFaltaAtraso":0,"absenteismo":0,"horasNormais":0,"extra50":0,"extra100":0,"totalExtras":0,"horasTotais":0,"producaoReal":0,"prodSemExtras":0,"meta":0,"eficiencia":0,"eficienciaAdj":0,"margem":100,"ticketMedio":0,"custoCap":0,"qtdeFaturado":0,"diasTrabalhados":0,"previsaoProducao":0,"horasFerias":0},
@@ -5570,11 +5577,14 @@ function renderKPIsExtras(d){
   s('kv4-atr',   fi(tA)+' h');
   s('kv4-acima', acimaAbs+'/'+d.length);
 
-  // Produção
+  // Produção — com 1 mês só, Média e Melhor Mês repetem o Total: esconde
   s('kv5-prod', fi(tProd)+' pç');
   s('kv5-med',  fi(tProd/d.length)+' pç');
   s('kv5-tkt',  nTkt>0?'R$ '+f(tTkt/nTkt,2):'—');
   s('kv5-best', fi(bestProd)+' pç');
+  var _c5med=document.getElementById('card5-med'), _c5best=document.getElementById('card5-best');
+  if(_c5med)  _c5med.style.display  = d.length>1?'':'none';
+  if(_c5best) _c5best.style.display = d.length>1?'':'none';
 
   // Meta e Variação
   var tMeta5=0, tSemExtra5=0;
@@ -5615,6 +5625,32 @@ function renderKPIsExtras(d){
     s('kv5-prevce','—'); s('kv5-prevse','—');
   }
 
+  // Leitura executiva — quantos meses fechados cumpriram a previsão e como
+  var pvLeitura = document.getElementById('previsao-leitura');
+  if (pvLeitura) {
+    var pvFech=0, pvOk=0, pvHE=0, pvNao=0;
+    d.forEach(function(r){
+      var pv=r.previsaoProducao||0;
+      if(pv<=0 || (r.producaoReal||0)<=0) return;
+      pvFech++;
+      if((r.prodSemExtras||0)>=pv) pvOk++;
+      else if((r.producaoReal||0)>=pv) pvHE++;
+      else pvNao++;
+    });
+    if (pvFech>0) {
+      var pvPartes=[];
+      if(pvOk>0)  pvPartes.push('<b style="color:var(--green)">'+pvOk+'</b> '+(pvOk>1?'cumpriram':'cumpriu')+' na jornada normal');
+      if(pvHE>0)  pvPartes.push('<b style="color:var(--amber)">'+pvHE+'</b> só com hora extra');
+      if(pvNao>0) pvPartes.push('<b style="color:var(--red)">'+pvNao+'</b> não '+(pvNao>1?'cumpriram':'cumpriu'));
+      pvLeitura.innerHTML='<b>Leitura:</b> '+(pvFech>1?'dos <b>'+pvFech+'</b> meses fechados':'do <b>1</b> mês fechado')+' com previsão, '
+        +pvPartes.join(', ')+'.'
+        +(pvHE>0?' <span style="color:var(--t2)">Cumprir só com hora extra é custo extra recorrente — sinal de capacidade normal abaixo do plano.</span>':'');
+      pvLeitura.style.display='block';
+    } else {
+      pvLeitura.style.display='none';
+    }
+  }
+
   // Tabela mensal — Previsão x Realizado x Horas
   var ptbody = document.getElementById('previsao-tbody');
   if (ptbody) {
@@ -5635,8 +5671,17 @@ function renderKPIsExtras(d){
         var pctExt = carga > 0 ? (r.totalExtras / carga) * 100 : null;
         function corAt(v){ return v===null?'':(v>=100?'color:var(--green)':v>=90?'color:var(--amber)':'color:var(--red)'); }
         function corExt(v){ return v===null?'':(v<=10?'color:var(--green)':v<=15?'color:var(--amber)':'color:var(--red)'); }
+        /* Status executivo — mesma leitura do Planejamento Mestre:
+           cumpriu a previsão na jornada normal, só com hora extra, ou não cumpriu */
+        var stTxt, stCor;
+        if (prev <= 0)                       { stTxt = '—';                stCor = 'var(--t3)'; }
+        else if ((r.producaoReal||0) <= 0)   { stTxt = 'aguarda fechamento'; stCor = 'var(--t3)'; }
+        else if ((r.prodSemExtras||0) >= prev){ stTxt = '✓ Cumpriu';        stCor = 'var(--green)'; }
+        else if ((r.producaoReal||0) >= prev){ stTxt = '⚠ Cumpriu c/ HE';   stCor = 'var(--amber)'; }
+        else                                 { stTxt = '✗ Não cumpriu';     stCor = 'var(--red)'; }
         return '<tr>'
           + '<td>'+r.mes+'/'+r.ano+'</td>'
+          + '<td style="color:'+stCor+';font-weight:700;white-space:nowrap">'+stTxt+'</td>'
           + '<td style="text-align:right">'+(prev>0?fi(prev):'—')+'</td>'
           + '<td style="text-align:right">'+fi(r.producaoReal||0)+'</td>'
           + '<td style="text-align:right">'+fi(r.prodSemExtras||0)+'</td>'
@@ -7455,8 +7500,24 @@ function cfInicializar() {
       wrap.appendChild(btn);
     });
 
-    /* ← ponto-chave: NÃO chama prodSelecionarTodos() */
-    prodMostrarSemSelecao();
+    /* Padrão igual ao PPCP: abre já com o último mês com dado real
+       selecionado — a tela nunca abre vazia. "Todos os meses" continua
+       a um clique para ver o ano inteiro. */
+    var comDado = ordem.filter(function (mes) {
+      return dadosAno.some(function (r) {
+        return r.mes === mes && ((r.horasCarga || 0) > 0 || (r.producaoReal || 0) > 0);
+      });
+    });
+    if (comDado.length) {
+      var ultimo = comDado[comDado.length - 1];
+      prodMesesSel = [ultimo];
+      wrap.querySelectorAll('.prod-mes-btn').forEach(function (b) {
+        b.classList.toggle('on', b.textContent.trim() === ultimo);
+      });
+      prodRenderizarComFiltro();
+    } else {
+      prodMostrarSemSelecao();
+    }
   };
 
   /* ──────────────────────────────────────────────────────────────
@@ -7489,8 +7550,22 @@ function cfInicializar() {
       wrap.appendChild(btn);
     });
 
-    /* ← ponto-chave: NÃO chama cfTodos() */
-    cfMostrarSemSelecao();
+    /* Padrão igual ao PPCP: abre já com o último mês com dado real */
+    var cfComDado = ordem.filter(function (mes) {
+      return dadosAno.some(function (r) {
+        return r.mes === mes && ((r.horasCarga || 0) > 0 || (r.producaoReal || 0) > 0);
+      });
+    });
+    if (cfComDado.length) {
+      var cfUltimo = cfComDado[cfComDado.length - 1];
+      cfMesesSel = [cfUltimo];
+      wrap.querySelectorAll('.cap-mes-btn').forEach(function (b) {
+        b.classList.toggle('on', b.textContent.trim() === cfUltimo);
+      });
+      cfRenderizarFiltro();
+    } else {
+      cfMostrarSemSelecao();
+    }
   };
 
   /* ──────────────────────────────────────────────────────────────
@@ -12649,7 +12724,8 @@ input:disabled, select:disabled {
     set('mes-sf-prod',    fI(p.totProd),  DS.C.destaque);
     set('mes-sf-gap',     fSign(p.gapMes),
       p.gapMes > 0 ? DS.C.ruim : (p.gapMes < 0 ? DS.C.destaque : DS.C.neutro));
-    set('mes-sf-gap-pct', fPct(st.pct * 100), st.cor);
+    /* Mesmo sinal do GAP Total: gap ÷ demanda (positivo = déficit) */
+    set('mes-sf-gap-pct', fPct(p.totFat > 0 ? (p.gapMes / p.totFat) * 100 : NaN), st.cor);
   }
 
   /* ── Tooltip flutuante para os pills de backlog ── */
@@ -13238,6 +13314,8 @@ input:disabled, select:disabled {
       var pts = [];
       meses.forEach(function(m, mi) {
         var rec = porAno[ano].find(function(r) { return r.mes === m; });
+        /* mês ainda sem fechamento (tudo zerado) não entra na linha */
+        if (rec && !((rec.producaoReal || 0) > 0 || (rec.horasCarga || 0) > 0)) rec = null;
         var v = rec ? valFn(rec) : null;
         if (v !== null && isFinite(v)) {
           pts.push({ x: pad.l + (mi / (meses.length - 1 || 1)) * gW, y: pad.t + gH - ((v - mn) / (mx - mn)) * gH, v: v });
@@ -13292,7 +13370,12 @@ input:disabled, select:disabled {
       var temDados = anos.some(function(a) { return !!(porAno[a] && porAno[a].find(function(r) { return r.mes === m; })); });
       if (!temDados) return;
       html += '<tr><td class="aaa-mes">'+m+'</td>';
-      var recs = anos.map(function(a) { return porAno[a] ? (porAno[a].find(function(r) { return r.mes === m; }) || null) : null; });
+      var recs = anos.map(function(a) {
+        var r = porAno[a] ? (porAno[a].find(function(rr) { return rr.mes === m; }) || null) : null;
+        /* mês ainda sem fechamento (tudo zerado) conta como sem dado */
+        if (r && !((r.producaoReal || 0) > 0 || (r.horasCarga || 0) > 0)) r = null;
+        return r;
+      });
       recs.forEach(function(r, i) {
         var prod = r ? r.producaoReal : null;
         var ef   = r ? r.eficiencia   : null;
@@ -15376,10 +15459,11 @@ function printAtiva(){
     var volDelta=volF>0?(volL-volF)/volF*100:0;
     var caindo=delta<-2;
     var cor=caindo?'#F44336':(delta>2?'#4CAF50':'#888');
+    var vd=Math.round(volDelta), vdTxt=(vd>0?'+':'')+vd+'%';
     var diag = caindo && volDelta>5
-      ? 'Queda acompanha alta de volume ('+(volDelta>=0?'+':'')+fN(volDelta,0)+'% peças) → provável mix de menor valor / desconto.'
-      : (caindo ? 'Queda sem alta de volume ('+(volDelta>=0?'+':'')+fN(volDelta,0)+'%) → provável pressão de preço/mix.'
-                : 'Ticket estável/em recuperação; volume '+(volDelta>=0?'+':'')+fN(volDelta,0)+'%.');
+      ? 'Queda acompanha alta de volume ('+vdTxt+' peças) → provável mix de menor valor / desconto.'
+      : (caindo ? 'Queda sem alta de volume ('+vdTxt+') → provável pressão de preço/mix.'
+                : 'Ticket estável/em recuperação; volume '+(vd===0?'estável':vdTxt)+'.');
     /* sparkline CSS: barras proporcionais ao ticket */
     var vals=rs.map(function(r){return r.ticketMedio;});
     var mx=Math.max.apply(null,vals), mn=Math.min.apply(null,vals);
@@ -16744,7 +16828,16 @@ function printAtiva(){
 
     document.getElementById('ev-status-txt').textContent = statusTxt;
     document.getElementById('ev-status-txt').style.color = cor;
-    document.getElementById('ev-gap-pct').textContent = fmtPct(pct);
+    /* Mesmo sinal do GAP em peças: gap ÷ demanda (positivo = déficit) */
+    var gapPctDem = totFat > 0 ? (gapMes / totFat) * 100 : 0;
+    var gapLbl = document.getElementById('ev-gap-lbl');
+    if (gapMes >= 0) {
+      document.getElementById('ev-gap-pct').textContent = fmtPct(gapPctDem);
+      if (gapLbl) gapLbl.textContent = 'da demanda sem cobertura';
+    } else {
+      document.getElementById('ev-gap-pct').textContent = fmtPct(Math.abs(gapPctDem)).replace('+','');
+      if (gapLbl) gapLbl.textContent = 'de folga sobre a demanda';
+    }
     document.getElementById('ev-gap-pct').style.color = cor;
     ev.style.borderLeftColor = cor;
 

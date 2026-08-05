@@ -2,12 +2,13 @@
    Network-first (sem cache HTTP) para o shell do app, permite abrir offline
    com os últimos dados sincronizados. */
 
-var CACHE_NAME = 'ppcp-dashboard-v4';
+var CACHE_NAME = 'ppcp-dashboard-v5';
 var URLS_TO_CACHE = [
   '/',
   '/manifest.json',
   '/icon-192.png',
-  '/icon-512.png'
+  '/icon-512.png',
+  '/logo-patrimar.jpg'
 ];
 
 self.addEventListener('install', function(event){
