@@ -1059,7 +1059,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.07.14 · b20</div><div id="alertas-banner" style="display: none;"><div class="alerta-bar warn"><span class="ab-ico">📋</span><span class="ab-txt">Absenteísmo acima do limite (10%)</span><span class="ab-val">12.1%</span><button class="ab-close" onclick="this.parentElement.remove();var b=document.getElementById('alertas-banner');if(!b.children.length)b.style.display='none'">✕</button></div></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.07.14 · b20</div><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -1450,7 +1450,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
   </div>
 
   <!-- Análise automática (mantida) -->
-  <div class="alerta warn" id="blocoAnalise" style="margin-top: 16px; display: flex;">
+  <div class="alerta warn" id="blocoAnalise" style="margin-top: 16px; display: none;">
     <svg viewBox="0 0 24 24" id="aIco"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"></path></svg>
     <div>
       <span class="aLbl">▸ Análise Automática — Horas Perdidas (Faltas + Atrasos)</span>
@@ -4318,6 +4318,9 @@ function renderKPIs(d){
 /* ── ANÁLISE AUTOMÁTICA HFP ── */
 function renderAnalise(d){
   var el=document.getElementById('blocoAnalise');
+  /* Alertas desativados a pedido — o dado de horas perdidas segue nos cards */
+  if(el){el.style.display='none'}
+  return;
   var cc=d.filter(function(r){return r.colaboradores>0&&r.horasTotais>0});
   if(!cc.length){el.style.display='none';return}
   var u=cc[cc.length-1], h=calcHFP(u);
@@ -14994,9 +14997,10 @@ function printAtiva(){
       badge.parentNode.insertBefore(box, badge.nextSibling);
     }
 
-    /* ── BLOCO DE ALERTA: Produção acima da capacidade ── */
+    /* ── BLOCO DE ALERTA: Produção acima da capacidade ──
+       Desativado a pedido — o % da capacidade segue visível no badge. */
     var alertaHtml = '';
-    if (acimaCap) {
+    if (false && acimaCap) {
       alertaHtml =
         '<div style="' +
           'display:flex;align-items:flex-start;gap:10px;' +
