@@ -4246,6 +4246,18 @@ Fórmula: Faltas + Atrasos
 </div>
 <!-- ══ FIM PÁGINA: BRIEFING MENSAL ══ -->
 <!-- ══ PÁGINA: PLANEJAMENTO MESTRE ══ -->
+<style>
+/* Tela de leitura em reunião: fonte um pouco maior que o padrão do painel,
+   sem mexer nas outras páginas. */
+#page-mestre .kLbl        { font-size:.66rem; letter-spacing:.09em; }
+#page-mestre .kVal        { font-size:1.85rem; }
+#page-mestre .kSub        { font-size:.72rem; }
+#page-mestre .prod-table  { font-size:.86rem; }
+#page-mestre .prod-table th { font-size:.68rem; letter-spacing:.07em; padding:11px 13px; }
+#page-mestre .prod-table td { padding:11px 13px; }
+#page-mestre #pm-veredito   { font-size:1.02rem; }
+#page-mestre .pageHdrTitle  { font-size:1.12rem; }
+</style>
 <div class="page" id="page-mestre">
   <div class="pageHdr">
     <div class="pageHdrIcon" style="background:var(--cyan)">
@@ -4255,7 +4267,16 @@ Fórmula: Faltas + Atrasos
       <div class="pageHdrTitle">Planejamento Mestre</div>
       <div class="pageHdrSub">Plano do ano × realizado × ritmo necessário para cumprir o que falta</div>
     </div>
-    <div style="margin-left:auto;font-family:var(--mono);font-size:.7rem;color:var(--t3)" id="pm-ano-lbl">—</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+      <span style="font-family:var(--mono);font-size:.75rem;color:var(--t3)" id="pm-ano-lbl">—</span>
+      <button onclick="pmImprimir()" title="Relatório executivo desta tela em PDF"
+        style="display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border:1px solid var(--cyan);
+        border-radius:6px;background:rgba(245,166,35,.08);color:var(--cyan);font-size:.76rem;font-weight:700;
+        text-transform:uppercase;letter-spacing:.05em;cursor:pointer;white-space:nowrap">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"></path></svg>
+        Relatório
+      </button>
+    </div>
   </div>
   <div id="pm-veredito" style="display:none"></div>
   <div id="pm-kpis"></div>
@@ -16556,6 +16577,7 @@ function printAtiva(){
   /* Dias úteis planejados (Planejamento Mestre 2026). Mês já fechado usa os
      dias efetivamente trabalhados que vêm da planilha. */
   var DIAS_PLAN={JAN:17,FEV:20,MAR:22,ABR:20,MAI:20,JUN:21,JUL:23,AGO:21,SET:22,OUT:22,NOV:21,DEZ:23};
+  var _ult = null;   /* último apurado, usado pela impressão executiva */
 
   function fi(n){ return isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—'; }
   function fd(n,d){ return isFinite(n)?n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'; }
@@ -16612,7 +16634,7 @@ function printAtiva(){
     if(tabela) tabela.style.display='';
 
     var planoAno=0, realAcum=0, planoAberto=0, diasAbertos=0, normalFech=0, diasFech=0, heP=0, linhas='';
-    var diasPlanoAno=0, fatFech=0, venFech=0, planoFech=0, semPlano=[];
+    var diasPlanoAno=0, fatFech=0, venFech=0, planoFech=0, semPlano=[], mesesTab=[];
     recs.forEach(function(r){
       var plano=r.previsaoProducao||0, real=r.producaoReal||0, normal=r.prodSemExtras||0;
       var fechado=real>0;
@@ -16641,6 +16663,10 @@ function printAtiva(){
       var ritmoReal=horasFechadas?normal/dias:null;
       var corDesvio=desvio===null?'var(--t3)':(desvio>=0?'var(--green)':'var(--red)');
       var corRitmo=(ritmoReal!==null&&ritmoNec!==null)?(ritmoReal>=ritmoNec?'var(--green)':'var(--red)'):'var(--t1)';
+      mesesTab.push({mes:r.mes, plano:plano, real:fechado?real:null, desvio:desvio,
+                     dias:dias, ritmoNec:ritmoNec, ritmoReal:ritmoReal,
+                     status:(plano<=0?'sem plano':(real<=0?'A produzir':(normal<=0?'Em fechamento'
+                       :(normal>=plano?'Cumpriu':(real>=plano?'Cumpriu c/ HE':'Não cumpriu')))))});
       linhas+='<tr>'
         +'<td>'+r.mes+'/'+String(ano).slice(2)+'</td>'
         +'<td>'+statusMes(plano,real,normal)+'</td>'
@@ -16730,6 +16756,14 @@ function printAtiva(){
       +card('Dependência de hora extra', fi(heP)+' pç', 'Saíram só por hora extra', heP>0?'#FF9800':'#4CAF50')
       +'</div>'
       +blocoDemanda(planoFech,fatFech,venFech);
+
+    /* Guarda o apurado para a impressão executiva montar o relatório sem
+       recalcular nem depender do HTML escuro da tela. */
+    _ult = { ano:ano, planoAno:planoAno, realAcum:realAcum, planoAberto:planoAberto,
+             diasAbertos:diasAbertos, diasPlanoAno:diasPlanoAno, ritmoPlano:ritmoPlano,
+             ritmoDem:ritmoDem, ritmoNecR:ritmoNecR, pctFolga:pctFolga, heP:heP,
+             planoFech:planoFech, fatFech:fatFech, venFech:venFech, semPlano:semPlano,
+             titulo:titulo, frase:frase, acao:acao, cor:cor, meses:mesesTab };
   }
 
   /* ── O plano cobre a demanda? ──
@@ -16767,6 +16801,144 @@ function printAtiva(){
       +'</div>';
   }
 
+  /* ── SWOT do plano — derivado do apurado, não de texto fixo ── */
+  function swot(u){
+    var f=[],w=[],o=[],a=[];
+    var cumpriu=u.meses.filter(function(m){return m.status==='Cumpriu';}).length;
+    var comHE=u.meses.filter(function(m){return m.status==='Cumpriu c/ HE';}).length;
+    var nao=u.meses.filter(function(m){return m.status==='Não cumpriu';}).length;
+    var fechados=cumpriu+comHE+nao;
+
+    if(cumpriu>0) f.push(cumpriu+' '+(cumpriu>1?'meses cumpriram':'mês cumpriu')+' a previsão na jornada normal.');
+    if(comHE+cumpriu>0) f.push((comHE+cumpriu)+' de '+fechados+' meses entregaram o plano, ainda que '+comHE+' com hora extra.');
+    if(u.realAcum>=u.planoAno*0.9) f.push('Realizado no ano em '+fd(u.planoAno>0?(u.realAcum/u.planoAno)*100:0,1)+'% do plano.');
+    if(u.pctFolga>=0) f.push('Ritmo demonstrado cobre o exigido pelo plano.');
+    if(!f.length) f.push('Base de plano e realizado consolidada para acompanhamento mensal.');
+
+    if(u.pctFolga<0) w.push('Ritmo de '+fi(u.ritmoDem)+' pç/dia contra '+fi(u.ritmoPlano)+' exigidos — '+fd(Math.abs(u.pctFolga),1)+'% abaixo do plano.');
+    if(nao>0) w.push(nao+' '+(nao>1?'meses não cumpriram':'mês não cumpriu')+' a previsão nem com hora extra.');
+    if(u.heP>0) w.push(fi(u.heP)+' peças no ano só saíram por hora extra.');
+    if(comHE>0) w.push(comHE+' '+(comHE>1?'meses dependeram':'mês dependeu')+' de hora extra para bater o plano.');
+    if(!w.length) w.push('Sem fraqueza relevante identificada no plano deste ano.');
+
+    if(u.pctFolga<0) o.push('Fechar a diferença de ritmo recupera '+fi(Math.abs(u.ritmoPlano-u.ritmoDem))+' pç/dia sem hora extra.');
+    if(u.semPlano.length) o.push('Planejar '+u.semPlano.join(', ')+' amplia o horizonte de capacidade e antecipa decisão de turno.');
+    if(u.heP>0) o.push('Converter hora extra recorrente em capacidade estrutural tende a sair mais barato por peça.');
+    o.push('Usar o ritmo demonstrado como base do próximo plano, em vez do nominal.');
+
+    if(u.venFech>u.planoFech) a.push('Carteira vendida '+fd(((u.venFech/u.planoFech)-1)*100,0)+'% acima do plano — cumprir o plano não zera a fila.');
+    if(u.semPlano.length) a.push(u.semPlano.length+' '+(u.semPlano.length>1?'meses sem plano':'mês sem plano')+' impedem enxergar a capacidade do fim do ano.');
+    if(u.heP>0) a.push('Dependência de hora extra pressiona custo, fadiga e qualidade.');
+    if(!a.length) a.push('Monitorar absenteísmo e paradas, que corroem o ritmo demonstrado.');
+    return {f:f,w:w,o:o,a:a};
+  }
+
+  window.pmImprimir = function(){
+    if(!_ult){ if(typeof toast==='function') toast('Abra a aba e aguarde os dados carregarem.','wn'); return; }
+    var u=_ult, sw=swot(u), hoje=new Date().toLocaleDateString('pt-BR');
+    var pctPlano=u.planoAno>0?(u.realAcum/u.planoAno)*100:0;
+    var corV=u.pctFolga>=0?'#2f855a':(u.pctFolga>-5?'#b7791f':'#c53030');
+
+    function kpi(l,v,s){ return '<div class="k"><div class="kl">'+l+'</div><div class="kv">'+v+'</div><div class="ks">'+s+'</div></div>'; }
+    function box(t,itens,cls){ return '<div class="sw '+cls+'"><div class="swt">'+t+'</div><ul>'
+      +itens.map(function(i){return '<li>'+i+'</li>';}).join('')+'</ul></div>'; }
+
+    var linhas=u.meses.map(function(m){
+      var cor=m.status==='Cumpriu'?'#2f855a':(m.status==='Cumpriu c/ HE'?'#b7791f':(m.status==='Não cumpriu'?'#c53030':'#718096'));
+      return '<tr><td><b>'+m.mes+'/'+String(u.ano).slice(2)+'</b></td>'
+        +'<td style="color:'+cor+';font-weight:700">'+m.status+'</td>'
+        +'<td class="n">'+(m.plano>0?fi(m.plano):'—')+'</td>'
+        +'<td class="n">'+(m.real!==null?fi(m.real):'—')+'</td>'
+        +'<td class="n" style="color:'+(m.desvio===null?'#718096':(m.desvio>=0?'#2f855a':'#c53030'))+'">'
+          +(m.desvio===null?'—':(m.desvio>=0?'+':'')+fi(m.desvio))+'</td>'
+        +'<td class="n">'+m.dias+'</td>'
+        +'<td class="n">'+(m.ritmoNec!==null?fi(m.ritmoNec):'—')+'</td>'
+        +'<td class="n"><b>'+(m.ritmoReal!==null?fi(m.ritmoReal):'—')+'</b></td></tr>';
+    }).join('');
+
+    var w=window.open('','_blank','width=1250,height=900');
+    w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>'
+      +'<title>Planejamento Mestre '+u.ano+'</title><style>'
+      +'@page{size:A4 landscape;margin:9mm 12mm;}'
+      +'*{box-sizing:border-box;margin:0;padding:0}'
+      +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:9pt;color:#1a1a2e;background:#fff;'
+        +'-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      +'.hd{background:linear-gradient(135deg,#1a1a2e,#16213e 60%,#0f3460);color:#fff;padding:13px 22px}'
+      +'.hd .lb{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#F5A623;font-weight:700}'
+      +'.hd h1{font-size:17px;margin:3px 0 2px}.hd .sb{font-size:9px;color:#a0aec0}'
+      +'.bd{padding:11px 22px}'
+      +'.st{font-size:8px;letter-spacing:1.8px;text-transform:uppercase;color:#c53030;font-weight:700;'
+        +'margin:11px 0 7px;padding-bottom:3px;border-bottom:1.5px solid #edf2f7}'
+      +'.ver{border-left:5px solid '+corV+';background:#f8fafc;border-radius:6px;padding:11px 15px}'
+      +'.ver h2{font-size:15px;color:'+corV+';margin-bottom:5px}'
+      +'.ver p{font-size:9.5pt;line-height:1.5;color:#2d3748}'
+      +'.ver .ac{margin-top:8px;padding:7px 11px;background:#fff;border-radius:5px;font-size:8.5pt;color:#4a5568}'
+      +'.kg{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}'
+      +'.k{background:#f8fafc;border-left:3px solid #cbd5e0;border-radius:5px;padding:8px 10px}'
+      +'.kl{font-size:7.5px;letter-spacing:.6px;text-transform:uppercase;color:#718096;font-weight:600}'
+      +'.kv{font-size:14px;font-weight:700;color:#1a1a2e;margin:3px 0 1px}'
+      +'.ks{font-size:7.5px;color:#a0aec0}'
+      +'table{width:100%;border-collapse:collapse;font-size:8.5pt}'
+      +'thead tr{background:#1a1a2e;color:#fff}'
+      +'thead th{padding:6px 9px;text-align:left;font-size:7.5px;letter-spacing:.6px;text-transform:uppercase}'
+      +'thead th:not(:first-child):not(:nth-child(2)){text-align:right}'
+      +'tbody td{padding:6px 9px;border-bottom:1px solid #edf2f7}'
+      +'tbody tr:nth-child(even){background:#f8fafc}'
+      +'td.n{text-align:right;font-variant-numeric:tabular-nums}'
+      +'.swg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}'
+      +'.sw{border:1px solid #e2e8f0;border-radius:5px;padding:9px 12px;break-inside:avoid}'
+      +'.sw.f{background:#e8f5e9}.sw.w{background:#fff8e1}.sw.o{background:#e3f2fd}.sw.a{background:#ffebee}'
+      +'.swt{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}'
+      +'.sw ul{margin:0;padding-left:15px}.sw li{font-size:8.5pt;line-height:1.45;color:#2d3748;margin-bottom:3px}'
+      +'.ft{background:#f8fafc;border-top:1px solid #edf2f7;padding:6px 22px;font-size:7.5px;color:#a0aec0;'
+        +'display:flex;justify-content:space-between;margin-top:11px}'
+      +'</style></head><body>'
+      +'<div class="hd"><div class="lb">PPCP — Planejamento e Controle da Produção</div>'
+        +'<h1>Planejamento Mestre — Plano '+u.ano+'</h1>'
+        +'<div class="sb">Plano do ano × ritmo demonstrado × carteira · relatório para reunião</div></div>'
+      +'<div class="bd">'
+      +'<div class="st">Veredito do Plano</div>'
+      +'<div class="ver"><h2>'+u.titulo+' &nbsp;<span style="font-size:12px">'
+        +(u.pctFolga>=0?'+':'')+fd(u.pctFolga,1)+'%</span></h2>'
+        +'<p>'+u.frase+'</p><div class="ac"><b>Ação recomendada:</b> '+u.acao+'</div>'
+        +(u.semPlano.length?'<div class="ac" style="border-left:3px solid #b7791f"><b>Atenção:</b> '
+          +u.semPlano.length+' '+(u.semPlano.length>1?'meses ainda sem plano':'mês ainda sem plano')+' ('
+          +u.semPlano.join(', ')+'). O "falta produzir" cobre só o horizonte já planejado.</div>':'')
+      +'</div>'
+      +'<div class="st">Indicadores do Plano</div>'
+      +'<div class="kg">'
+        +kpi('Plano do Ano', fi(u.planoAno)+' pçs', u.diasPlanoAno+' dias úteis planejados')
+        +kpi('Realizado', fi(u.realAcum)+' pçs', fd(pctPlano,1)+'% do plano')
+        +kpi('Ritmo do Plano', fi(u.ritmoPlano)+' pç/dia', 'Exigido por dia')
+        +kpi('Ritmo Demonstrado', fi(u.ritmoDem)+' pç/dia', 'Na jornada normal')
+        +kpi('Falta Produzir', (u.planoAberto>0?fi(u.planoAberto)+' pçs':'—'), u.diasAbertos+' dias úteis')
+        +kpi('Dependência de HE', fi(u.heP)+' pçs', 'Só por hora extra')
+      +'</div>'
+      +(u.planoFech>0&&u.venFech>0
+        ? '<div class="st">O Plano Cobre a Demanda?</div>'
+          +'<div class="kg" style="grid-template-columns:repeat(3,1fr)">'
+            +kpi('Plano do Período', fi(u.planoFech)+' pçs', 'Meses fechados')
+            +kpi('Faturado', fi(u.fatFech)+' pçs', 'Qtde faturada')
+            +kpi('Vendido (carteira)', fi(u.venFech)+' pçs',
+                 'plano '+fd(((u.planoFech/u.venFech)-1)*100,0)+'% vs vendido')
+          +'</div>' : '')
+      +'<div class="st">Mês a Mês — Plano, Realizado e Ritmo</div>'
+      +'<table><thead><tr><th>Mês</th><th>Status</th><th>Plano</th><th>Realizado</th><th>Desvio</th>'
+        +'<th>Dias úteis</th><th>Ritmo nec.</th><th>Ritmo real.</th></tr></thead><tbody>'+linhas+'</tbody></table>'
+      +'<div class="st">Análise SWOT — Planejamento Mestre '+u.ano+'</div>'
+      +'<div class="swg">'
+        +box('Forças', sw.f, 'f')+box('Fraquezas', sw.w, 'w')
+        +box('Oportunidades', sw.o, 'o')+box('Ameaças', sw.a, 'a')
+      +'</div>'
+      +'</div>'
+      +'<div class="ft"><span>PPCP — Dashboard de Produção · Planejamento Mestre '+u.ano+'</span>'
+        +'<span>Gerado em: '+hoje+'</span></div>'
+      +'</body></html>');
+    w.document.close();
+    w.addEventListener('afterprint', function(){ w.close(); });
+    setTimeout(function(){ w.focus(); w.print(); }, 700);
+  };
+
   function ligar(){
     render();
     if(window.DashBus&&window.DashBus.on){
@@ -16797,9 +16969,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b23';
+var APP_VERSAO = 'b24';
 var APP_DATA   = '05/08/2026';
 var APP_HISTORICO = [
+  { v:'b24', data:'05/08/2026', itens:[
+    'Relatório executivo do Planejamento Mestre em PDF, com análise SWOT.',
+    'Fonte maior na aba Planejamento Mestre para leitura em reunião.'
+  ]},
   { v:'b23', data:'05/08/2026', itens:[
     'Sparkline do ticket médio deixa de estourar o card com muitos meses.'
   ]},
