@@ -3395,11 +3395,14 @@ Fórmula: Faltas + Atrasos
 .brfg-down { color: #e53e3e; font-weight: 600; }
 /* tabela */
 #brfg-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
-#brfg-wrap thead tr { background: #1a1a2e; color: #fff; }
-#brfg-wrap thead th { padding: 10px 14px; text-align: left; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+/* O tema escuro declara `td { color: var(--t1) !important }`, que venceria
+   até um seletor de ID. Como o briefing é um cartão branco, as cores da
+   tabela precisam do mesmo !important para não sumir no fundo claro. */
+#brfg-wrap thead tr { background: #1a1a2e !important; color: #fff !important; }
+#brfg-wrap thead th { padding: 10px 14px; text-align: left; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; color: #fff !important; background: #1a1a2e !important; }
 #brfg-wrap thead th:not(:first-child) { text-align: right; }
-#brfg-wrap tbody tr:nth-child(even) { background: #f8fafc; }
-#brfg-wrap tbody td { padding: 10px 14px; color: #2d3748; border-bottom: 1px solid #edf2f7; }
+#brfg-wrap tbody tr:nth-child(even) td { background: #f8fafc !important; }
+#brfg-wrap tbody td { padding: 10px 14px; color: #2d3748 !important; background: #fff; border-bottom: 1px solid #edf2f7; }
 #brfg-wrap tbody td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
 #brfg-wrap tbody tr td:first-child { font-weight: 600; }
 .brfg-hl { color: #1a1a2e; font-weight: 700 !important; }
@@ -3856,6 +3859,78 @@ Fórmula: Faltas + Atrasos
       {label:'% Extras / Carga',     value:pctExtCarga!=null?bFmtPct(pctExtCarga):'—', cls: pctExtCarga<=10?'ok':(pctExtCarga<=15?'warn':'bad'), delta:'Da capacidade em hora extra'}
     ] : null;
 
+    /* ══ PLANEJAMENTO MESTRE — plano do ano × ritmo × demanda ══
+       Mesma conta da aba: o ritmo demonstrado é comparado com o que o plano
+       INTEIRO exige, não com o que sobrou, senão um mês leve no fim do
+       horizonte faz parecer que há folga. */
+    var pmDiasPlan={JAN:17,FEV:20,MAR:22,ABR:20,MAI:20,JUN:21,JUL:23,AGO:21,SET:22,OUT:22,NOV:21,DEZ:23};
+    var pmDoAno=dados.filter(function(d){ return d.ano===a.ano; });
+    var pmPlanoAno=0,pmDiasPlanoAno=0,pmReal=0,pmNormal=0,pmDias=0,pmHE=0,
+        pmPlanoFech=0,pmFat=0,pmVen=0,pmAberto=0,pmDiasAbertos=0,pmSemPlano=[];
+    pmDoAno.forEach(function(d){
+      var pl=d.previsaoProducao||0, rl=d.producaoReal||0, nm=d.prodSemExtras||0;
+      var dP=pmDiasPlan[d.mes]||22, di=(rl>0&&(d.diasTrabalhados||0)>0)?d.diasTrabalhados:dP;
+      pmPlanoAno+=pl;
+      if(pl>0) pmDiasPlanoAno+=dP; else if(rl<=0) pmSemPlano.push(d.mes);
+      if(rl>0) pmReal+=rl;
+      if(rl>0&&nm>0&&di>0){
+        pmNormal+=nm; pmDias+=di; pmHE+=Math.max(0,rl-nm);
+        pmPlanoFech+=pl; pmFat+=(d.qtdeFaturado||0); pmVen+=(d.qtdeVendida||0);
+      }
+      if(rl<=0&&pl>0){ pmAberto+=pl; pmDiasAbertos+=dP; }
+    });
+    var pmRitmoPlano=pmDiasPlanoAno>0?pmPlanoAno/pmDiasPlanoAno:0;
+    var pmRitmoDem=pmDias>0?pmNormal/pmDias:0;
+    var pmGap=pmRitmoPlano>0?((pmRitmoDem/pmRitmoPlano)-1)*100:0;
+    var pmPctVen=pmVen>0?((pmPlanoFech/pmVen)-1)*100:null;
+    var temMestre=pmPlanoAno>0&&pmRitmoDem>0;
+
+    var pmCls = pmGap>=0?'ok':(pmGap>-5?'warn':'bad');
+    var pmKpis = temMestre ? [
+      {label:'Plano do Ano', value:bFmt(pmPlanoAno)+' pçs', cls:'neu', delta:pmDiasPlanoAno+' dias úteis planejados'},
+      {label:'Realizado no Ano', value:bFmt(pmReal)+' pçs', cls:'neu',
+       delta:bFmtPct(pmPlanoAno>0?(pmReal/pmPlanoAno)*100:0)+' do plano'},
+      {label:'Ritmo do Plano', value:bFmt(pmRitmoPlano)+' pç/dia', cls:'neu', delta:'O que o plano exige'},
+      {label:'Ritmo Demonstrado', value:bFmt(pmRitmoDem)+' pç/dia', cls:pmCls,
+       delta:(pmGap>=0?'<span class="brfg-up">▲ ':'<span class="brfg-down">▼ ')+bFmt(Math.abs(pmGap),1)+'%</span> vs plano'},
+      {label:'Falta Produzir', value:pmAberto>0?(bFmt(pmAberto)+' pçs'):'—', cls:'neu',
+       delta:pmAberto>0?(pmDiasAbertos+' dias úteis planejados'):'Horizonte planejado concluído'},
+      {label:'Dependência de HE', value:bFmt(pmHE)+' pçs', cls:pmHE>0?'warn':'ok', delta:'Só saíram por hora extra'}
+    ] : null;
+
+    var pmFrase='';
+    if(temMestre){
+      if(pmGap>=0){
+        pmFrase='O plano do ano é construído a <b>'+bFmt(pmRitmoPlano)+' pç/dia</b> e a fábrica entrega <b>'
+          +bFmt(pmRitmoDem)+' pç/dia</b> na jornada normal — <b>'+bFmt(Math.abs(pmGap),1)+'% acima</b>. '
+          +'O plano cabe sem hora extra estrutural.';
+      } else {
+        pmFrase='O plano do ano é construído a <b>'+bFmt(pmRitmoPlano)+' pç/dia</b>, mas a fábrica entrega <b>'
+          +bFmt(pmRitmoDem)+' pç/dia</b> na jornada normal — <b>'+bFmt(Math.abs(pmGap),1)+'% abaixo</b>. '
+          +'A diferença vem sendo coberta com hora extra ('+bFmt(pmHE)+' pçs no ano).';
+      }
+      if(pmPctVen!==null&&pmPctVen<0){
+        pmFrase+=' Além disso, a carteira vendida do período é <b>'+bFmt(Math.abs(pmPctVen),0)
+          +'% maior</b> que o plano (vendido '+bFmt(pmVen)+' vs plano '+bFmt(pmPlanoFech)
+          +' pçs): cumprir o plano não zera a fila, porque o próprio plano está dimensionado abaixo da venda.';
+      }
+      if(pmSemPlano.length){
+        pmFrase+=' <b>'+pmSemPlano.length+' '+(pmSemPlano.length>1?'meses seguem':'mês segue')+' sem plano</b> ('
+          +pmSemPlano.join(', ')+') — o "falta produzir" cobre só o horizonte já planejado.';
+      }
+    }
+
+    var mestreSectionHTML = temMestre
+      ? '<div class="brfg-kpi-grid">'+pmKpis.map(function(k){
+          return '<div class="brfg-kpi-card '+k.cls+'">'
+            +'<div class="brfg-kpi-label">'+k.label+'</div>'
+            +'<div class="brfg-kpi-value">'+k.value+'</div>'
+            +'<div class="brfg-kpi-delta">'+k.delta+'</div>'
+          +'</div>';
+        }).join('')+'</div>'
+        +'<p style="font-size:12px;color:#4a5568;padding:6px 0 0;line-height:1.6">'+pmFrase+'</p>'
+      : '<p style="font-size:12px;color:#718096;padding:4px 0">Sem plano informado para '+a.ano+' — preencha a previsão de produção na planilha.</p>';
+
     var previsaoSectionHTML = temPrevisao
       ? '<div class="brfg-kpi-grid">'+previsaoKpis.map(function(k){
           return '<div class="brfg-kpi-card '+k.cls+'">'
@@ -3934,6 +4009,11 @@ Fórmula: Faltas + Atrasos
         +'<div class="brfg-section" id="brfg-sec-previsao">'
           +'<div class="brfg-section-title">Previsão × Capacidade — '+mesNome+'/'+a.ano+'</div>'
           +previsaoSectionHTML
+        +'</div>'
+        /* 4b · Planejamento Mestre — o ano, não só o mês */
+        +'<div class="brfg-section" id="brfg-sec-mestre">'
+          +'<div class="brfg-section-title">Planejamento Mestre — Plano do Ano × Ritmo × Carteira</div>'
+          +mestreSectionHTML
         +'</div>'
         /* 5 · Comparativo Mensal (tabela de apoio) */
         +'<div class="brfg-section" id="brfg-sec-comparativo">'
