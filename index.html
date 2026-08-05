@@ -1507,46 +1507,6 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 </div>
 
 <!-- ══ PÁGINA: CAPACIDADE ══ -->
-<div class="page" id="page-capacidade">
-  <div class="pageHdr">
-    <div class="pageHdrIcon" style="background:var(--cyan)">
-      <svg viewBox="0 0 24 24" fill="var(--bg)"><path d="M3 13h4v8H3v-8zm7-6h4v14h-4V7zm7-4h4v18h-4V3z"></path></svg>
-    </div>
-    <div>
-      <div class="pageHdrTitle">Capacidade Produtiva</div>
-      <div class="pageHdrSub">Análise de horas disponíveis, normais, extras e falta produtiva</div>
-    </div>
-  </div>
-  <div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-    <div class="kCard kc"><div class="kLbl">H. Totais (cap)</div><div class="kVal" id="kv2-cap">302.921 h</div><div class="kSub">Acumulado período</div></div>
-    <div class="kCard ka"><div class="kLbl">H. Normais</div><div class="kVal" id="kv2-hn">264.508 h</div><div class="kSub">Sem extras</div></div>
-    <div class="kCard kp"><div class="kLbl">H. Extras Total</div><div class="kVal" id="kv2-ext">38.413 h</div><div class="kSub">50% + 100%</div></div>
-    <div class="kCard kr"><div class="kLbl">H. Perdidas (F+A)</div><div class="kVal" id="kv2-hfp">32.000 h</div><div class="kSub" id="ks2-hfp">Acumulado período</div></div>
-  </div>
-  <div class="charts1">
-    <div class="cBox">
-      <div class="cHdr">
-        <span class="cTtl">▸ Horas Totais vs Normais vs Extras</span>
-        <div class="lgnd">
-          <span class="li"><span class="ld" style="background:var(--cyan)"></span>Total</span>
-          <span class="li"><span class="ld" style="background:var(--amber)"></span>Normais</span>
-          <span class="li"><span class="ld" style="background:var(--purple)"></span>Extras</span>
-        </div>
-      </div>
-      <canvas id="cHoras" height="200" width="0" style="display: block; height: 200px;" class="canvas-zoom" title="Clique para ampliar"></canvas>
-      <div class="cEmpty" id="emHoras" style="display: none;">Sem dados</div>
-    </div>
-  </div>
-  <div class="charts1">
-    <div class="cBox">
-      <div class="cHdr"><span class="cTtl">▸ Δ Capacidade (H. Totais) vs Mês Anterior</span></div>
-      <canvas id="cDeltaCap" height="200" width="0" style="display: block; height: 200px;" class="canvas-zoom" title="Clique para ampliar"></canvas>
-      <div class="cEmpty" id="emDeltaCap" style="display: none;">Mínimo 2 meses</div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ PÁGINA: EFICIÊNCIA ══ -->
 <div class="page" id="page-eficiencia">
   <div class="pageHdr">
     <div class="pageHdrIcon" style="background:var(--green)">
@@ -1554,7 +1514,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
     </div>
     <div>
       <div class="pageHdrTitle">Eficiência Operacional</div>
-      <div class="pageHdrSub">Eficiência real, Ef. Ajustada e variações mensais — meta ≥ 90%</div>
+      <div class="pageHdrSub">Eficiência real, Ef. Ajustada e as horas que a sustentam — meta ≥ 90%</div>
     </div>
   </div>
   <div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
@@ -1562,6 +1522,15 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
     <div class="kCard ka"><div class="kLbl">Ef. Ajustada</div><div class="kVal" id="kv3-oee">93,5%</div><div class="kSub">Considerando h. falta</div></div>
     <div class="kCard kg"><div class="kLbl">Meses ≥ 90%</div><div class="kVal" id="kv3-acima">8/18</div><div class="kSub">Meta atingida</div></div>
     <div class="kCard kr"><div class="kLbl">Meses &lt; 90%</div><div class="kVal" id="kv3-abaixo">10/18</div><div class="kSub">Abaixo da meta</div></div>
+  </div>
+  <div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Horas — carga, normais, extras e perdidas</div>
+  <div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    <div class="kCard kc"><div class="kLbl">H. Totais (cap)</div><div class="kVal" id="kv2-cap">302.921 h</div><div class="kSub">Acumulado período</div></div>
+    <div class="kCard ka"><div class="kLbl">H. Normais</div><div class="kVal" id="kv2-hn">264.508 h</div><div class="kSub">Sem extras</div></div>
+    <div class="kCard kp"><div class="kLbl">H. Extras Total</div><div class="kVal" id="kv2-ext">38.413 h</div><div class="kSub">50% + 100%</div></div>
+    <div class="kCard kr"><div class="kLbl">H. Perdidas (F+A)</div><div class="kVal" id="kv2-hfp">32.000 h</div><div class="kSub" id="ks2-hfp">Acumulado período</div></div>
+    <div class="kCard ka" id="card2-hnpct"><div class="kLbl">% Normais / Carga</div><div class="kVal" id="kv2-hnpct">—</div><div class="kSub">Coberto sem hora extra</div></div>
+    <div class="kCard ka" id="card2-extpct"><div class="kLbl">% Extras / Carga</div><div class="kVal" id="kv2-extpct">—</div><div class="kSub">Da capacidade em hora extra</div></div>
   </div>
   <div class="charts1">
     <div class="cBox">
@@ -1745,56 +1714,8 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
       <p>Mínimo 2 meses para calcular variações.</p>
     </div>
   </div>
-</div><div class="page" id="page-previsao">
-  <div class="pageHdr">
-    <div class="pageHdrIcon" style="background:var(--amber)">
-      <svg viewBox="0 0 24 24" fill="var(--bg)"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"></path></svg>
-    </div>
-    <div>
-      <div class="pageHdrTitle">Previsão × Capacidade</div>
-      <div class="pageHdrSub">Previsão de Produção vs Realizado (c/ e s/ horas extras) · Horas Carga vs Normais vs Extras</div>
-    </div>
-  </div>
-
-  <div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:10px;padding-left:2px">▸ Previsão de Produção vs Realizado</div>
-  <div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-    <div class="kCard kp"><div class="kLbl">Previsão Total</div><div class="kVal" id="kv5-prev">—</div><div class="kSub" id="ks5-prev">Soma prevista (pç)</div></div>
-    <div class="kCard ka" id="card5-prevce"><div class="kLbl">Realizado c/ Extras vs Previsão</div><div class="kVal" id="kv5-prevce">—</div><div class="kSub">Produção real ÷ Previsão</div></div>
-    <div class="kCard ka" id="card5-prevse"><div class="kLbl">Realizado s/ Extras vs Previsão</div><div class="kVal" id="kv5-prevse">—</div><div class="kSub">Prod. s/ extras ÷ Previsão</div></div>
-  </div>
-  <div id="previsao-leitura" style="display:none;margin-top:10px;font-size:.8rem;line-height:1.55;color:var(--t1);padding:10px 14px;background:rgba(255,255,255,.03);border-left:3px solid var(--amber);border-radius:6px"></div>
-
-  <div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Horas Carga vs Normais vs Extras</div>
-  <div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-    <div class="kCard kc"><div class="kLbl">H. Carga Total</div><div class="kVal" id="kv2-carga">—</div><div class="kSub">Capacidade teórica (ERP)</div></div>
-    <div class="kCard ka" id="card2-hnpct"><div class="kLbl">H. Normais vs Carga</div><div class="kVal" id="kv2-hnpct">—</div><div class="kSub">Normais ÷ Carga</div></div>
-    <div class="kCard ka" id="card2-extpct"><div class="kLbl">H. Extras vs Carga</div><div class="kVal" id="kv2-extpct">—</div><div class="kSub">Extras ÷ Carga</div></div>
-  </div>
-
-  <div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Detalhamento por Mês</div>
-  <div class="prod-table-wrap">
-    <table class="prod-table">
-      <thead>
-        <tr>
-          <th>Mês/Ano</th>
-          <th>Status</th>
-          <th style="text-align:right">Previsão</th>
-          <th style="text-align:right">Realizado c/ Extras</th>
-          <th style="text-align:right">Realizado s/ Extras</th>
-          <th style="text-align:right">Atingim. c/ Extras</th>
-          <th style="text-align:right">Atingim. s/ Extras</th>
-          <th style="text-align:right">H. Carga</th>
-          <th style="text-align:right">H. Normais</th>
-          <th style="text-align:right">H. Extras</th>
-          <th style="text-align:right">% Normais/Carga</th>
-          <th style="text-align:right">% Extras/Carga</th>
-        </tr>
-      </thead>
-      <tbody id="previsao-tbody"></tbody>
-    </table>
-  </div>
-  <div class="cEmpty" id="previsao-empty" style="display:none">Nenhum mês com Previsão de Produção informada na planilha ainda.</div>
-</div><div class="page" id="page-ano-a-ano"><div class="aaa-hdr"><div class="aaa-hdr-icon"><svg viewBox="0 0 24 24"><path d="M3 3h18v2H3V3zm0 8h18v2H3v-2zm0 8h18v2H3v-2zm16-14l-4 4 4 4"></path></svg></div><div><div class="aaa-title">Comparação Ano a Ano</div><div class="aaa-sub">Evolução de cada mês comparado ao mesmo mês do ano anterior</div></div></div><div class="aaa-charts" style="display: grid;"><div class="aaa-chart-box"><div class="aaa-chart-ttl">▸ Produção por mês</div><canvas id="aaa-c-prod" height="160" width="300" style="width: 300px; height: 160px;"></canvas><div class="aaa-legend" id="aaa-lg-prod"><span class="aaa-li"><span class="aaa-ld" style="background:#F5A623"></span>2025</span><span class="aaa-li"><span class="aaa-ld" style="background:#FF9800"></span>2026</span></div></div><div class="aaa-chart-box"><div class="aaa-chart-ttl">▸ Eficiência % por mês</div><canvas id="aaa-c-ef" height="160" width="300" style="width: 300px; height: 160px;"></canvas><div class="aaa-legend" id="aaa-lg-ef"><span class="aaa-li"><span class="aaa-ld" style="background:#F5A623"></span>2025</span><span class="aaa-li"><span class="aaa-ld" style="background:#FF9800"></span>2026</span></div></div><div class="aaa-chart-box"><div class="aaa-chart-ttl">▸ Absenteísmo % por mês</div><canvas id="aaa-c-abs" height="160" width="300" style="width: 300px; height: 160px;"></canvas><div class="aaa-legend" id="aaa-lg-abs"><span class="aaa-li"><span class="aaa-ld" style="background:#F5A623"></span>2025</span><span class="aaa-li"><span class="aaa-ld" style="background:#FF9800"></span>2026</span></div></div></div><div class="aaa-wrap" style="display: block;"><table class="aaa-table"><thead id="aaa-thead"><tr><th>Mês</th><th style="color:#F5A623">2025 Prod</th><th style="color:#F5A623">2025 Ef%</th><th style="color:#F5A623">2025 Abs%</th><th class="aaa-sep" style="color:var(--t3)">Δ Prod%</th><th style="color:var(--t3)">Δ Ef pp</th><th style="color:#FF9800">2026 Prod</th><th style="color:#FF9800">2026 Ef%</th><th style="color:#FF9800">2026 Abs%</th></tr></thead><tbody id="aaa-tbody"><tr><td class="aaa-mes">JAN</td><td class="aaa-val">31.041</td><td class="aaa-val">90.0%</td><td class="aaa-val">11.5%</td><td class="aaa-var aaa-sep neg">-27.7%</td><td class="aaa-var neg">-1.9 pp</td><td class="aaa-val">22.437</td><td class="aaa-val">88.1%</td><td class="aaa-val">9.0%</td></tr><tr><td class="aaa-mes">FEV</td><td class="aaa-val">30.042</td><td class="aaa-val">76.8%</td><td class="aaa-val">17.2%</td><td class="aaa-var aaa-sep pos">+8.3%</td><td class="aaa-var pos">+10.1 pp</td><td class="aaa-val">32.547</td><td class="aaa-val">87.0%</td><td class="aaa-val">12.6%</td></tr><tr><td class="aaa-mes">MAR</td><td class="aaa-val">33.101</td><td class="aaa-val">81.1%</td><td class="aaa-val">9.8%</td><td class="aaa-var aaa-sep neg">-16.6%</td><td class="aaa-var pos">+20.0 pp</td><td class="aaa-val">27.600</td><td class="aaa-val">101.1%</td><td class="aaa-val">13.9%</td></tr><tr><td class="aaa-mes">ABR</td><td class="aaa-val">35.720</td><td class="aaa-val">79.7%</td><td class="aaa-val">9.9%</td><td class="aaa-var aaa-sep neg">-18.3%</td><td class="aaa-var pos">+12.6 pp</td><td class="aaa-val">29.195</td><td class="aaa-val">92.3%</td><td class="aaa-val">15.1%</td></tr><tr><td class="aaa-mes">MAI</td><td class="aaa-val">36.450</td><td class="aaa-val">80.1%</td><td class="aaa-val">9.9%</td><td class="aaa-var aaa-sep neg">-8.6%</td><td class="aaa-var pos">+7.7 pp</td><td class="aaa-val">33.330</td><td class="aaa-val">87.8%</td><td class="aaa-val">10.4%</td></tr><tr><td class="aaa-mes">JUN</td><td class="aaa-val">25.468</td><td class="aaa-val">84.0%</td><td class="aaa-val">11.3%</td><td class="aaa-var aaa-sep pos">+19.6%</td><td class="aaa-var pos">+7.4 pp</td><td class="aaa-val">30.451</td><td class="aaa-val">91.5%</td><td class="aaa-val">10.7%</td></tr><tr><td class="aaa-mes">JUL</td><td class="aaa-val">31.810</td><td class="aaa-val">95.9%</td><td class="aaa-val">11.8%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-95.9 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">AGO</td><td class="aaa-val">34.096</td><td class="aaa-val">92.0%</td><td class="aaa-val">11.8%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-92.0 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">SET</td><td class="aaa-val">36.145</td><td class="aaa-val">91.8%</td><td class="aaa-val">11.7%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-91.8 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">OUT</td><td class="aaa-val">33.123</td><td class="aaa-val">89.9%</td><td class="aaa-val">12.8%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-89.9 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">NOV</td><td class="aaa-val">23.332</td><td class="aaa-val">91.0%</td><td class="aaa-val">14.5%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-91.0 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">DEZ</td><td class="aaa-val">30.939</td><td class="aaa-val">79.6%</td><td class="aaa-val">14.6%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-79.6 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr></tbody></table></div><div class="aaa-empty" id="aaa-empty" style="display: none;">Sem dados suficientes — importe a planilha.</div></div>
+</div>
+<div class="page" id="page-ano-a-ano"><div class="aaa-hdr"><div class="aaa-hdr-icon"><svg viewBox="0 0 24 24"><path d="M3 3h18v2H3V3zm0 8h18v2H3v-2zm0 8h18v2H3v-2zm16-14l-4 4 4 4"></path></svg></div><div><div class="aaa-title">Comparação Ano a Ano</div><div class="aaa-sub">Evolução de cada mês comparado ao mesmo mês do ano anterior</div></div></div><div class="aaa-charts" style="display: grid;"><div class="aaa-chart-box"><div class="aaa-chart-ttl">▸ Produção por mês</div><canvas id="aaa-c-prod" height="160" width="300" style="width: 300px; height: 160px;"></canvas><div class="aaa-legend" id="aaa-lg-prod"><span class="aaa-li"><span class="aaa-ld" style="background:#F5A623"></span>2025</span><span class="aaa-li"><span class="aaa-ld" style="background:#FF9800"></span>2026</span></div></div><div class="aaa-chart-box"><div class="aaa-chart-ttl">▸ Eficiência % por mês</div><canvas id="aaa-c-ef" height="160" width="300" style="width: 300px; height: 160px;"></canvas><div class="aaa-legend" id="aaa-lg-ef"><span class="aaa-li"><span class="aaa-ld" style="background:#F5A623"></span>2025</span><span class="aaa-li"><span class="aaa-ld" style="background:#FF9800"></span>2026</span></div></div><div class="aaa-chart-box"><div class="aaa-chart-ttl">▸ Absenteísmo % por mês</div><canvas id="aaa-c-abs" height="160" width="300" style="width: 300px; height: 160px;"></canvas><div class="aaa-legend" id="aaa-lg-abs"><span class="aaa-li"><span class="aaa-ld" style="background:#F5A623"></span>2025</span><span class="aaa-li"><span class="aaa-ld" style="background:#FF9800"></span>2026</span></div></div></div><div class="aaa-wrap" style="display: block;"><table class="aaa-table"><thead id="aaa-thead"><tr><th>Mês</th><th style="color:#F5A623">2025 Prod</th><th style="color:#F5A623">2025 Ef%</th><th style="color:#F5A623">2025 Abs%</th><th class="aaa-sep" style="color:var(--t3)">Δ Prod%</th><th style="color:var(--t3)">Δ Ef pp</th><th style="color:#FF9800">2026 Prod</th><th style="color:#FF9800">2026 Ef%</th><th style="color:#FF9800">2026 Abs%</th></tr></thead><tbody id="aaa-tbody"><tr><td class="aaa-mes">JAN</td><td class="aaa-val">31.041</td><td class="aaa-val">90.0%</td><td class="aaa-val">11.5%</td><td class="aaa-var aaa-sep neg">-27.7%</td><td class="aaa-var neg">-1.9 pp</td><td class="aaa-val">22.437</td><td class="aaa-val">88.1%</td><td class="aaa-val">9.0%</td></tr><tr><td class="aaa-mes">FEV</td><td class="aaa-val">30.042</td><td class="aaa-val">76.8%</td><td class="aaa-val">17.2%</td><td class="aaa-var aaa-sep pos">+8.3%</td><td class="aaa-var pos">+10.1 pp</td><td class="aaa-val">32.547</td><td class="aaa-val">87.0%</td><td class="aaa-val">12.6%</td></tr><tr><td class="aaa-mes">MAR</td><td class="aaa-val">33.101</td><td class="aaa-val">81.1%</td><td class="aaa-val">9.8%</td><td class="aaa-var aaa-sep neg">-16.6%</td><td class="aaa-var pos">+20.0 pp</td><td class="aaa-val">27.600</td><td class="aaa-val">101.1%</td><td class="aaa-val">13.9%</td></tr><tr><td class="aaa-mes">ABR</td><td class="aaa-val">35.720</td><td class="aaa-val">79.7%</td><td class="aaa-val">9.9%</td><td class="aaa-var aaa-sep neg">-18.3%</td><td class="aaa-var pos">+12.6 pp</td><td class="aaa-val">29.195</td><td class="aaa-val">92.3%</td><td class="aaa-val">15.1%</td></tr><tr><td class="aaa-mes">MAI</td><td class="aaa-val">36.450</td><td class="aaa-val">80.1%</td><td class="aaa-val">9.9%</td><td class="aaa-var aaa-sep neg">-8.6%</td><td class="aaa-var pos">+7.7 pp</td><td class="aaa-val">33.330</td><td class="aaa-val">87.8%</td><td class="aaa-val">10.4%</td></tr><tr><td class="aaa-mes">JUN</td><td class="aaa-val">25.468</td><td class="aaa-val">84.0%</td><td class="aaa-val">11.3%</td><td class="aaa-var aaa-sep pos">+19.6%</td><td class="aaa-var pos">+7.4 pp</td><td class="aaa-val">30.451</td><td class="aaa-val">91.5%</td><td class="aaa-val">10.7%</td></tr><tr><td class="aaa-mes">JUL</td><td class="aaa-val">31.810</td><td class="aaa-val">95.9%</td><td class="aaa-val">11.8%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-95.9 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">AGO</td><td class="aaa-val">34.096</td><td class="aaa-val">92.0%</td><td class="aaa-val">11.8%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-92.0 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">SET</td><td class="aaa-val">36.145</td><td class="aaa-val">91.8%</td><td class="aaa-val">11.7%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-91.8 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">OUT</td><td class="aaa-val">33.123</td><td class="aaa-val">89.9%</td><td class="aaa-val">12.8%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-89.9 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">NOV</td><td class="aaa-val">23.332</td><td class="aaa-val">91.0%</td><td class="aaa-val">14.5%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-91.0 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr><tr><td class="aaa-mes">DEZ</td><td class="aaa-val">30.939</td><td class="aaa-val">79.6%</td><td class="aaa-val">14.6%</td><td class="aaa-var aaa-sep neu">—</td><td class="aaa-var neg">-79.6 pp</td><td class="aaa-val">0</td><td class="aaa-val">0.0%</td><td class="aaa-val">0.0%</td></tr></tbody></table></div><div class="aaa-empty" id="aaa-empty" style="display: none;">Sem dados suficientes — importe a planilha.</div></div>
 
 <!-- ══ PÁGINA: RESUMO EXECUTIVO ══ -->
 <div class="page on" id="page-resumo">
@@ -4304,6 +4225,8 @@ Fórmula: Faltas + Atrasos
           <th style="text-align:right">Plano (pç)</th>
           <th style="text-align:right">Realizado (pç)</th>
           <th style="text-align:right">Desvio</th>
+          <th style="text-align:right">Atingim. c/ HE</th>
+          <th style="text-align:right">Atingim. s/ HE</th>
           <th style="text-align:right">Dias úteis</th>
           <th style="text-align:right">Ritmo necessário</th>
           <th style="text-align:right">Ritmo realizado</th>
@@ -5380,6 +5303,7 @@ function calcDeltas(dados){
 
 function drawDivBars(canvasId,emId,labels,values,posColor,negColor,H,suffix,invert){
   var cv=document.getElementById(canvasId), em=document.getElementById(emId);
+  if(!cv||!em) return;   /* gráfico de aba que não existe mais */
   if(!values||!values.length||values.every(function(v){return v===null})){
     cv.style.display='none';em.style.display='block';return
   }
@@ -5616,6 +5540,7 @@ function drawEfic(dados){
 /* Gráfico barras — genérico */
 function drawBars(canvasId,emId,dados,valFn,cor,H,labelFn){
   var cv=document.getElementById(canvasId), em=document.getElementById(emId);
+  if(!cv) return;   /* canvas de aba removida */
   if(!dados.length){cv.style.display='none';em.style.display='block';return}
   cv.style.display='block'; em.style.display='none';
   var o=setupCanvas(canvasId,H), ctx=o.ctx, W=o.W;
@@ -5749,6 +5674,9 @@ function drawEficSimples(dados,cvId,emId){
 
 function drawHoras(dados){
   var cv=document.getElementById('cHoras'), em=document.getElementById('emHoras');
+  /* o gráfico vivia na aba Capacidade Produtiva, que foi absorvida pela
+     Eficiência; sem o canvas na página não há o que desenhar */
+  if(!cv||!em) return;
   if(!dados.length){cv.style.display='none';em.style.display='block';return}
   cv.style.display='block'; em.style.display='none';
   var o=setupCanvas('cHoras',200), ctx=o.ctx, W=o.W, H=o.H;
@@ -11964,18 +11892,20 @@ function cfInicializar() {
       cor:   DS.C.bom,
       pages: [
         { id: 'takt',     label: 'Ritmo Produtivo',  icon: '⏱' },
-        { id: 'producao', label: 'Produção & Vendas', icon: '🔧' },
-        { id: 'previsao', label: 'Previsão × Capacidade', icon: '🎯' }
+        { id: 'producao', label: 'Produção & Vendas', icon: '🔧' }
       ]
     },
     'operacao': {
       label: 'Operação',
       cor:   DS.C.ruim,
       pages: [
-        { id: 'eficiencia',  label: 'Eficiência',    icon: '✅' },
-        { id: 'capacidade',  label: 'Horas',         icon: '⚡' },
+        { id: 'eficiencia',  label: 'Eficiência & Horas', icon: '✅' },
         { id: 'pessoas',     label: 'Pessoas',       icon: '👥' },
         { id: 'comparativo', label: 'Comparativo',   icon: '📉' },
+        /* A página Ano a Ano existia mas nunca aparecia: o módulo dela tenta se
+           registrar em window._NAV4_GRUPOS, que nunca chegou a ser atribuído.
+           Declarada aqui, fica acessível. */
+        { id: 'ano-a-ano',   label: 'Ano a Ano',     icon: '📅' },
         { id: 'dados',       label: 'Dados',         icon: '🗂' }
       ]
     },
@@ -16703,11 +16633,16 @@ function printAtiva(){
       if(plano<=0&&!fechado) return; /* mês sem plano e sem realizado não entra */
 
       var desvio=fechado?(real-plano):null;
+      /* Atingimento vindo da antiga aba Previsão × Capacidade: com hora extra e
+         só na jornada normal — a distância entre os dois é a dependência de HE. */
+      var atCE=(plano>0&&fechado)?(real/plano)*100:null;
+      var atSE=(plano>0&&fechado&&normal>0)?(normal/plano)*100:null;
+      function corAt(v){ return v===null?'var(--t3)':(v>=100?'var(--green)':(v>=90?'var(--amber)':'var(--red)')); }
       var ritmoNec=plano>0?plano/diasP:null;
       var ritmoReal=horasFechadas?normal/dias:null;
       var corDesvio=desvio===null?'var(--t3)':(desvio>=0?'var(--green)':'var(--red)');
       var corRitmo=(ritmoReal!==null&&ritmoNec!==null)?(ritmoReal>=ritmoNec?'var(--green)':'var(--red)'):'var(--t1)';
-      mesesTab.push({mes:r.mes, plano:plano, real:fechado?real:null, desvio:desvio,
+      mesesTab.push({mes:r.mes, plano:plano, real:fechado?real:null, normal:fechado?normal:null, desvio:desvio,
                      dias:dias, ritmoNec:ritmoNec, ritmoReal:ritmoReal,
                      status:(plano<=0?'sem plano':(real<=0?'A produzir':(normal<=0?'Em fechamento'
                        :(normal>=plano?'Cumpriu':(real>=plano?'Cumpriu c/ HE':'Não cumpriu')))))});
@@ -16717,6 +16652,8 @@ function printAtiva(){
         +'<td style="text-align:right">'+(plano>0?fi(plano):'—')+'</td>'
         +'<td style="text-align:right">'+(fechado?fi(real):'—')+'</td>'
         +'<td style="text-align:right;color:'+corDesvio+'">'+(desvio===null?'—':(desvio>=0?'+':'')+fi(desvio))+'</td>'
+        +'<td style="text-align:right;color:'+corAt(atCE)+'">'+(atCE===null?'—':fd(atCE,1)+'%')+'</td>'
+        +'<td style="text-align:right;color:'+corAt(atSE)+'">'+(atSE===null?'—':fd(atSE,1)+'%')+'</td>'
         +'<td style="text-align:right">'+dias+'</td>'
         +'<td style="text-align:right">'+(ritmoNec!==null?fi(ritmoNec):'—')+'</td>'
         +'<td style="text-align:right;color:'+corRitmo+';font-weight:700">'+(ritmoReal!==null?fi(ritmoReal):'—')+'</td>'
@@ -16919,7 +16856,7 @@ function printAtiva(){
   function graficoRitmo(meses,ritmoPlano){
     var pts=meses.filter(function(m){ return m.ritmoNec!==null||m.ritmoReal!==null; });
     if(pts.length<2) return '';
-    var W=1000,H=250,mL=58,mR=14,mT=16,mB=30,gW=W-mL-mR,gH=H-mT-mB;
+    var W=1000,H=185,mL=58,mR=14,mT=14,mB=26,gW=W-mL-mR,gH=H-mT-mB;
     var vals=[]; pts.forEach(function(m){
       if(m.ritmoNec!==null) vals.push(m.ritmoNec);
       if(m.ritmoReal!==null) vals.push(m.ritmoReal);
@@ -17180,9 +17117,15 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b28';
+var APP_VERSAO = 'b29';
 var APP_DATA   = '05/08/2026';
 var APP_HISTORICO = [
+  { v:'b29', data:'05/08/2026', itens:[
+    'Previsão × Capacidade e Capacidade Produtiva removidas — conteúdo redistribuído.',
+    'Atingimento c/ e s/ hora extra vira coluna no Planejamento Mestre.',
+    'Horas passam a ficar na aba Eficiência & Horas.',
+    'Aba Ano a Ano volta a aparecer na navegação.'
+  ]},
   { v:'b28', data:'05/08/2026', itens:[
     'Gráfico de evolução do ritmo: plano, exigido e entregue mês a mês.',
     'Projeção de fechamento do horizonte planejado, com e sem hora extra.'
