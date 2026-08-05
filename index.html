@@ -16414,13 +16414,19 @@ function printAtiva(){
     /* sparkline CSS: barras proporcionais ao ticket */
     var vals=rs.map(function(r){return r.ticketMedio;});
     var mx=Math.max.apply(null,vals), mn=Math.min.apply(null,vals);
-    var spark=rs.map(function(r){
+    /* Com muitos meses o rótulo não cabe na barra e, como o texto não encolhe,
+       o flex estoura o card. Abaixo de 13 meses mostra todos; acima disso,
+       um a cada três (o último sempre), e cada item pode encolher (min-width:0). */
+    var rotuloTodos = rs.length <= 13;
+    var spark=rs.map(function(r,i){
       var h=mx>mn?8+((r.ticketMedio-mn)/(mx-mn))*40:24;
       var isLast=r===last, isMin=r===minR;
       var c=isMin?'#F44336':(isLast?'#00E5FF':'rgba(120,144,156,.55)');
-      return '<div title="'+r.mes+': '+fR(r.ticketMedio)+'" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'
+      var mostra = rotuloTodos || isLast || i%3===0;
+      return '<div title="'+r.mes+': '+fR(r.ticketMedio)+'" style="flex:1 1 0;min-width:0;overflow:hidden;'
+        +'display:flex;flex-direction:column;align-items:center;gap:3px">'
         +'<div style="width:70%;height:'+h.toFixed(0)+'px;background:'+c+';border-radius:3px 3px 0 0"></div>'
-        +'<div style="font-size:.55rem;color:var(--t3)">'+r.mes+'</div></div>';
+        +'<div style="font-size:.55rem;color:var(--t3);white-space:nowrap">'+(mostra?r.mes:'&nbsp;')+'</div></div>';
     }).join('');
     card.innerHTML=
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px">'
@@ -16432,7 +16438,7 @@ function printAtiva(){
           +'</div>'
           +'<div style="font-size:.68rem;color:var(--t3);margin-top:2px">'+first.mes+' '+fR(first.ticketMedio)+' → '+last.mes+' '+fR(last.ticketMedio)+' · menor '+fR(minR.ticketMedio)+' ('+minR.mes+')</div>'
         +'</div>'
-        +'<div style="display:flex;align-items:flex-end;gap:4px;height:56px;min-width:180px;flex:1;max-width:320px">'+spark+'</div>'
+        +'<div style="display:flex;align-items:flex-end;gap:3px;height:56px;min-width:180px;flex:1;max-width:420px;overflow:hidden">'+spark+'</div>'
       +'</div>'
       +'<div style="font-size:.75rem;line-height:1.55;color:var(--t2);padding:8px 10px;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.18);border-radius:6px">'
         +'<b>Leitura:</b> '+diag+'</div>';
@@ -16791,9 +16797,12 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b22';
+var APP_VERSAO = 'b23';
 var APP_DATA   = '05/08/2026';
 var APP_HISTORICO = [
+  { v:'b23', data:'05/08/2026', itens:[
+    'Sparkline do ticket médio deixa de estourar o card com muitos meses.'
+  ]},
   { v:'b22', data:'05/08/2026', itens:[
     'Painel de versões e aviso de atualização nova.',
     'Margem Melhoria deixa de ser lida como margem financeira no briefing.',
