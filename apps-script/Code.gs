@@ -5,7 +5,7 @@
  * "Executar como: eu", "Quem tem acesso: qualquer pessoa") e cole a URL /exec
  * em SHEETS_WEBAPP_URL no index.html.
  *
- * O que ele faz:
+ * doGet — o dashboard lê a planilha ao abrir:
  *   1. Lê a aba HISTORICO (uma linha por mês) e devolve os campos que o
  *      dashboard conhece;
  *   2. Puxa a previsão de produção da aba PLANO MESTRE (linha TOTAL GERAL),
@@ -14,6 +14,12 @@
  *   3. Normaliza número em formato brasileiro. Sem isso, uma célula gravada
  *      como texto "33.291" chega ao JavaScript como 33,291 (trinta e três) e
  *      "11,52" chega como NaN → 0. Os dois casos existem hoje na planilha.
+ *
+ * doPost — o dashboard grava de volta (importar Excel, editar ou excluir mês).
+ *   Casa cada registro por mês+ano: atualiza a linha existente e acrescenta a
+ *   que não existir, preservando a ordem das colunas da planilha. NÃO escreve
+ *   na coluna de previsão nem na aba PLANO MESTRE: o plano é do planejamento,
+ *   e deixar o app sobrescrevê-lo permitiria apagar o plano sem querer.
  */
 
 /* Aba com uma linha por mês (a que alimenta o dashboard). */
@@ -24,6 +30,16 @@ var ABA_PLANO = 'PLANO MESTRE';
 var LINHA_TOTAL = 'TOTAL GERAL';
 
 var MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+/* Precisa ser igual a SHEETS_SECRET no index.html. Não é segurança de
+   verdade — o valor viaja no JavaScript da página, que é público. Serve para
+   evitar escrita acidental por quem esbarrar na URL. */
+var SEGREDO = 'TROQUE_ESTA_SENHA_2026';
+
+/* Colunas que o app NÃO pode sobrescrever ao gravar. A previsão vem do
+   PLANO MESTRE; se o app pudesse escrevê-la, um dado local desatualizado
+   apagaria o plano. */
+var COLUNAS_PROTEGIDAS = ['previsaoproducao', 'previsao'];
 
 function doGet() {
   var saida;
@@ -39,6 +55,114 @@ function doGet() {
   return ContentService
     .createTextOutput(JSON.stringify(saida))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ══ ESCRITA ══
+   O app envia { secret, dados:[...] } como text/plain, em modo no-cors — ele
+   não lê a resposta, mas devolvemos JSON assim mesmo para dar para testar a
+   URL na mão. */
+function doPost(e) {
+  var saida;
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);   /* duas abas salvando ao mesmo tempo não se atropelam */
+    var corpo = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (SEGREDO && corpo.secret !== SEGREDO) throw new Error('Segredo inválido.');
+    var recebidos = corpo.dados;
+    if (!recebidos || !recebidos.length) throw new Error('Nada para gravar.');
+
+    var res = gravarHistorico(SpreadsheetApp.getActiveSpreadsheet(), recebidos);
+    saida = { ok: true, atualizados: res.atualizados, incluidos: res.incluidos };
+  } catch (err) {
+    saida = { ok: false, erro: String(err && err.message || err) };
+  } finally {
+    try { lock.releaseLock(); } catch (ignore) {}
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify(saida))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function gravarHistorico(ss, recebidos) {
+  var aba = ss.getSheetByName(ABA_HISTORICO);
+  if (!aba) throw new Error('Aba "' + ABA_HISTORICO + '" não encontrada.');
+
+  var linhas = aba.getDataRange().getValues();
+  var iCab = acharCabecalho(linhas);
+  var cab = linhas[iCab];
+
+  /* nome normalizado da coluna → índice, para casar com os campos do app */
+  var col = {};
+  for (var c = 0; c < cab.length; c++) {
+    var n = normaliza(cab[c]);
+    if (!n) continue;
+    if (n.indexOf('previsao') === 0) n = 'previsaoproducao';
+    if (n.indexOf('ferias') >= 0)    n = 'horasferias';
+    if (col[n] === undefined) col[n] = c;
+  }
+  if (col.mes === undefined || col.ano === undefined) {
+    throw new Error('Colunas "mes" e "ano" não encontradas em ' + ABA_HISTORICO + '.');
+  }
+
+  /* mês+ano → número da linha na planilha */
+  var mapa = {};
+  for (var r = iCab + 1; r < linhas.length; r++) {
+    var m = String(linhas[r][col.mes] || '').trim().toUpperCase().slice(0, 3);
+    var a = num(linhas[r][col.ano]);
+    if (MESES.indexOf(m) >= 0 && a) mapa[m + '/' + a] = r;
+  }
+
+  var atualizados = 0, incluidos = 0;
+  recebidos.forEach(function (rec) {
+    var mes = String(rec.mes || '').trim().toUpperCase().slice(0, 3);
+    var ano = num(rec.ano);
+    if (MESES.indexOf(mes) < 0 || !ano) return;
+
+    var chave = mes + '/' + ano;
+    var idx = mapa[chave];
+    var linha;
+    if (idx === undefined) {
+      linha = new Array(cab.length).fill('');
+      linhas.push(linha);
+      idx = linhas.length - 1;
+      mapa[chave] = idx;
+      incluidos++;
+    } else {
+      linha = linhas[idx];
+      atualizados++;
+    }
+
+    Object.keys(rec).forEach(function (campo) {
+      var n = normaliza(campo);
+      if (n === 'id') return;
+      if (COLUNAS_PROTEGIDAS.indexOf(n) >= 0) return;
+      var c = col[n];
+      if (c === undefined) return;      /* campo que a planilha não tem: ignora */
+      linha[c] = rec[campo];
+    });
+    linha[col.mes] = mes;
+    linha[col.ano] = ano;
+  });
+
+  /* uma escrita só — muito mais rápido que célula a célula */
+  var largura = cab.length;
+  var bloco = linhas.slice(iCab + 1).map(function (l) {
+    var out = l.slice(0, largura);
+    while (out.length < largura) out.push('');
+    return out;
+  });
+  if (bloco.length) {
+    aba.getRange(iCab + 2, 1, bloco.length, largura).setValues(bloco);
+  }
+  return { atualizados: atualizados, incluidos: incluidos };
+}
+
+function acharCabecalho(linhas) {
+  for (var i = 0; i < Math.min(linhas.length, 20); i++) {
+    var norm = linhas[i].map(function (c) { return normaliza(c); });
+    if (norm.indexOf('mes') >= 0 && norm.indexOf('ano') >= 0) return i;
+  }
+  throw new Error('Cabeçalho com "mes" e "ano" não encontrado em ' + ABA_HISTORICO + '.');
 }
 
 /* ══ NÚMEROS ══
@@ -79,13 +203,7 @@ function lerHistorico(ss) {
 
   /* A linha de cabeçalho é a que traz "mes" e "ano" — não assumimos que é a
      primeira, porque a planilha pode ganhar título ou linha em branco. */
-  var iCab = -1;
-  for (var i = 0; i < Math.min(linhas.length, 20); i++) {
-    var norm = linhas[i].map(function (c) { return normaliza(c); });
-    if (norm.indexOf('mes') >= 0 && norm.indexOf('ano') >= 0) { iCab = i; break; }
-  }
-  if (iCab < 0) throw new Error('Cabeçalho com "mes" e "ano" não encontrado em ' + ABA_HISTORICO + '.');
-
+  var iCab = acharCabecalho(linhas);
   var cab = linhas[iCab];
   var out = [];
   for (var r = iCab + 1; r < linhas.length; r++) {
