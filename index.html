@@ -16779,30 +16779,163 @@ function printAtiva(){
 @keyframes statusPulse{0%,100%{text-shadow:0 0 0 rgba(0,0,0,0)}50%{text-shadow:0 0 24px currentColor}}
 </style>
 <script>
-if ('serviceWorker' in navigator) {
+/* ══════════════════════════════════════════════════════════════════════════
+   VERSÃO E ATUALIZAÇÃO
+   ─────────────────────────────────────────────────────────────────────────
+   Fonte única da versão. Antes o número estava escrito à mão no HTML do selo
+   e ficou parado em b20 durante uma rodada inteira de mudanças, sem ninguém
+   perceber que a build antiga é que estava no ar. Agora sai daqui, e o mesmo
+   objeto alimenta o selo, o painel de histórico e a comparação que dispara o
+   aviso de atualização.
+
+   AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
+   sw.js (CACHE_NAME) para o service worker detectar a troca.
+══════════════════════════════════════════════════════════════════════════ */
+var APP_VERSAO = 'b22';
+var APP_DATA   = '05/08/2026';
+var APP_HISTORICO = [
+  { v:'b22', data:'05/08/2026', itens:[
+    'Painel de versões e aviso de atualização nova.',
+    'Margem Melhoria deixa de ser lida como margem financeira no briefing.',
+    'Selo de versão passa a sair de uma fonte única no código.'
+  ]},
+  { v:'b21', data:'05/08/2026', itens:[
+    'Aba Planejamento Mestre: plano do ano, ritmo exigido × demonstrado e carteira.',
+    'Seção do Planejamento Mestre no briefing, também na impressão.',
+    'Comparativo Mensal do briefing volta a ficar legível no PDF.'
+  ]},
+  { v:'b20', data:'04/08/2026', itens:[
+    'Logo Patrimar no cabeçalho.',
+    'Semáforo de status na Previsão × Capacidade.',
+    'Alertas e aba Curva ABC removidos.',
+    'Apps Script novo: lê o PLANO MESTRE e trata número em formato brasileiro.'
+  ]}
+];
+
+(function(){
+  /* ── Selo no rodapé ── */
+  function pintarSelo(){
+    var el = document.getElementById('app-version');
+    if (!el) return;
+    el.textContent = 'v' + APP_DATA.split('/').reverse().join('.') + ' · ' + APP_VERSAO;
+    el.title = 'Versão publicada — clique para ver o que mudou';
+    el.style.pointerEvents = 'auto';
+    el.style.cursor = 'pointer';
+    el.onclick = abrirHistorico;
+  }
+
+  /* ── Painel com o histórico de versões ── */
+  function abrirHistorico(){
+    var ov = document.getElementById('ver-overlay');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'ver-overlay';
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(6,14,26,.9);z-index:100000;'
+        + 'display:flex;align-items:center;justify-content:center;padding:16px';
+      ov.onclick = function(e){ if (e.target === ov) ov.remove(); };
+      ov.innerHTML =
+        '<div style="background:#1F1F1F;border:1px solid #2A2A2A;border-top:3px solid var(--cyan);'
+        + 'border-radius:8px;width:100%;max-width:540px;max-height:80vh;overflow:auto;padding:24px 26px">'
+        + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px">'
+          + '<div style="font-size:.95rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t1)">Versões do painel</div>'
+          + '<button onclick="document.getElementById(\'ver-overlay\').remove()" '
+            + 'style="background:none;border:none;color:var(--t3);font-size:1.2rem;cursor:pointer;line-height:1">✕</button>'
+        + '</div>'
+        + '<div style="font-size:.72rem;color:var(--t3);margin-bottom:18px">Em uso: <b style="color:var(--cyan)">'
+          + APP_VERSAO + '</b> · ' + APP_DATA + '</div>'
+        + APP_HISTORICO.map(function(h, i){
+            var atual = i === 0;
+            return '<div style="margin-bottom:16px;padding-left:14px;border-left:2px solid '
+              + (atual ? 'var(--cyan)' : 'var(--b)') + '">'
+              + '<div style="font-family:var(--mono);font-size:.78rem;font-weight:700;color:'
+                + (atual ? 'var(--cyan)' : 'var(--t2)') + ';margin-bottom:6px">'
+                + h.v + ' <span style="font-weight:400;color:var(--t3)">· ' + h.data + '</span>'
+                + (atual ? ' <span style="font-size:.62rem;background:rgba(245,166,35,.15);padding:2px 7px;border-radius:10px">EM USO</span>' : '')
+              + '</div>'
+              + '<ul style="margin:0;padding-left:16px;font-size:.76rem;line-height:1.65;color:var(--t2)">'
+              + h.itens.map(function(t){ return '<li>' + t + '</li>'; }).join('')
+              + '</ul></div>';
+          }).join('')
+        + '</div>';
+      document.body.appendChild(ov);
+    }
+  }
+  window.abrirHistoricoVersoes = abrirHistorico;
+
+  /* ── Aviso de atualização ──
+     Antes a página recarregava sozinha quando um service worker novo assumia.
+     Recarregar sem avisar no meio de uma reunião é pior que esperar: some
+     filtro, some rolagem. Agora aparece um aviso e quem decide é o usuário. */
+  function avisarAtualizacao(aplicar){
+    if (document.getElementById('ver-update')) return;
+    var box = document.createElement('div');
+    box.id = 'ver-update';
+    box.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:100001;max-width:330px;'
+      + 'background:#1F1F1F;border:1px solid rgba(245,166,35,.5);border-left:4px solid var(--cyan);'
+      + 'border-radius:8px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.55);'
+      + 'font-size:.8rem;color:var(--t1);animation:fi .25s ease';
+    box.innerHTML =
+      '<div style="font-weight:700;margin-bottom:5px;color:var(--cyan)">↻ Nova versão disponível</div>'
+      + '<div style="font-size:.74rem;color:var(--t2);line-height:1.5;margin-bottom:11px">'
+        + 'Atualizar recarrega a página. Os dados ficam salvos — só o que estiver '
+        + 'em edição na tela se perde.</div>'
+      + '<div style="display:flex;gap:8px">'
+        + '<button id="ver-up-ok" style="flex:1;padding:7px 12px;border:1px solid var(--cyan);border-radius:5px;'
+          + 'background:rgba(245,166,35,.12);color:var(--cyan);font-weight:700;font-size:.74rem;cursor:pointer">Atualizar</button>'
+        + '<button id="ver-up-no" style="padding:7px 12px;border:1px solid var(--b);border-radius:5px;'
+          + 'background:transparent;color:var(--t3);font-size:.74rem;cursor:pointer">Depois</button>'
+      + '</div>';
+    document.body.appendChild(box);
+    document.getElementById('ver-up-ok').onclick = function(){
+      box.innerHTML = '<div style="color:var(--t2);font-size:.76rem">Atualizando…</div>';
+      aplicar();
+    };
+    document.getElementById('ver-up-no').onclick = function(){ box.remove(); };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pintarSelo);
+  else pintarSelo();
+
+  if (!('serviceWorker' in navigator)) return;
+
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('/sw.js').then(function(reg){
-      /* Força checar por versão nova toda vez que a página abre —
-         não espera o ciclo automático (~24h) do navegador. */
+      /* Checa assim que abre — não espera o ciclo automático (~24h). */
       reg.update().catch(function(){});
 
-      /* Se já havia um SW controlando a página e um novo assume o controle,
-         recarrega sozinho uma vez pra garantir HTML/JS mais recentes. */
-      var jaRecarregou = sessionStorage.getItem('sw_reload_once');
+      function vigiar(sw){
+        if (!sw) return;
+        sw.addEventListener('statechange', function(){
+          /* "installed" com um controller ativo = versão nova esperando. Sem
+             controller é a primeira instalação, e aí não há o que avisar. */
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            avisarAtualizacao(function(){
+              sw.postMessage({ tipo: 'ATIVAR_AGORA' });
+            });
+          }
+        });
+      }
+
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        avisarAtualizacao(function(){ reg.waiting.postMessage({ tipo: 'ATIVAR_AGORA' }); });
+      }
+      vigiar(reg.installing);
+      reg.addEventListener('updatefound', function(){ vigiar(reg.installing); });
+
+      /* Só recarrega depois que o usuário mandou atualizar. */
+      var recarregando = false;
       navigator.serviceWorker.addEventListener('controllerchange', function(){
-        if (!jaRecarregou) {
-          sessionStorage.setItem('sw_reload_once', '1');
-          window.location.reload();
-        }
+        if (recarregando) return;
+        recarregando = true;
+        window.location.reload();
       });
 
-      /* Repete a checagem periodicamente enquanto a aba fica aberta
-         (dashboards costumam ficar abertos o dia todo em TV/monitor). */
+      /* O painel costuma ficar aberto o dia todo em TV/monitor. */
       setInterval(function(){ reg.update().catch(function(){}); }, 5 * 60 * 1000);
     }).catch(function(err){
       console.warn('SW falhou ao registrar (app continua funcionando normal):', err);
     });
   });
-}
+})();
 </script>
 </body></html>

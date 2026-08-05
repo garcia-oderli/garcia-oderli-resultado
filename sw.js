@@ -2,7 +2,7 @@
    Network-first (sem cache HTTP) para o shell do app, permite abrir offline
    com os últimos dados sincronizados. */
 
-var CACHE_NAME = 'ppcp-dashboard-v5';
+var CACHE_NAME = 'ppcp-dashboard-v6';
 var URLS_TO_CACHE = [
   '/',
   '/manifest.json',
@@ -11,8 +11,14 @@ var URLS_TO_CACHE = [
   '/logo-patrimar.jpg'
 ];
 
+/* Sem skipWaiting automático: o worker novo fica em espera e só assume
+   quando o usuário clica "Atualizar" no aviso. Trocar por baixo recarregava
+   a página sozinha e derrubava filtro e rolagem no meio de uma reunião. */
+self.addEventListener('message', function(event){
+  if (event.data && event.data.tipo === 'ATIVAR_AGORA') self.skipWaiting();
+});
+
 self.addEventListener('install', function(event){
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache){
       return cache.addAll(URLS_TO_CACHE);
