@@ -34,7 +34,7 @@ var MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','
 /* Precisa ser igual a SHEETS_SECRET no index.html. Não é segurança de
    verdade — o valor viaja no JavaScript da página, que é público. Serve para
    evitar escrita acidental por quem esbarrar na URL. */
-var SEGREDO = 'TROQUE_ESTA_SENHA_2026';
+var SECRET = 'TROQUE_ESTA_SENHA_2026';
 
 /* Colunas que o app NÃO pode sobrescrever ao gravar. A previsão vem do
    PLANO MESTRE; se o app pudesse escrevê-la, um dado local desatualizado
@@ -67,7 +67,7 @@ function doPost(e) {
   try {
     lock.waitLock(30000);   /* duas abas salvando ao mesmo tempo não se atropelam */
     var corpo = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-    if (SEGREDO && corpo.secret !== SEGREDO) throw new Error('Segredo inválido.');
+    if (SECRET && corpo.secret !== SECRET) throw new Error('Senha inválida.');
     var recebidos = corpo.dados;
     if (!recebidos || !recebidos.length) throw new Error('Nada para gravar.');
 
@@ -83,9 +83,23 @@ function doPost(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+/* Ordem usada só quando a aba precisa ser criada do zero. Depois disso, quem
+   manda é o cabeçalho que estiver na planilha — colunas podem ser
+   reordenadas ou acrescentadas sem quebrar nada. */
+var CAMPOS_PADRAO = ['mes','ano','colaboradores','horasCarga','faltas','atraso',
+  'totalFaltaAtraso','absenteismo','horasNormais','extra50','extra100',
+  'totalExtras','horasTotais','producaoReal','prodSemExtras','meta',
+  'eficiencia','eficienciaAdj','margem','ticketMedio','custoCap',
+  'qtdeFaturado','diasTrabalhados','qtdeVendida','previsaoProducao','horasFerias'];
+
 function gravarHistorico(ss, recebidos) {
   var aba = ss.getSheetByName(ABA_HISTORICO);
-  if (!aba) throw new Error('Aba "' + ABA_HISTORICO + '" não encontrada.');
+  if (!aba) {
+    aba = ss.insertSheet(ABA_HISTORICO);
+    aba.getRange(1, 1, 1, CAMPOS_PADRAO.length).setValues([CAMPOS_PADRAO]);
+  } else if (aba.getLastRow() === 0) {
+    aba.getRange(1, 1, 1, CAMPOS_PADRAO.length).setValues([CAMPOS_PADRAO]);
+  }
 
   var linhas = aba.getDataRange().getValues();
   var iCab = acharCabecalho(linhas);
@@ -300,4 +314,40 @@ function contaMeses(linha) {
   var n = 0;
   for (var i = 0; i < linha.length; i++) if (mesEAno(linha[i])) n++;
   return n;
+}
+
+/* ══ TESTE MANUAL ══
+   Rode no editor do Apps Script antes de implantar (Executar › testeManual).
+   Não escreve nada: só lê e mostra o resultado no Registro de execução. */
+function testeManual() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var plano = lerPlanoMestre(ss);
+  Logger.log('Plano lido do ' + ABA_PLANO + ': ' + JSON.stringify(plano));
+
+  var dados = lerHistorico(ss);
+  aplicarPlano(dados, plano);
+  Logger.log('Meses no ' + ABA_HISTORICO + ': ' + dados.length);
+
+  dados.filter(function (r) { return r.ano === new Date().getFullYear(); })
+       .forEach(function (r) {
+    Logger.log(r.mes + '/' + r.ano
+      + ' | produção ' + r.producaoReal
+      + ' | s/ extras ' + r.prodSemExtras
+      + ' | previsão ' + r.previsaoProducao
+      + ' | dias ' + r.diasTrabalhados);
+  });
+
+  /* Conferência de tipo: aqui é onde "33.291" gravado como texto aparecia
+     como 33,291 antes da normalização. */
+  var suspeitos = dados.filter(function (r) {
+    return r.producaoReal > 0 && r.producaoReal < 1000;
+  });
+  if (suspeitos.length) {
+    Logger.log('⚠ Produção suspeita (menor que 1.000 peças) — confira se a '
+      + 'célula está formatada como número: '
+      + suspeitos.map(function (r) { return r.mes + '/' + r.ano + '=' + r.producaoReal; }).join(', '));
+  } else {
+    Logger.log('✓ Nenhum valor de produção com cara de texto mal convertido.');
+  }
 }
