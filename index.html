@@ -1060,7 +1060,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b39</div><div id="alertas-banner" style="display: none;"></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b40</div><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -17125,6 +17125,27 @@ function printAtiva(){
       +'<div style="font-size:.62rem;color:var(--t3);text-align:center;padding-bottom:12px">'
       +'a linha vertical é '+(ano-1)+' · à direita, mais que '+(ano-1)+'; à esquerda, menos</div>';
 
+    /* Kg por peça mês a mês: é a série que se mantém sozinha — cada mês novo
+       entra quando o quilo for lançado junto com o fechamento na HISTORICO.
+       Laranja quando o mês pesou mais que no ano anterior (mix maior). */
+    var kgMes='';
+    if(temKg){
+      var ordenados=meses.slice().sort(function(x,y){ return ORDEM_M.indexOf(x)-ORDEM_M.indexOf(y); });
+      kgMes='<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:2px 0 8px">'
+        +'▸ Quilos por peça, mês a mês — '+(ano-1)+' → '+ano+'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px;padding-bottom:12px">'
+        +ordenados.map(function(m){
+            var ka=kgDe(ant[m])/ant[m].producaoReal, kb=kgDe(atual[m])/atual[m].producaoReal;
+            var cor=kb>=ka?'#FF9800':'#4CAF50';
+            return '<div style="text-align:center;padding:7px 4px;background:rgba(255,255,255,.03);border-radius:5px">'
+              +'<div style="font-size:.6rem;color:var(--t3);margin-bottom:2px">'+m+'</div>'
+              +'<div style="font-family:var(--mono);font-size:.78rem;color:var(--t2)">'+fd(ka,1)
+              +' <span style="color:var(--t3)">→</span> <b style="color:'+cor+'">'+fd(kb,1)+'</b></div>'
+              +'</div>';
+          }).join('')
+        +'</div>';
+    }
+
     var pctH=(B.ht/A.ht-1)*100, pctP=(B.pr/A.pr-1)*100;
 
     /* Guarda o apurado para a impressão executiva. Sem isso o PDF sai só em
@@ -17149,6 +17170,7 @@ function printAtiva(){
             +fd((B.prodH/A.prodH-1)*100,1)+'%</b> em '+ano+' do que em '+(ano-1)+'.')
       +'</div>'
       +cascata
+      +kgMes
       +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1)">'
         +'Horas normais <b>'+(B.hn>=A.hn?'+':'')+fd((B.hn/A.hn-1)*100,1)+'%</b>, '
         +'hora extra <b>'+(B.he>=A.he?'+':'')+fd((B.he/A.he-1)*100,1)+'%</b> — '
@@ -17462,9 +17484,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b39';
+var APP_VERSAO = 'b40';
 var APP_DATA   = '06/08/2026';
 var APP_HISTORICO = [
+  { v:'b40', data:'06/08/2026', itens:[
+    'Quilos por peca mes a mes no comparativo — mostra o mix pesando ao longo do ano.',
+    'Serie sustentavel: cada mes novo entra quando o quilo for lancado na HISTORICO.'
+  ]},
   { v:'b39', data:'06/08/2026', itens:[
     'Corrige o texto do mix: subiu o peso MEDIO por peca, nao a peca que engordou.'
   ]},
