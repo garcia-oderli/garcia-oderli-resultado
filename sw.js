@@ -2,7 +2,7 @@
    Network-first (sem cache HTTP) para o shell do app, permite abrir offline
    com os últimos dados sincronizados. */
 
-var CACHE_NAME = 'ppcp-dashboard-v20';
+var CACHE_NAME = 'ppcp-dashboard-v21';
 var URLS_TO_CACHE = [
   '/',
   '/manifest.json',

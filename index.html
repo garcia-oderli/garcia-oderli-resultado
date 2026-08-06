@@ -1060,7 +1060,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b36</div><div id="alertas-banner" style="display: none;"></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b37</div><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -17049,15 +17049,19 @@ function printAtiva(){
     var meses=Object.keys(atual).filter(function(m){ return ant[m]; });
     if(meses.length<3) return '';   /* base curta demais para significar algo */
 
+    /* Quilo é opcional: só entra se a HISTORICO tiver a coluna preenchida nos
+       dois anos. Sem ela o bloco funciona como antes, medindo em peças. */
+    function kgDe(r){ return r.quilosProduzidos||r.quilos||r.kg||0; }
     function ag(fonte){
-      var hn=0,he=0,pr=0,d=0;
+      var hn=0,he=0,pr=0,d=0,kg=0;
       meses.forEach(function(m){
         var r=fonte[m];
         hn+=(r.horasNormais||0); he+=(r.totalExtras||0);
-        pr+=r.producaoReal;      d+=r.diasTrabalhados;
+        pr+=r.producaoReal;      d+=r.diasTrabalhados;  kg+=kgDe(r);
       });
       var ht=hn+he;
-      return { hn:hn, he:he, ht:ht, hDia:ht/d, prodH:pr/ht, real:pr/d, pr:pr };
+      return { hn:hn, he:he, ht:ht, hDia:ht/d, prodH:pr/ht, real:pr/d, pr:pr,
+               kg:kg, kgH:kg>0?kg/ht:0, kgPc:kg>0?kg/pr:0 };
     }
     var A=ag(ant), B=ag(atual);
     if(!A.prodH||!B.prodH) return '';
@@ -17075,11 +17079,22 @@ function printAtiva(){
 
        As três se multiplicam: horas × peças por hora = peças. Ver as três lado
        a lado mostra que a de baixo é a que puxa as outras. */
+    /* Exige quilo em TODOS os meses comparáveis dos dois anos. Bastaria um mês
+       em branco para a soma de um lado ficar menor e a comparação inverter de
+       sinal sem nada ter acontecido na fábrica. */
+    var temKg = meses.every(function(m){ return kgDe(atual[m])>0 && kgDe(ant[m])>0; });
     var idx=[
       { rot:'Horas trabalhadas', v:(B.ht/A.ht)*100,       neutro:true },
       { rot:'Peças produzidas',  v:(B.pr/A.pr)*100 },
       { rot:'Peças por hora',    v:(B.prodH/A.prodH)*100 }
     ];
+    if(temKg){
+      /* Peça não é unidade de trabalho: um berço e uma mesa de cabeceira contam
+         igual. Quando o mix pesa, "peças por hora" cai sem a fábrica piorar —
+         o quilo mostra a produção física que a contagem esconde. */
+      idx.push({ rot:'Quilos produzidos', v:(B.kg/A.kg)*100,       kg:true });
+      idx.push({ rot:'Quilos por hora',   v:(B.kgH/A.kgH)*100,     kg:true });
+    }
     var vs=idx.map(function(i){ return i.v; }).concat([100]);
     var lo2=Math.min.apply(null,vs), hi2=Math.max.apply(null,vs);
     var folga=Math.max((hi2-lo2)*0.35,2);
@@ -17090,10 +17105,11 @@ function printAtiva(){
     var linhas2=idx.map(function(i){
       var p=px(i.v), acima=i.v>=100;
       var cor=i.neutro?'#00E5FF':(acima?'#4CAF50':'#F44336');
+      var destaque=i.kg?';font-weight:700':'';
       var esq=Math.min(p,zero), larg=Math.abs(p-zero);
       return '<div style="display:grid;grid-template-columns:minmax(104px,auto) 1fr minmax(58px,auto);'
         +'align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--b)">'
-        +'<span style="font-size:.74rem;color:var(--t2)">'+i.rot+'</span>'
+        +'<span style="font-size:.74rem;color:'+(i.kg?'var(--t1)':'var(--t2)')+destaque+'">'+i.rot+'</span>'
         +'<span style="position:relative;display:block;height:17px;background:rgba(255,255,255,.03);border-radius:2px">'
           +'<span style="position:absolute;top:-4px;bottom:-4px;left:'+zero+'%;width:1px;background:var(--t3)"></span>'
           +'<span style="position:absolute;top:0;bottom:0;left:'+esq+'%;width:'+Math.max(larg,0.4)+'%;'
@@ -17112,21 +17128,31 @@ function printAtiva(){
     return '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">'
       +'▸ De onde vem a diferença de ritmo contra '+(ano-1)+' — '+meses.length+' meses comparáveis</div>'
       +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid '+corDif+';border-radius:var(--r);padding:16px 20px">'
-      +'<div style="font-size:1.02rem;font-weight:700;color:var(--t1);line-height:1.4;max-width:52ch">'
-        +'Mais horas, menos peças: cada hora rendeu <b style="color:'
-        +(B.prodH>=A.prodH?'#4CAF50':'#F44336')+'">'+fd((B.prodH/A.prodH-1)*100,1)+'%</b> em '
-        +ano+' do que em '+(ano-1)+'.'
+      +'<div style="font-size:1.02rem;font-weight:700;color:var(--t1);line-height:1.4;max-width:56ch">'
+        +(temKg
+          ? 'Medido em peças a produtividade fez <b style="color:'
+            +(B.prodH>=A.prodH?'#4CAF50':'#F44336')+'">'+fd((B.prodH/A.prodH-1)*100,1)
+            +'%</b>. Medido em quilos, <b style="color:'+(B.kgH>=A.kgH?'#4CAF50':'#F44336')+'">'
+            +fd((B.kgH/A.kgH-1)*100,1)+'%</b>.'
+          : 'Cada hora rendeu <b style="color:'+(B.prodH>=A.prodH?'#4CAF50':'#F44336')+'">'
+            +fd((B.prodH/A.prodH-1)*100,1)+'%</b> em '+ano+' do que em '+(ano-1)+'.')
       +'</div>'
       +cascata
       +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1)">'
         +'Horas normais <b>'+(B.hn>=A.hn?'+':'')+fd((B.hn/A.hn-1)*100,1)+'%</b>, '
         +'hora extra <b>'+(B.he>=A.he?'+':'')+fd((B.he/A.he-1)*100,1)+'%</b> — '
         +'no total <b>'+(pctH>=0?'+':'')+fd(pctH,1)+'%</b> de horas. '
-        +'Cada hora rendeu <b style="color:'+(B.prodH>=A.prodH?'#4CAF50':'#F44336')+'">'
-        +fd(B.prodH,3)+'</b> peças contra '+fd(A.prodH,3)+' — '
-        +(B.prodH<A.prodH
-          ? 'é a produtividade, não o volume de horas, que explica a queda.'
-          : 'o ganho veio da produtividade, não de mais horas.')
+        +'Cada hora rendeu <b>'+fd(B.prodH,3)+'</b> peças contra '+fd(A.prodH,3)+'. '
+        +(temKg
+          ? 'Mas cada peça ficou <b style="color:#FF9800">'+fd((B.kgPc/A.kgPc-1)*100,1)
+            +'%</b> mais pesada — '+fd(B.kgPc,1)+' kg contra '+fd(A.kgPc,1)+'. '
+            +(Math.abs(B.kgH/A.kgH-1) < Math.abs(B.prodH/A.prodH-1)
+              ? 'Descontado o mix, a produção física por hora variou apenas <b>'
+                +fd((B.kgH/A.kgH-1)*100,1)+'%</b>: a diferença em peças é mudança de mix, não de desempenho.'
+              : 'Mesmo em quilos a variação se mantém, então não é efeito de mix.')
+          : (B.prodH<A.prodH
+             ? 'Sem a coluna de quilos na HISTORICO não dá para separar queda de desempenho de mudança de mix.'
+             : 'O ganho veio da produtividade, não de mais horas.'))
       +'</div></div>';
   }
 
@@ -17395,9 +17421,14 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b36';
+var APP_VERSAO = 'b37';
 var APP_DATA   = '06/08/2026';
 var APP_HISTORICO = [
+  { v:'b37', data:'06/08/2026', itens:[
+    'Quilos produzidos entram na comparacao contra o ano anterior.',
+    'Peca nao e unidade de trabalho: o quilo separa mudanca de mix de queda de desempenho.',
+    'Depende da coluna quilosProduzidos na HISTORICO; sem ela o bloco segue medindo em pecas.'
+  ]},
   { v:'b36', data:'06/08/2026', itens:[
     'Corrige erro que apagava todos os KPIs do Planejamento Mestre no b35.'
   ]},
