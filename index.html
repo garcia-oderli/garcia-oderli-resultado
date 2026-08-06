@@ -1060,7 +1060,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b32</div><div id="alertas-banner" style="display: none;"></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b33</div><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -17134,7 +17134,7 @@ function printAtiva(){
         +'O que mais '+(caiu?'puxou para baixo':'puxou para cima')+' foi <b>'
         +maior.k.toLowerCase()+'</b> ('+(maior.v>=0?'+':'')+fi(maior.v)+' pç/dia).'
         +(maior.k==='Hora extra'&&maior.v<0
-          ? ' Hora extra é decisão de custo, não desempenho de produção — a queda de volume foi comprada, não sofrida.'
+          ? ' Hora extra é decisão de custo, não desempenho de produção: a fábrica não perdeu volume, trocou volume por menos custo de hora extra.'
           : '')
       +'</div></div>';
   }
@@ -17404,9 +17404,12 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b32';
+var APP_VERSAO = 'b33';
 var APP_DATA   = '06/08/2026';
 var APP_HISTORICO = [
+  { v:'b33', data:'06/08/2026', itens:[
+    'Texto da cascata reescrito: dizia "comprada, nao sofrida" e ninguem entendia.'
+  ]},
   { v:'b32', data:'06/08/2026', itens:[
     'A diferenca de ritmo contra o ano anterior vira grafico de cascata.',
     'Cada efeito flutua entre o acumulado anterior e o novo — a barra que desce e a que derruba o ritmo.'
