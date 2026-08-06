@@ -96,15 +96,15 @@ function criarSimulacao() {
   aba.getRange(SIM_L_RITMO - 1, 1).setValue('RITMO (pç/dia)').setFontWeight('bold');
   SIM_CENARIOS.forEach(function (c, i) {
     aba.getRange(SIM_L_RITMO + i, 1).setValue(c.nome);
-    aba.getRange(SIM_L_RITMO + i, 2).setValue(c.ritmo).setNumberFormat('#.##0,0');
+    aba.getRange(SIM_L_RITMO + i, 2).setValue(c.ritmo).setNumberFormat('#,##0.0');
     aba.getRange(SIM_L_RITMO + i, 3).setValue(c.desc).setFontColor('#666666');
   });
   aba.getRange(SIM_L_ATIVO, 1).setValue('Ritmo ativo').setFontWeight('bold');
   aba.getRange(SIM_L_ATIVO, 2).setFormula(
-    '=ÍNDICE(B' + SIM_L_RITMO + ':B' + (SIM_L_RITMO + SIM_CENARIOS.length - 1) +
-    ';CORRESP(B' + SIM_L_CENARIO + ';A' + SIM_L_RITMO + ':A' +
-    (SIM_L_RITMO + SIM_CENARIOS.length - 1) + ';0))'
-  ).setNumberFormat('#.##0,0').setFontWeight('bold');
+    '=INDEX(B' + SIM_L_RITMO + ':B' + (SIM_L_RITMO + SIM_CENARIOS.length - 1) +
+    ',MATCH(B' + SIM_L_CENARIO + ',A' + SIM_L_RITMO + ':A' +
+    (SIM_L_RITMO + SIM_CENARIOS.length - 1) + ',0))'
+  ).setNumberFormat('#,##0.0').setFontWeight('bold');
 
   /* Meses: dias úteis editáveis e total do mês por fórmula */
   aba.getRange(SIM_L_MES - 1, 1, 1, 3)
@@ -113,8 +113,8 @@ function criarSimulacao() {
     var l = SIM_L_MES + i;
     aba.getRange(l, 1).setValue(m.mes);
     aba.getRange(l, 2).setValue(m.dias).setBackground('#fff2cc');
-    aba.getRange(l, 3).setFormula('=ARRED($B$' + SIM_L_ATIVO + '*B' + l + ';0)')
-       .setNumberFormat('#.##0');
+    aba.getRange(l, 3).setFormula('=ROUND($B$' + SIM_L_ATIVO + '*B' + l + ',0)')
+       .setNumberFormat('#,##0');
   });
   aba.getRange(SIM_L_MES + 3, 4)
      .setValue('← dezembro com recesso; confirmar antes de fechar o plano')
@@ -144,11 +144,11 @@ function criarSimulacao() {
       var lm = SIM_L_MES + j, colL = String.fromCharCode(66 + j);
       if (ultimo[m.col] === i) {
         /* resto do mês = total − o que já foi distribuído acima */
-        cel.setFormula('=$C$' + lm + '-SOMA(' + colL + SIM_L_LOTE + ':' + colL + (l - 1) + ')');
+        cel.setFormula('=$C$' + lm + '-SUM(' + colL + SIM_L_LOTE + ':' + colL + (l - 1) + ')');
       } else {
-        cel.setFormula('=ARRED($C$' + lm + '*' + (x.q[m.col] / baseMes[m.col]) + ';0)');
+        cel.setFormula('=ROUND($C$' + lm + '*' + (x.q[m.col] / baseMes[m.col]) + ',0)');
       }
-      cel.setNumberFormat('#.##0');
+      cel.setNumberFormat('#,##0');
     });
   });
 
@@ -157,8 +157,8 @@ function criarSimulacao() {
   SIM_MESES.forEach(function (m, j) {
     var c = String.fromCharCode(66 + j);
     aba.getRange(fim, 2 + j)
-       .setFormula('=SOMA(' + c + SIM_L_LOTE + ':' + c + (fim - 1) + ')')
-       .setNumberFormat('#.##0').setFontWeight('bold');
+       .setFormula('=SUM(' + c + SIM_L_LOTE + ':' + c + (fim - 1) + ')')
+       .setNumberFormat('#,##0').setFontWeight('bold');
   });
 
   aba.setColumnWidth(1, 110).setColumnWidth(3, 130);

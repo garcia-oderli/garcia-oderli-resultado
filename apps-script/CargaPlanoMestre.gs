@@ -146,7 +146,7 @@ function cargaEscreverTotalGeral(aba, mapa) {
   var f = [];
   for (var c = CARGA_COL_JAN; c <= CARGA_COL_DEZ; c++) {
     var letra = cargaLetra(c);
-    f.push('=SOMA(' + letra + ini + ':' + letra + fim + ')');
+    f.push('=SUM(' + letra + ini + ':' + letra + fim + ')');
   }
   aba.getRange(mapa.linhaTotal, CARGA_COL_JAN, 1, f.length).setFormulas([f]);
 }
@@ -157,7 +157,7 @@ function cargaFormularTotalAno(aba, mapa) {
   var f = [];
   for (var i = 0; i < qtd; i++) {
     var l = mapa.primeiroLote + i;
-    f.push(['=SOMA(' + jan + l + ':' + dez + l + ')']);
+    f.push(['=SUM(' + jan + l + ':' + dez + l + ')']);
   }
   aba.getRange(mapa.primeiroLote, CARGA_COL_TOTAL, qtd, 1).setFormulas(f);
 }
