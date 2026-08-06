@@ -1060,7 +1060,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b37</div><div id="alertas-banner" style="display: none;"></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b38</div><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -16552,6 +16552,7 @@ function printAtiva(){
      dias efetivamente trabalhados que vêm da planilha. */
   var DIAS_PLAN={JAN:17,FEV:20,MAR:22,ABR:20,MAI:20,JUN:21,JUL:23,AGO:21,SET:22,OUT:22,NOV:21,DEZ:23};
   var _ult = null;   /* último apurado, usado pela impressão executiva */
+  var _ponte = null; /* comparativo com o ano anterior, idem */
 
   /* ══ SIMULAÇÃO DE CENÁRIOS ══
      Troca o plano dos meses ainda abertos por ritmo × dias úteis, só na tela.
@@ -16922,7 +16923,7 @@ function printAtiva(){
 
     /* Guarda o apurado para a impressão executiva montar o relatório sem
        recalcular nem depender do HTML escuro da tela. */
-    _ult = { cenario:_cenario, cenDez:_dez, cenAbs:_absMeta, cenHE:_he, ano:ano, planoAno:planoAno, realAcum:realAcum, planoAberto:planoAberto,
+    _ult = { ponte:_ponte, cenario:_cenario, cenDez:_dez, cenAbs:_absMeta, cenHE:_he, ano:ano, planoAno:planoAno, realAcum:realAcum, planoAberto:planoAberto,
              diasAbertos:diasAbertos, diasPlanoAno:diasPlanoAno, ritmoPlano:ritmoPlano,
              ritmoExig:ritmoExig, diasPlanFech:diasPlanFech,
              ritmoDem:ritmoDem, ritmoNecR:ritmoNecR, pctFolga:pctFolga, heP:heP,
@@ -17047,7 +17048,7 @@ function printAtiva(){
       if(r.ano===ano-1) ant[r.mes]=r;
     });
     var meses=Object.keys(atual).filter(function(m){ return ant[m]; });
-    if(meses.length<3) return '';   /* base curta demais para significar algo */
+    if(meses.length<3){ _ponte=null; return ''; }   /* base curta demais para significar algo */
 
     /* Quilo é opcional: só entra se a HISTORICO tiver a coluna preenchida nos
        dois anos. Sem ela o bloco funciona como antes, medindo em peças. */
@@ -17125,6 +17126,16 @@ function printAtiva(){
       +'a linha vertical é '+(ano-1)+' · à direita, mais que '+(ano-1)+'; à esquerda, menos</div>';
 
     var pctH=(B.ht/A.ht-1)*100, pctP=(B.pr/A.pr-1)*100;
+
+    /* Guarda o apurado para a impressão executiva. Sem isso o PDF sai só em
+       peças e quem o recebe conclui que a fábrica caiu 12% — a correção de mix
+       fica na tela e não acompanha o documento que vai para a reunião. */
+    _ponte = { anoAnt:ano-1, meses:meses.length, temKg:temKg,
+               pctH:pctH, pctP:pctP,
+               pcH_a:A.prodH, pcH_b:B.prodH, pctPcH:(B.prodH/A.prodH-1)*100,
+               kg_a:A.kg, kg_b:B.kg, pctKg:temKg?(B.kg/A.kg-1)*100:0,
+               kgH_a:A.kgH, kgH_b:B.kgH, pctKgH:temKg?(B.kgH/A.kgH-1)*100:0,
+               kgPc_a:A.kgPc, kgPc_b:B.kgPc, pctKgPc:temKg?(B.kgPc/A.kgPc-1)*100:0 };
     return '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">'
       +'▸ De onde vem a diferença de ritmo contra '+(ano-1)+' — '+meses.length+' meses comparáveis</div>'
       +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid '+corDif+';border-radius:var(--r);padding:16px 20px">'
@@ -17348,7 +17359,14 @@ function printAtiva(){
       +'<div class="st">Veredito do Plano</div>'
       +'<div class="ver"><h2>'+u.titulo+' &nbsp;<span style="font-size:12px">'
         +(u.pctFolga>=0?'+':'')+fd(u.pctFolga,1)+'%</span></h2>'
-        +'<p>'+u.frase+'</p><div class="ac"><b>Ação recomendada:</b> '+u.acao+'</div>'
+        +'<p>'+u.frase+'</p>'
+        +(u.ponte&&u.ponte.temKg
+          ? '<p style="margin-top:6px;color:#4a5568;font-size:10.5px"><b>Este veredito é medido em peças.</b> '
+            +'Peça não é unidade de trabalho, e em '+u.ano+' cada uma ficou '
+            +fd(u.ponte.pctKgPc,1)+'% mais pesada que em '+u.ponte.anoAnt
+            +'. Veja o quadro de produção física abaixo antes de concluir sobre desempenho.</p>'
+          : '')
+        +'<div class="ac"><b>Ação recomendada:</b> '+u.acao+'</div>'
         +(u.semPlano.length?'<div class="ac" style="border-left:3px solid #b7791f"><b>Atenção:</b> '
           +u.semPlano.length+' '+(u.semPlano.length>1?'meses ainda sem plano':'mês ainda sem plano')+' ('
           +u.semPlano.join(', ')+'). O "falta produzir" cobre só o horizonte já planejado.</div>':'')
@@ -17374,6 +17392,28 @@ function printAtiva(){
                  'vendido e ainda não faturado')
           +'</div>' : '')
       +'<div class="st">Mês a Mês — Plano, Realizado e Ritmo</div>'
+      +(u.ponte&&u.ponte.temKg
+        ? '<div class="st">Produção física — '+u.ano+' contra '+u.ponte.anoAnt
+            +' ('+u.ponte.meses+' meses comparáveis)</div>'
+          +'<table><thead><tr><th>Medida</th><th>'+u.ponte.anoAnt+'</th><th>'+u.ano
+            +'</th><th>Variação</th></tr></thead><tbody>'
+          +'<tr><td>Peças por hora</td><td class="n">'+fd(u.ponte.pcH_a,3)+'</td>'
+            +'<td class="n">'+fd(u.ponte.pcH_b,3)+'</td><td class="n" style="color:'
+            +(u.ponte.pctPcH>=0?'#2f855a':'#c53030')+'"><b>'+fd(u.ponte.pctPcH,1)+'%</b></td></tr>'
+          +'<tr><td>Quilos por hora</td><td class="n">'+fd(u.ponte.kgH_a,2)+'</td>'
+            +'<td class="n">'+fd(u.ponte.kgH_b,2)+'</td><td class="n" style="color:'
+            +(u.ponte.pctKgH>=0?'#2f855a':'#c53030')+'"><b>'+fd(u.ponte.pctKgH,1)+'%</b></td></tr>'
+          +'<tr><td>Quilos produzidos</td><td class="n">'+fi(u.ponte.kg_a)+'</td>'
+            +'<td class="n">'+fi(u.ponte.kg_b)+'</td><td class="n" style="color:'
+            +(u.ponte.pctKg>=0?'#2f855a':'#c53030')+'"><b>'+fd(u.ponte.pctKg,1)+'%</b></td></tr>'
+          +'<tr><td>Quilos por peça</td><td class="n">'+fd(u.ponte.kgPc_a,1)+'</td>'
+            +'<td class="n">'+fd(u.ponte.kgPc_b,1)+'</td><td class="n" style="color:#b7791f">'
+            +'<b>+'+fd(u.ponte.pctKgPc,1)+'%</b></td></tr>'
+          +'</tbody></table>'
+          +'<p style="font-size:10.5px;color:#4a5568;margin:5px 0 12px">'
+            +'A queda em peças por hora ('+fd(u.ponte.pctPcH,1)+'%) é, em quase toda a sua extensão, '
+            +'mudança de mix: medida em produção física a variação é de '+fd(u.ponte.pctKgH,1)+'%.</p>'
+        : '')
       +'<table><thead><tr><th>Mês</th><th>Status</th><th>Plano</th><th>Realizado</th><th>Desvio</th>'
         +'<th>Dias úteis</th><th>Ritmo nec.</th><th>Ritmo real.</th></tr></thead><tbody>'+linhas+'</tbody></table>'
       +'<div class="st">Análise SWOT — Planejamento Mestre '+u.ano+'</div>'
@@ -17421,9 +17461,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b37';
+var APP_VERSAO = 'b38';
 var APP_DATA   = '06/08/2026';
 var APP_HISTORICO = [
+  { v:'b38', data:'06/08/2026', itens:[
+    'Relatorio impresso ganha o quadro de producao fisica em quilos.',
+    'O veredito impresso passa a dizer que e medido em pecas, com a ressalva de mix.'
+  ]},
   { v:'b37', data:'06/08/2026', itens:[
     'Quilos produzidos entram na comparacao contra o ano anterior.',
     'Peca nao e unidade de trabalho: o quilo separa mudanca de mix de queda de desempenho.',
