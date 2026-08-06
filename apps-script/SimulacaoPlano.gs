@@ -35,14 +35,55 @@ var SIM_ABA        = 'SIMULAÇÃO';
 var SIM_ABA_PLANO  = 'PLANO MESTRE';
 var SIM_VAZIO      = '-';
 
-/* Ritmos demonstrados em 2026 (jan a jul: 141 dias trabalhados).
+/* Os três cenários. O ritmo NÃO fica aqui: é lido da HISTORICO a cada execução.
+   Fixar o número no código foi erro — quando fevereiro foi corrigido de 32.547
+   para 28.151, a aba continuou exibindo 1.484 pç/dia enquanto o realizado já
+   era 1.453, e o plano de set a dez foi carregado com o valor velho.
+
    A = só jornada normal · B = realizado com a hora extra atual ·
    C = ritmo da venda, o único que não deixa a carteira crescer. */
+var SIM_ANO = 2026;
+var SIM_ABA_HIST = 'HISTORICO';
 var SIM_CENARIOS = [
-  { nome: 'CENARIO A', ritmo: 184556 / 141, desc: 'Jornada normal — sem hora extra estrutural' },
-  { nome: 'CENARIO B', ritmo: 209251 / 141, desc: 'Ritmo realizado em 2026 — mantém a HE atual' },
-  { nome: 'CENARIO C', ritmo: 233726 / 141, desc: 'Ritmo da venda — não deixa a carteira crescer' }
+  { nome: 'CENARIO A', campo: 'A', desc: 'Jornada normal — sem hora extra estrutural' },
+  { nome: 'CENARIO B', campo: 'B', desc: 'Ritmo realizado — mantém a hora extra atual' },
+  { nome: 'CENARIO C', campo: 'C', desc: 'Ritmo da venda — não deixa a carteira crescer' }
 ];
+
+/* Mesmo critério do painel: só mês fechado e com horas lançadas entra na conta.
+   Mês recém-lançado tem produção mas ainda não tem prodSemExtras nem dias, e
+   entraria como zero peças em N dias, puxando a média para baixo. */
+function simRitmos() {
+  var aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SIM_ABA_HIST);
+  if (!aba) return null;
+  var v = aba.getDataRange().getValues();
+  if (v.length < 2) return null;
+  var cab = v[0].map(function (x) { return simNormaliza(x); });
+  var iAno = cab.indexOf('ano'),  iReal = cab.indexOf('producaoreal');
+  var iNorm = cab.indexOf('prodsemextras'), iDias = cab.indexOf('diastrabalhados');
+  var iVen = cab.indexOf('qtdevendida');
+  if ([iAno, iReal, iNorm, iDias, iVen].some(function (i) { return i < 0; })) return null;
+
+  var pr = 0, pn = 0, vn = 0, d = 0;
+  for (var r = 1; r < v.length; r++) {
+    if (Number(v[r][iAno]) !== SIM_ANO) continue;
+    var real = simNum(v[r][iReal]), norm = simNum(v[r][iNorm]), dias = simNum(v[r][iDias]);
+    if (!(real > 0 && norm > 0 && dias > 0)) continue;
+    pr += real; pn += norm; vn += simNum(v[r][iVen]); d += dias;
+  }
+  return d > 0 ? { A: pn / d, B: pr / d, C: vn / d, dias: d } : null;
+}
+
+/* A planilha grava número em formato brasileiro como texto em algumas células —
+   mesmo tratamento que o Code.gs faz ao ler. */
+function simNum(v) {
+  if (typeof v === 'number') return v;
+  var s = String(v === null || v === undefined ? '' : v).trim();
+  if (!s) return 0;
+  s = s.replace(/\./g, '').replace(',', '.').replace(/[^0-9.\-]/g, '');
+  var n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
 var SIM_PADRAO = 'CENARIO C';
 
 /* Dias úteis já líquidos de feriado nacional. Dezembro tem 22 no calendário,
@@ -87,11 +128,20 @@ var SIM_L_LOTE    = 19;   /* A19:E33  lotes × meses */
 /* ══ 1 · MONTAR A ABA ══ */
 function criarSimulacao() {
   var ss  = SpreadsheetApp.getActiveSpreadsheet();
-  var aba = ss.getSheetByName(SIM_ABA);
-  if (aba) ss.deleteSheet(aba);
-  aba = ss.insertSheet(SIM_ABA);
+  var rit = simRitmos();
+  if (!rit) return simErro('Não consegui calcular os ritmos: confira se a aba ' +
+    SIM_ABA_HIST + ' tem meses de ' + SIM_ANO + ' fechados, com horas e dias lançados.');
 
-  aba.getRange('A1').setValue('SIMULAÇÃO DO PLANO — set a dez/2026').setFontWeight('bold');
+  /* Limpa em vez de apagar: deletar a aba transforma em #REF! toda fórmula que a
+     PLANO MESTRE aponta para cá, e o #REF! não se recupera quando uma aba de
+     mesmo nome é recriada. */
+  var aba = ss.getSheetByName(SIM_ABA);
+  if (aba) { aba.clear(); aba.clearDataValidations(); }
+  else     { aba = ss.insertSheet(SIM_ABA); }
+
+  aba.getRange('A1').setValue('SIMULAÇÃO DO PLANO — set a dez/' + SIM_ANO).setFontWeight('bold');
+  aba.getRange('C1').setValue('ritmos apurados sobre ' + rit.dias + ' dias fechados de ' + SIM_ANO)
+     .setFontColor('#666666');
 
   /* Cenário ativo */
   aba.getRange(SIM_L_CENARIO, 1).setValue('Cenário ativo').setFontWeight('bold');
@@ -106,7 +156,7 @@ function criarSimulacao() {
   aba.getRange(SIM_L_RITMO - 1, 1).setValue('RITMO (pç/dia)').setFontWeight('bold');
   SIM_CENARIOS.forEach(function (c, i) {
     aba.getRange(SIM_L_RITMO + i, 1).setValue(c.nome);
-    aba.getRange(SIM_L_RITMO + i, 2).setValue(c.ritmo).setNumberFormat('#,##0.0');
+    aba.getRange(SIM_L_RITMO + i, 2).setValue(rit[c.campo]).setNumberFormat('#,##0.0');
     aba.getRange(SIM_L_RITMO + i, 3).setValue(c.desc).setFontColor('#666666');
   });
   aba.getRange(SIM_L_ATIVO, 1).setValue('Ritmo ativo').setFontWeight('bold');
