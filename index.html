@@ -1060,7 +1060,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b33</div><div id="alertas-banner" style="display: none;"></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b34</div><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -17026,80 +17026,68 @@ function printAtiva(){
        sai no PDF sem virar imagem borrada. Três séries por mês:
        o nominal do plano, o que cada mês cobrou e o que a fábrica entregou. */
   /* ── Por que o ritmo mudou contra o ano anterior ──
-     O ritmo real cair não diz se a fábrica piorou: ele mistura três coisas que
-     se movem em sentidos diferentes — quantas horas normais existem por dia,
-     quanto sai de cada hora, e quanta hora extra foi autorizada. Separadas, dá
-     para ver que corte de HE é decisão de custo e não desempenho de produção.
+     Decompõe sobre HORAS TOTAIS (normais + extras), não só normais. Separar a
+     hora extra como efeito próprio é aritmeticamente válido, mas engana: trata
+     hora extra como alavanca de decisão em vez de hora que também produz, e
+     assim transfere para "corte de HE" uma queda que é de produtividade.
+     Em 2026 as horas totais SUBIRAM 4% enquanto a produção caiu 6,4% — quem
+     olha só a jornada normal não vê isso.
 
      Compara só os meses fechados nos DOIS anos: incluir mês que existe num e
-     não no outro trocaria a comparação de ritmo por comparação de calendário. */
+     não no outro trocaria comparação de ritmo por comparação de calendário. */
   function blocoPonte(todos,ano){
-    function fecha(r){ return (r.producaoReal||0)>0&&(r.prodSemExtras||0)>0&&(r.diasTrabalhados||0)>0; }
+    function fecha(r){
+      return (r.producaoReal||0)>0 && (r.diasTrabalhados||0)>0
+          && ((r.horasNormais||0)+(r.totalExtras||0))>0;
+    }
     var atual={}, ant={};
     todos.forEach(function(r){
       if(!fecha(r)) return;
-      if(r.ano===ano)     atual[r.mes]=r;
-      if(r.ano===ano-1)   ant[r.mes]=r;
+      if(r.ano===ano)   atual[r.mes]=r;
+      if(r.ano===ano-1) ant[r.mes]=r;
     });
     var meses=Object.keys(atual).filter(function(m){ return ant[m]; });
     if(meses.length<3) return '';   /* base curta demais para significar algo */
 
     function ag(fonte){
-      var hn=0,pn=0,pr=0,d=0;
+      var hn=0,he=0,pr=0,d=0;
       meses.forEach(function(m){
         var r=fonte[m];
-        hn+=(r.horasNormais||0); pn+=r.prodSemExtras; pr+=r.producaoReal; d+=r.diasTrabalhados;
+        hn+=(r.horasNormais||0); he+=(r.totalExtras||0);
+        pr+=r.producaoReal;      d+=r.diasTrabalhados;
       });
-      return { hDia:hn/d, prodH:hn>0?pn/hn:0, normal:pn/d, he:(pr-pn)/d, real:pr/d };
+      var ht=hn+he;
+      return { hn:hn, he:he, ht:ht, hDia:ht/d, prodH:pr/ht, real:pr/d, pr:pr };
     }
     var A=ag(ant), B=ag(atual);
     if(!A.prodH||!B.prodH) return '';
 
-    /* Decomposição: o efeito de horas usa a produtividade antiga e o de
-       produtividade usa as horas novas, então os três somam exatamente a
-       diferença — sem resíduo para explicar. */
-    var efH=(B.hDia-A.hDia)*A.prodH, efP=B.hDia*(B.prodH-A.prodH), efE=B.he-A.he;
-    var dif=B.real-A.real;
+    /* Os dois efeitos somam a diferença sem resíduo: o de horas usa a
+       produtividade antiga, o de produtividade usa as horas novas. */
+    var efH=(B.hDia-A.hDia)*A.prodH, efQ=B.hDia*(B.prodH-A.prodH);
+    var dif=B.real-A.real, corDif=dif>=0?'#4CAF50':'#F44336';
 
-    var itens=[
-      { k:'Mais horas normais', v:efH, sub:fd(B.hDia-A.hDia,0)+' h/dia a mais' },
-      { k:'Produtividade',      v:efP, sub:fd((B.prodH/A.prodH-1)*100,1)+'% por hora' },
-      { k:'Hora extra',         v:efE, sub:fd((A.he>0?(B.he/A.he-1):0)*100,0)+'% em peças' }
-    ];
-    /* Quando o ritmo cai, o que interessa é o que puxou para baixo — não o maior
-       efeito em módulo, que costuma ser o positivo. Em 2026 o efeito de horas é
-       o maior (+153) e nomeá-lo esconderia justamente a causa da queda. */
-    var caiu=(B.real-A.real)<0;
-    var maior=itens.slice().filter(function(i){ return caiu?i.v<0:i.v>0; })
-      .sort(function(x,y){ return Math.abs(y.v)-Math.abs(x.v); })[0]
-      || itens.slice().sort(function(x,y){ return Math.abs(y.v)-Math.abs(x.v); })[0];
-
-    var corDif=dif>=0?'#4CAF50':'#F44336';
-
-    /* Cascata: cada efeito flutua entre o acumulado anterior e o novo. O ponto
-       de ler assim é não precisar do número — a barra que desce é a que derruba
-       o ritmo, e ela aparece antes de qualquer leitura. */
-    var p0=A.real, p1=p0+efH, p2=p1+efP, p3=p2+efE;
-    var vals=[p0,p1,p2,p3], lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals);
-    /* Base abaixo do menor valor: começar em zero achataria os efeitos a nada,
-       já que eles são dezenas contra um ritmo de milhares. */
+    var p0=A.real, p1=p0+efH, p2=p1+efQ;
+    var vals=[p0,p1,p2], lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals);
+    /* Base abaixo do menor valor: começar em zero achataria efeitos de dezenas
+       contra um ritmo de milhares. */
     var faixa=(hi-lo)||1, base=lo-faixa*0.5, topo=hi+faixa*0.18;
     function pc(v){ return ((v-base)/(topo-base))*100; }
 
     var cols=[
-      { rot:String(ano-1), sub:'ritmo real', de:base, ate:p0,     cor:'#5B6B7A', val:fi(p0) },
-      { rot:'Horas',       sub:fd(B.hDia-A.hDia,0)+' h/dia',      de:p0, ate:p1,
+      { rot:String(ano-1), sub:'ritmo real',                     de:base, ate:p0,
+        cor:'#5B6B7A', val:fi(p0) },
+      { rot:'Horas',       sub:fd(B.hDia-A.hDia,0)+' h/dia',     de:p0,  ate:p1,
         cor:efH>=0?'#4CAF50':'#F44336', val:(efH>=0?'+':'')+fi(efH) },
-      { rot:'Produtiv.',   sub:fd((B.prodH/A.prodH-1)*100,1)+'%', de:p1, ate:p2,
-        cor:efP>=0?'#4CAF50':'#F44336', val:(efP>=0?'+':'')+fi(efP) },
-      { rot:'Hora extra',  sub:fd((A.he>0?(B.he/A.he-1):0)*100,0)+'%', de:p2, ate:p3,
-        cor:efE>=0?'#4CAF50':'#FF9800', val:(efE>=0?'+':'')+fi(efE) },
-      { rot:String(ano),   sub:'ritmo real', de:base, ate:B.real,  cor:corDif, val:fi(B.real) }
+      { rot:'Produtividade', sub:fd((B.prodH/A.prodH-1)*100,1)+'% por hora', de:p1, ate:p2,
+        cor:efQ>=0?'#4CAF50':'#F44336', val:(efQ>=0?'+':'')+fi(efQ) },
+      { rot:String(ano),   sub:'ritmo real',                     de:base, ate:B.real,
+        cor:corDif, val:fi(B.real) }
     ];
     var barras=cols.map(function(c){
       var b=pc(Math.min(c.de,c.ate)), h=Math.abs(pc(c.ate)-pc(c.de));
       return '<div style="position:relative;height:148px">'
-        +'<div style="position:absolute;left:10%;right:10%;bottom:'+b+'%;height:'+Math.max(h,1)+'%;'
+        +'<div style="position:absolute;left:12%;right:12%;bottom:'+b+'%;height:'+Math.max(h,1)+'%;'
           +'background:'+c.cor+';border-radius:2px"></div>'
         +'<div style="position:absolute;left:0;right:0;bottom:'+(b+h)+'%;margin-bottom:5px;'
           +'text-align:center;font-family:var(--mono);font-size:.74rem;font-weight:700;color:'+c.cor+'">'
@@ -17109,33 +17097,30 @@ function printAtiva(){
       return '<div style="text-align:center;font-size:.6rem;line-height:1.35;color:var(--t3)">'
         +'<div style="color:var(--t2);font-weight:600;margin-bottom:1px">'+c.rot+'</div>'+c.sub+'</div>';
     }).join('');
-    var cascata='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(4px,1.5vw,14px);'
-      +'align-items:end;border-bottom:1px solid var(--b);margin:6px 0 0">'+barras+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(4px,1.5vw,14px);'
-      +'padding:8px 0 14px">'+rotulos+'</div>';
 
+    var pctH=(B.ht/A.ht-1)*100, pctP=(B.pr/A.pr-1)*100;
+    var g=4;   /* colunas da grade */
     return '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">'
       +'▸ De onde vem a diferença de ritmo contra '+(ano-1)+' — '+meses.length+' meses comparáveis</div>'
       +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid '+corDif+';border-radius:var(--r);padding:16px 20px">'
-      +'<div style="font-size:1.02rem;font-weight:700;color:var(--t1);line-height:1.4;max-width:46ch">'
-        +'O ritmo real '+(dif>=0?'subiu':'caiu')+' <b style="color:'+corDif+'">'+fi(Math.abs(dif))
-        +'</b> peças por dia.'
-        +(maior?' '+maior.k.replace('Mais horas normais','As horas normais')
-             .replace('Produtividade','A produtividade')
-             .replace('Hora extra','A hora extra')
-          +' respondeu por <b style="color:'+(maior.v>=0?'#4CAF50':'#FF9800')+'">'
-          +fi(Math.abs(maior.v))+'</b> delas.':'')
+      +'<div style="font-size:1.02rem;font-weight:700;color:var(--t1);line-height:1.4;max-width:52ch">'
+        +'A fábrica trabalhou <b style="color:'+(pctH>=0?'#FF9800':'#4CAF50')+'">'
+        +(pctH>=0?'+':'')+fd(pctH,1)+'%</b> de horas e produziu <b style="color:'
+        +(pctP>=0?'#4CAF50':'#F44336')+'">'+(pctP>=0?'+':'')+fd(pctP,1)+'%</b> de peças.'
       +'</div>'
-      +cascata
+      +'<div style="display:grid;grid-template-columns:repeat('+g+',1fr);gap:clamp(6px,2vw,18px);'
+        +'align-items:end;border-bottom:1px solid var(--b);margin:8px 0 0">'+barras+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat('+g+',1fr);gap:clamp(6px,2vw,18px);'
+        +'padding:8px 0 14px">'+rotulos+'</div>'
       +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1)">'
-        +'O ritmo real mudou <b style="color:'+corDif+'">'+(dif>=0?'+':'')+fi(dif)+'</b> pç/dia, mas a jornada normal '
-        +(B.normal>=A.normal?'<b style="color:#4CAF50">subiu</b> ':'<b style="color:#F44336">caiu</b> ')
-        +'de '+fi(A.normal)+' para <b>'+fi(B.normal)+'</b> pç/dia. '
-        +'O que mais '+(caiu?'puxou para baixo':'puxou para cima')+' foi <b>'
-        +maior.k.toLowerCase()+'</b> ('+(maior.v>=0?'+':'')+fi(maior.v)+' pç/dia).'
-        +(maior.k==='Hora extra'&&maior.v<0
-          ? ' Hora extra é decisão de custo, não desempenho de produção: a fábrica não perdeu volume, trocou volume por menos custo de hora extra.'
-          : '')
+        +'Horas normais <b>'+(B.hn>=A.hn?'+':'')+fd((B.hn/A.hn-1)*100,1)+'%</b>, '
+        +'hora extra <b>'+(B.he>=A.he?'+':'')+fd((B.he/A.he-1)*100,1)+'%</b> — '
+        +'no total <b>'+(pctH>=0?'+':'')+fd(pctH,1)+'%</b> de horas. '
+        +'Cada hora rendeu <b style="color:'+(B.prodH>=A.prodH?'#4CAF50':'#F44336')+'">'
+        +fd(B.prodH,3)+'</b> peças contra '+fd(A.prodH,3)+' — '
+        +(B.prodH<A.prodH
+          ? 'é a produtividade, não o volume de horas, que explica a queda.'
+          : 'o ganho veio da produtividade, não de mais horas.')
       +'</div></div>';
   }
 
@@ -17404,9 +17389,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b33';
+var APP_VERSAO = 'b34';
 var APP_DATA   = '06/08/2026';
 var APP_HISTORICO = [
+  { v:'b34', data:'06/08/2026', itens:[
+    'Cascata passa a decompor sobre horas TOTAIS, nao so a jornada normal.',
+    'Em 2026 as horas totais subiram 4% e a producao caiu 6,4% — a queda e de produtividade.'
+  ]},
   { v:'b33', data:'06/08/2026', itens:[
     'Texto da cascata reescrito: dizia "comprada, nao sofrida" e ninguem entendia.'
   ]},
