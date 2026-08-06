@@ -18,7 +18,10 @@
  * Ordem de uso:
  *   1. criarSimulacao()            — cria/reconstrói a aba SIMULAÇÃO
  *   2. ligarPlanoMestre()          — troca set..dez da PLANO MESTRE por fórmula
- * Depois disso, é só mexer no dropdown ou nos dias úteis.
+ *   3. congelarPlano()             — quando decidir: fixa os números e solta o vínculo
+ * Entre o 2 e o 3 é só mexer no dropdown ou nos dias úteis. Depois do 3, a
+ * PLANO MESTRE volta a ser número digitável e o dropdown deixa de afetá-la —
+ * rode ligarPlanoMestre() de novo se quiser voltar a simular.
  */
 
 var SIM_ABA        = 'SIMULAÇÃO';
@@ -205,6 +208,68 @@ function ligarPlanoMestre() {
   simAvisar(n + ' células ligadas à SIMULAÇÃO. Troque o cenário no dropdown da aba ' +
             SIM_ABA + ' e recarregue o painel.');
 }
+
+
+/* ══ 3 · CONGELAR ══
+   Substitui as fórmulas de set a dez pelo número que elas estão mostrando.
+   Serve para dois casos: fechar o plano depois de decidido o cenário, e abrir
+   mão da simulação num mês específico para ajustar lote na mão.
+
+   Congelar é ida sem volta automática: o vínculo com a SIMULAÇÃO some e o
+   dropdown para de afetar a PLANO MESTRE. Para voltar a simular, é rodar
+   ligarPlanoMestre() de novo — que sobrescreve o que tiver sido digitado. */
+function congelarPlano(mesesAlvo) {
+  var ss  = SpreadsheetApp.getActiveSpreadsheet();
+  var aba = ss.getSheetByName(SIM_ABA_PLANO);
+  if (!aba) return simErro('Aba "' + SIM_ABA_PLANO + '" não encontrada.');
+
+  var mapa = simLocalizar(aba);
+  if (mapa.erro) return simErro(mapa.erro);
+
+  /* Sem argumento congela set a dez inteiro; com argumento (ex.: ['set./26'])
+     congela só os meses pedidos e o resto continua simulando. */
+  var filtro = null;
+  if (mesesAlvo && mesesAlvo.length) {
+    filtro = {};
+    mesesAlvo.forEach(function (m) { filtro[simNormaliza(m)] = true; });
+  }
+
+  var qtd     = mapa.linhaTotal - mapa.primeiroLote;
+  var codigos = aba.getRange(mapa.primeiroLote, 1, qtd, 1).getValues();
+  var indice  = {};
+  codigos.forEach(function (c, i) { indice[String(c[0]).trim()] = mapa.primeiroLote + i; });
+
+  var simAba = ss.getSheetByName(SIM_ABA);
+  var cenario = simAba ? simAba.getRange(SIM_L_CENARIO, 2).getValue() : '(desconhecido)';
+
+  var congeladas = 0, jaFixas = 0;
+  SIM_LOTES.forEach(function (x) {
+    var linha = indice[x.lote];
+    if (!linha) return;
+    SIM_MESES.forEach(function (m) {
+      if (!x.q[m.col]) return;
+      if (filtro && !filtro[simNormaliza(m.mes)]) return;
+      var cel = aba.getRange(linha, m.col + 1);
+      if (!cel.getFormula()) { jaFixas++; return; }
+      /* getValue() já devolve o resultado calculado — é ele que vira o número. */
+      cel.setValue(cel.getValue());
+      congeladas++;
+    });
+  });
+
+  SpreadsheetApp.flush();
+  var rel = validarPlanoMestre();   /* mesma checagem da carga: lotes x TOTAL GERAL */
+  simAvisar('Congeladas ' + congeladas + ' células no cenário "' + cenario + '"' +
+            (jaFixas ? ' (' + jaFixas + ' já eram número).' : '.') +
+            (rel && rel.ok === false
+              ? '\n\nATENÇÃO — a validação acusou:\n' + rel.problemas.join('\n')
+              : '\nValidação OK.'));
+  return { congeladas: congeladas, jaFixas: jaFixas, cenario: cenario };
+}
+
+/* Atalhos para chamar do editor sem digitar argumento. */
+function congelarSomenteSetembro() { return congelarPlano(['set./26']); }
+function congelarSetOut()          { return congelarPlano(['set./26', 'out./26']); }
 
 
 /* ══ HELPERS ══ */
