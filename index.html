@@ -4203,6 +4203,7 @@ Fórmula: Faltas + Atrasos
       <div class="pageHdrSub">Plano do ano × realizado × ritmo necessário para cumprir o que falta</div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+      <div id="pm-cenarios" style="display:flex;gap:4px"></div>
       <span style="font-family:var(--mono);font-size:.75rem;color:var(--t3)" id="pm-ano-lbl">—</span>
       <button onclick="pmImprimir()" title="Relatório executivo desta tela em PDF"
         style="display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border:1px solid var(--cyan);
@@ -16552,6 +16553,69 @@ function printAtiva(){
   var DIAS_PLAN={JAN:17,FEV:20,MAR:22,ABR:20,MAI:20,JUN:21,JUL:23,AGO:21,SET:22,OUT:22,NOV:21,DEZ:23};
   var _ult = null;   /* último apurado, usado pela impressão executiva */
 
+  /* ══ SIMULAÇÃO DE CENÁRIOS ══
+     Troca o plano dos meses ainda abertos por ritmo × dias úteis, só na tela.
+     Nada é gravado: a planilha continua sendo a fonte, e voltar para PLANO
+     devolve os números dela.
+
+     Mês fechado nunca entra. Reescalar mês que já aconteceu não é cenário — é
+     reescrever história, e levaria junto atingimento, desvio e o próprio ritmo
+     demonstrado, que é a régua contra a qual o cenário está sendo medido. */
+  var _cenario = null;   /* null = plano da planilha */
+
+  /* Dias úteis líquidos de feriado e de recesso. O DIAS_PLAN acima é genérico e
+     não desconta nenhum dos dois: em 2026 outubro tem 21 úteis e não 22 (dia 12,
+     Aparecida) e dezembro roda 15 e não 23, por causa do recesso coletivo. Numa
+     simulação a diferença pesa — os 2 dias a mais de outubro valeriam ~3.300
+     peças de plano que não existem. */
+  var DIAS_SIM = { SET:21, OUT:21, NOV:19, DEZ:15 };
+
+  var CENARIOS = [
+    { id:'A', nome:'Jornada normal',  desc:'Sem hora extra estrutural' },
+    { id:'B', nome:'Ritmo realizado', desc:'Mantém a hora extra atual' },
+    { id:'C', nome:'Ritmo da venda',  desc:'Não deixa a carteira crescer' }
+  ];
+
+  /* Os três ritmos saem do próprio histórico, com o mesmo critério do veredito:
+     só mês fechado e com horas lançadas entra na conta. */
+  function ritmos(recs){
+    var nm=0, rl=0, vn=0, d=0;
+    recs.forEach(function(r){
+      var real=r.producaoReal||0, normal=r.prodSemExtras||0, dias=r.diasTrabalhados||0;
+      if(real>0&&normal>0&&dias>0){ nm+=normal; rl+=real; vn+=(r.qtdeVendida||0); d+=dias; }
+    });
+    return d>0 ? { A:nm/d, B:rl/d, C:vn/d, dias:d } : null;
+  }
+
+  function aplicarCenario(recs, rit){
+    if(!_cenario||!rit) return recs;
+    return recs.map(function(r){
+      /* Fora do horizonte simulado ou já fechado: fica exatamente como veio. */
+      if((r.producaoReal||0)>0 || !DIAS_SIM[r.mes]) return r;
+      var c={}; for(var k in r) c[k]=r[k];
+      c.previsaoProducao = Math.round(rit[_cenario]*DIAS_SIM[r.mes]);
+      c._simulado = true;
+      return c;
+    });
+  }
+
+  function montarSeletor(rit){
+    var box=document.getElementById('pm-cenarios');
+    if(!box) return;
+    if(!rit){ box.innerHTML=''; return; }   /* sem mês fechado não há ritmo */
+    box.innerHTML=[{id:null,nome:'Plano da planilha'}].concat(CENARIOS).map(function(c){
+      var on=(_cenario===c.id);
+      var tip=c.id?(c.nome+' — '+c.desc+' · '+fi(rit[c.id])+' pç/dia'):'Plano como está na planilha';
+      return '<button onclick="pmCenario('+(c.id?("'"+c.id+"'"):'null')+')" title="'+tip+'"'
+        +' style="padding:6px 11px;border-radius:5px;cursor:pointer;font-size:.7rem;font-weight:700;'
+        +'letter-spacing:.04em;white-space:nowrap;border:1px solid '+(on?'var(--cyan)':'var(--b)')+';'
+        +'background:'+(on?'rgba(0,229,255,.14)':'transparent')+';'
+        +'color:'+(on?'var(--cyan)':'var(--t3)')+'">'+(c.id?('CEN. '+c.id):'PLANO')+'</button>';
+    }).join('');
+  }
+
+  window.pmCenario=function(id){ _cenario=id; render(); };
+
   function fi(n){ return isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—'; }
   function fd(n,d){ return isFinite(n)?n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'; }
 
@@ -16592,6 +16656,13 @@ function printAtiva(){
 
     var recs=todos.filter(function(r){ return r.ano===ano; })
       .sort(function(a,b){ return ORDEM_M.indexOf(a.mes)-ORDEM_M.indexOf(b.mes); });
+
+    /* Ritmos antes de simular: têm de sair do realizado puro, senão o cenário
+       se mediria contra ele mesmo na volta seguinte do render. */
+    var rit=ritmos(recs);
+    montarSeletor(rit);
+    recs=aplicarCenario(recs,rit);
+
     var temPlano=recs.some(function(r){ return (r.previsaoProducao||0)>0; });
 
     var vazio=document.getElementById('pm-empty');
@@ -16611,7 +16682,10 @@ function printAtiva(){
     recs.forEach(function(r){
       var plano=r.previsaoProducao||0, real=r.producaoReal||0, normal=r.prodSemExtras||0;
       var fechado=real>0;
-      var diasP=DIAS_PLAN[r.mes]||22;
+      /* Mês simulado usa os dias do cenário: o plano dele nasceu de ritmo × esses
+         dias, então dividir por outro denominador devolveria um ritmo necessário
+         que não é o do cenário. */
+      var diasP=(r._simulado&&DIAS_SIM[r.mes])?DIAS_SIM[r.mes]:(DIAS_PLAN[r.mes]||22);
       var dias=(fechado&&(r.diasTrabalhados||0)>0)?r.diasTrabalhados:diasP;
       planoAno+=plano;
       if(plano>0) diasPlanoAno+=diasP; else if(!fechado) semPlano.push(r.mes);
@@ -16715,8 +16789,20 @@ function printAtiva(){
         +semPlano.join(', ')+'). O "falta produzir" cobre só o horizonte já planejado, não o ano.</div>'
       : '';
 
+    /* Deixa explícito que a tela não está mostrando o plano da planilha. Sem
+       isso um print de simulação circula como se fosse o plano aprovado. */
+    var avisoSim = (_cenario&&rit)
+      ? '<div style="margin-bottom:12px;padding:11px 15px;background:rgba(0,229,255,.09);'
+        +'border-left:3px solid var(--cyan);border-radius:6px;font-size:.78rem;color:var(--t1);line-height:1.5">'
+        +'<b style="color:var(--cyan)">SIMULAÇÃO — cenário '+_cenario+'.</b> '
+        +'Os meses ainda abertos estão com plano recalculado a <b>'+fi(rit[_cenario])+' pç/dia</b> '
+        +'× dias úteis ('
+        + Object.keys(DIAS_SIM).map(function(m){ return m+' '+DIAS_SIM[m]; }).join(' · ')
+        +'). Meses fechados não foram tocados e <b>nada é gravado na planilha</b>.</div>'
+      : '';
+
     document.getElementById('pm-veredito').style.display='';
-    document.getElementById('pm-veredito').innerHTML=
+    document.getElementById('pm-veredito').innerHTML= avisoSim +
       '<div style="background:linear-gradient(135deg,var(--panel),rgba('+rgb+',.05));border:1px solid var(--b);'
       +'border-left:5px solid '+cor+';border-radius:var(--r);padding:22px 26px;margin-bottom:16px">'
       +'<div style="font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--t2);margin-bottom:9px">▸ Veredito do plano</div>'
@@ -16750,7 +16836,7 @@ function printAtiva(){
 
     /* Guarda o apurado para a impressão executiva montar o relatório sem
        recalcular nem depender do HTML escuro da tela. */
-    _ult = { ano:ano, planoAno:planoAno, realAcum:realAcum, planoAberto:planoAberto,
+    _ult = { cenario:_cenario, ano:ano, planoAno:planoAno, realAcum:realAcum, planoAberto:planoAberto,
              diasAbertos:diasAbertos, diasPlanoAno:diasPlanoAno, ritmoPlano:ritmoPlano,
              ritmoExig:ritmoExig, diasPlanFech:diasPlanFech,
              ritmoDem:ritmoDem, ritmoNecR:ritmoNecR, pctFolga:pctFolga, heP:heP,
@@ -17079,7 +17165,8 @@ function printAtiva(){
         +box('Oportunidades', sw.o, 'o')+box('Ameaças', sw.a, 'a')
       +'</div>'
       +'</div>'
-      +'<div class="ft"><span>PPCP — Dashboard de Produção · Planejamento Mestre '+u.ano+'</span>'
+      +'<div class="ft"><span>PPCP — Dashboard de Produção · Planejamento Mestre '+u.ano
+        +(u.cenario?' · SIMULAÇÃO cenário '+u.cenario+' — não é o plano da planilha':'')+'</span>'
         +'<span>Gerado em: '+hoje+'</span></div>'
       +'</body></html>');
     w.document.close();
