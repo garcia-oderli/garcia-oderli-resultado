@@ -1060,7 +1060,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b31</div><div id="alertas-banner" style="display: none;"></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b32</div><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -17074,25 +17074,59 @@ function printAtiva(){
       .sort(function(x,y){ return Math.abs(y.v)-Math.abs(x.v); })[0]
       || itens.slice().sort(function(x,y){ return Math.abs(y.v)-Math.abs(x.v); })[0];
 
-    function celula(rot,val,sub,cor){
-      return '<div style="flex:1;min-width:132px">'
-        +'<div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">'+rot+'</div>'
-        +'<div style="font-family:var(--mono);font-size:1.25rem;font-weight:700;color:'+cor+'">'+val+'</div>'
-        +'<div style="font-size:.63rem;color:var(--t3);margin-top:2px">'+sub+'</div></div>';
-    }
     var corDif=dif>=0?'#4CAF50':'#F44336';
+
+    /* Cascata: cada efeito flutua entre o acumulado anterior e o novo. O ponto
+       de ler assim é não precisar do número — a barra que desce é a que derruba
+       o ritmo, e ela aparece antes de qualquer leitura. */
+    var p0=A.real, p1=p0+efH, p2=p1+efP, p3=p2+efE;
+    var vals=[p0,p1,p2,p3], lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals);
+    /* Base abaixo do menor valor: começar em zero achataria os efeitos a nada,
+       já que eles são dezenas contra um ritmo de milhares. */
+    var faixa=(hi-lo)||1, base=lo-faixa*0.5, topo=hi+faixa*0.18;
+    function pc(v){ return ((v-base)/(topo-base))*100; }
+
+    var cols=[
+      { rot:String(ano-1), sub:'ritmo real', de:base, ate:p0,     cor:'#5B6B7A', val:fi(p0) },
+      { rot:'Horas',       sub:fd(B.hDia-A.hDia,0)+' h/dia',      de:p0, ate:p1,
+        cor:efH>=0?'#4CAF50':'#F44336', val:(efH>=0?'+':'')+fi(efH) },
+      { rot:'Produtiv.',   sub:fd((B.prodH/A.prodH-1)*100,1)+'%', de:p1, ate:p2,
+        cor:efP>=0?'#4CAF50':'#F44336', val:(efP>=0?'+':'')+fi(efP) },
+      { rot:'Hora extra',  sub:fd((A.he>0?(B.he/A.he-1):0)*100,0)+'%', de:p2, ate:p3,
+        cor:efE>=0?'#4CAF50':'#FF9800', val:(efE>=0?'+':'')+fi(efE) },
+      { rot:String(ano),   sub:'ritmo real', de:base, ate:B.real,  cor:corDif, val:fi(B.real) }
+    ];
+    var barras=cols.map(function(c){
+      var b=pc(Math.min(c.de,c.ate)), h=Math.abs(pc(c.ate)-pc(c.de));
+      return '<div style="position:relative;height:148px">'
+        +'<div style="position:absolute;left:10%;right:10%;bottom:'+b+'%;height:'+Math.max(h,1)+'%;'
+          +'background:'+c.cor+';border-radius:2px"></div>'
+        +'<div style="position:absolute;left:0;right:0;bottom:'+(b+h)+'%;margin-bottom:5px;'
+          +'text-align:center;font-family:var(--mono);font-size:.74rem;font-weight:700;color:'+c.cor+'">'
+          +c.val+'</div></div>';
+    }).join('');
+    var rotulos=cols.map(function(c){
+      return '<div style="text-align:center;font-size:.6rem;line-height:1.35;color:var(--t3)">'
+        +'<div style="color:var(--t2);font-weight:600;margin-bottom:1px">'+c.rot+'</div>'+c.sub+'</div>';
+    }).join('');
+    var cascata='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(4px,1.5vw,14px);'
+      +'align-items:end;border-bottom:1px solid var(--b);margin:6px 0 0">'+barras+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(4px,1.5vw,14px);'
+      +'padding:8px 0 14px">'+rotulos+'</div>';
 
     return '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">'
       +'▸ De onde vem a diferença de ritmo contra '+(ano-1)+' — '+meses.length+' meses comparáveis</div>'
       +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid '+corDif+';border-radius:var(--r);padding:16px 20px">'
-      +'<div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-start">'
-        +celula('Ritmo real '+(ano-1),fi(A.real),'pç/dia com hora extra','var(--t2)')
-        +itens.map(function(i){
-            var c=i.v>=0?'#4CAF50':'#F44336';
-            return celula(i.k,(i.v>=0?'+':'')+fi(i.v),i.sub,c);
-          }).join('')
-        +celula('Ritmo real '+ano,fi(B.real),(dif>=0?'+':'')+fi(dif)+' pç/dia',corDif)
+      +'<div style="font-size:1.02rem;font-weight:700;color:var(--t1);line-height:1.4;max-width:46ch">'
+        +'O ritmo real '+(dif>=0?'subiu':'caiu')+' <b style="color:'+corDif+'">'+fi(Math.abs(dif))
+        +'</b> peças por dia.'
+        +(maior?' '+maior.k.replace('Mais horas normais','As horas normais')
+             .replace('Produtividade','A produtividade')
+             .replace('Hora extra','A hora extra')
+          +' respondeu por <b style="color:'+(maior.v>=0?'#4CAF50':'#FF9800')+'">'
+          +fi(Math.abs(maior.v))+'</b> delas.':'')
       +'</div>'
+      +cascata
       +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1)">'
         +'O ritmo real mudou <b style="color:'+corDif+'">'+(dif>=0?'+':'')+fi(dif)+'</b> pç/dia, mas a jornada normal '
         +(B.normal>=A.normal?'<b style="color:#4CAF50">subiu</b> ':'<b style="color:#F44336">caiu</b> ')
@@ -17370,9 +17404,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b31';
+var APP_VERSAO = 'b32';
 var APP_DATA   = '06/08/2026';
 var APP_HISTORICO = [
+  { v:'b32', data:'06/08/2026', itens:[
+    'A diferenca de ritmo contra o ano anterior vira grafico de cascata.',
+    'Cada efeito flutua entre o acumulado anterior e o novo — a barra que desce e a que derruba o ritmo.'
+  ]},
   { v:'b31', data:'06/08/2026', itens:[
     'Planejamento Mestre mostra de onde vem a diferença de ritmo contra o ano anterior.',
     'Separa efeito de horas normais, de produtividade e de hora extra — os três somam a diferença.'
