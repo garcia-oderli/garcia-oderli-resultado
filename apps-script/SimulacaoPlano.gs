@@ -15,6 +15,13 @@
  * aplicar ritmo de simulação a mês que já aconteceu não é cenário, é reescrever
  * história — e corromperia todo comparativo de atingimento e desvio do painel.
  *
+ * Fórmulas geradas aqui não usam vírgula nem decimal com ponto. setFormula
+ * traduz o nome da função (SUM vira SOMA na exibição), mas NÃO traduz o
+ * separador de argumentos: numa planilha pt-BR a vírgula é separador decimal,
+ * e qualquer fórmula com dois argumentos vira #ERROR!. Por isso ROUND entra
+ * com um argumento só, proporção entra como fração de inteiros, e a escolha do
+ * cenário é soma de produtos em vez de INDEX/MATCH.
+ *
  * Ordem de uso:
  *   1. criarSimulacao()            — cria/reconstrói a aba SIMULAÇÃO
  *   2. ligarPlanoMestre()          — troca set..dez da PLANO MESTRE por fórmula
@@ -103,11 +110,15 @@ function criarSimulacao() {
     aba.getRange(SIM_L_RITMO + i, 3).setValue(c.desc).setFontColor('#666666');
   });
   aba.getRange(SIM_L_ATIVO, 1).setValue('Ritmo ativo').setFontWeight('bold');
-  aba.getRange(SIM_L_ATIVO, 2).setFormula(
-    '=INDEX(B' + SIM_L_RITMO + ':B' + (SIM_L_RITMO + SIM_CENARIOS.length - 1) +
-    ',MATCH(B' + SIM_L_CENARIO + ',A' + SIM_L_RITMO + ':A' +
-    (SIM_L_RITMO + SIM_CENARIOS.length - 1) + ',0))'
-  ).setNumberFormat('#,##0.0').setFontWeight('bold');
+  /* Soma de produtos em vez de INDEX/MATCH: só a linha cujo rótulo bate com o
+     dropdown multiplica por 1, as outras por 0. Fica sem vírgula — ver a nota
+     sobre separador no topo do arquivo. */
+  var termos = SIM_CENARIOS.map(function (c, i) {
+    var l = SIM_L_RITMO + i;
+    return 'B' + l + '*($B$' + SIM_L_CENARIO + '=A' + l + ')';
+  });
+  aba.getRange(SIM_L_ATIVO, 2).setFormula('=' + termos.join('+'))
+     .setNumberFormat('#,##0.0').setFontWeight('bold');
 
   /* Meses: dias úteis editáveis e total do mês por fórmula */
   aba.getRange(SIM_L_MES - 1, 1, 1, 3)
@@ -116,7 +127,7 @@ function criarSimulacao() {
     var l = SIM_L_MES + i;
     aba.getRange(l, 1).setValue(m.mes);
     aba.getRange(l, 2).setValue(m.dias).setBackground('#fff2cc');
-    aba.getRange(l, 3).setFormula('=ROUND($B$' + SIM_L_ATIVO + '*B' + l + ',0)')
+    aba.getRange(l, 3).setFormula('=ROUND($B$' + SIM_L_ATIVO + '*B' + l + ')')
        .setNumberFormat('#,##0');
   });
   aba.getRange(SIM_L_MES + 3, 4)
@@ -149,7 +160,7 @@ function criarSimulacao() {
         /* resto do mês = total − o que já foi distribuído acima */
         cel.setFormula('=$C$' + lm + '-SUM(' + colL + SIM_L_LOTE + ':' + colL + (l - 1) + ')');
       } else {
-        cel.setFormula('=ROUND($C$' + lm + '*' + (x.q[m.col] / baseMes[m.col]) + ',0)');
+        cel.setFormula('=ROUND($C$' + lm + '*' + x.q[m.col] + '/' + baseMes[m.col] + ')');
       }
       cel.setNumberFormat('#,##0');
     });
