@@ -136,8 +136,14 @@ function criarSimulacao() {
      PLANO MESTRE aponta para cá, e o #REF! não se recupera quando uma aba de
      mesmo nome é recriada. */
   var aba = ss.getSheetByName(SIM_ABA);
-  if (aba) { aba.clear(); aba.clearDataValidations(); }
-  else     { aba = ss.insertSheet(SIM_ABA); }
+  if (aba) {
+    /* clear() limpa conteúdo e formato, mas não validação de dados — e ela é de
+       Range, não de Sheet. Sem isso o dropdown antigo sobrevive à limpeza. */
+    aba.getRange(1, 1, aba.getMaxRows(), aba.getMaxColumns()).clearDataValidations();
+    aba.clear();
+  } else {
+    aba = ss.insertSheet(SIM_ABA);
+  }
 
   aba.getRange('A1').setValue('SIMULAÇÃO DO PLANO — set a dez/' + SIM_ANO).setFontWeight('bold');
   aba.getRange('C1').setValue('ritmos apurados sobre ' + rit.dias + ' dias fechados de ' + SIM_ANO)
