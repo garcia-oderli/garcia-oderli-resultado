@@ -1060,7 +1060,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b34</div><div id="alertas-banner" style="display: none;"></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b35</div><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -17067,36 +17067,46 @@ function printAtiva(){
     var efH=(B.hDia-A.hDia)*A.prodH, efQ=B.hDia*(B.prodH-A.prodH);
     var dif=B.real-A.real, corDif=dif>=0?'#4CAF50':'#F44336';
 
-    var p0=A.real, p1=p0+efH, p2=p1+efQ;
-    var vals=[p0,p1,p2], lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals);
-    /* Base abaixo do menor valor: começar em zero achataria efeitos de dezenas
-       contra um ritmo de milhares. */
-    var faixa=(hi-lo)||1, base=lo-faixa*0.5, topo=hi+faixa*0.18;
-    function pc(v){ return ((v-base)/(topo-base))*100; }
+    /* Índice com 2025 = 100. Cascata não funcionou: quatro retângulos em colunas
+       separadas não se leem como sequência sem linha ligando um ao outro, e o
+       leitor precisa da explicação falada para entender. Aqui a linha vertical
+       é o ano anterior, barra para a direita é mais que ele, para a esquerda é
+       menos — não há o que decodificar.
 
-    var cols=[
-      { rot:String(ano-1), sub:'ritmo real',                     de:base, ate:p0,
-        cor:'#5B6B7A', val:fi(p0) },
-      { rot:'Horas',       sub:fd(B.hDia-A.hDia,0)+' h/dia',     de:p0,  ate:p1,
-        cor:efH>=0?'#4CAF50':'#F44336', val:(efH>=0?'+':'')+fi(efH) },
-      { rot:'Produtividade', sub:fd((B.prodH/A.prodH-1)*100,1)+'% por hora', de:p1, ate:p2,
-        cor:efQ>=0?'#4CAF50':'#F44336', val:(efQ>=0?'+':'')+fi(efQ) },
-      { rot:String(ano),   sub:'ritmo real',                     de:base, ate:B.real,
-        cor:corDif, val:fi(B.real) }
+       As três se multiplicam: horas × peças por hora = peças. Ver as três lado
+       a lado mostra que a de baixo é a que puxa as outras. */
+    var idx=[
+      { rot:'Horas trabalhadas', v:(B.ht/A.ht)*100,       neutro:true },
+      { rot:'Peças produzidas',  v:(B.pr/A.pr)*100 },
+      { rot:'Peças por hora',    v:(B.prodH/A.prodH)*100 }
     ];
-    var barras=cols.map(function(c){
-      var b=pc(Math.min(c.de,c.ate)), h=Math.abs(pc(c.ate)-pc(c.de));
-      return '<div style="position:relative;height:148px">'
-        +'<div style="position:absolute;left:12%;right:12%;bottom:'+b+'%;height:'+Math.max(h,1)+'%;'
-          +'background:'+c.cor+';border-radius:2px"></div>'
-        +'<div style="position:absolute;left:0;right:0;bottom:'+(b+h)+'%;margin-bottom:5px;'
-          +'text-align:center;font-family:var(--mono);font-size:.74rem;font-weight:700;color:'+c.cor+'">'
-          +c.val+'</div></div>';
+    var vs=idx.map(function(i){ return i.v; }).concat([100]);
+    var lo2=Math.min.apply(null,vs), hi2=Math.max.apply(null,vs);
+    var folga=Math.max((hi2-lo2)*0.35,2);
+    var eixoA=lo2-folga, eixoB=hi2+folga;
+    function px(v){ return ((v-eixoA)/(eixoB-eixoA))*100; }
+    var zero=px(100);
+
+    var linhas2=idx.map(function(i){
+      var p=px(i.v), acima=i.v>=100;
+      var cor=i.neutro?'#00E5FF':(acima?'#4CAF50':'#F44336');
+      var esq=Math.min(p,zero), larg=Math.abs(p-zero);
+      return '<div style="display:grid;grid-template-columns:minmax(104px,auto) 1fr minmax(58px,auto);'
+        +'align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--b)">'
+        +'<span style="font-size:.74rem;color:var(--t2)">'+i.rot+'</span>'
+        +'<span style="position:relative;display:block;height:17px;background:rgba(255,255,255,.03);border-radius:2px">'
+          +'<span style="position:absolute;top:-4px;bottom:-4px;left:'+zero+'%;width:1px;background:var(--t3)"></span>'
+          +'<span style="position:absolute;top:0;bottom:0;left:'+esq+'%;width:'+Math.max(larg,0.4)+'%;'
+            +'background:'+cor+';border-radius:2px"></span>'
+        +'</span>'
+        +'<span style="font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.86rem;'
+          +'font-weight:700;text-align:right;color:'+cor+'">'
+          +(i.v>=100?'+':'')+fd(i.v-100,1)+'%</span>'
+        +'</div>';
     }).join('');
-    var rotulos=cols.map(function(c){
-      return '<div style="text-align:center;font-size:.6rem;line-height:1.35;color:var(--t3)">'
-        +'<div style="color:var(--t2);font-weight:600;margin-bottom:1px">'+c.rot+'</div>'+c.sub+'</div>';
-    }).join('');
+    var cascata='<div style="margin:10px 0 4px">'+linhas2+'</div>'
+      +'<div style="font-size:.62rem;color:var(--t3);text-align:center;padding-bottom:12px">'
+      +'a linha vertical é '+(ano-1)+' · à direita, mais que '+(ano-1)+'; à esquerda, menos</div>';
 
     var pctH=(B.ht/A.ht-1)*100, pctP=(B.pr/A.pr-1)*100;
     var g=4;   /* colunas da grade */
@@ -17104,9 +17114,9 @@ function printAtiva(){
       +'▸ De onde vem a diferença de ritmo contra '+(ano-1)+' — '+meses.length+' meses comparáveis</div>'
       +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid '+corDif+';border-radius:var(--r);padding:16px 20px">'
       +'<div style="font-size:1.02rem;font-weight:700;color:var(--t1);line-height:1.4;max-width:52ch">'
-        +'A fábrica trabalhou <b style="color:'+(pctH>=0?'#FF9800':'#4CAF50')+'">'
-        +(pctH>=0?'+':'')+fd(pctH,1)+'%</b> de horas e produziu <b style="color:'
-        +(pctP>=0?'#4CAF50':'#F44336')+'">'+(pctP>=0?'+':'')+fd(pctP,1)+'%</b> de peças.'
+        +'Mais horas, menos peças: cada hora rendeu <b style="color:'
+        +(B.prodH>=A.prodH?'#4CAF50':'#F44336')+'">'+fd((B.prodH/A.prodH-1)*100,1)+'%</b> em '
+        +ano+' do que em '+(ano-1)+'.'
       +'</div>'
       +'<div style="display:grid;grid-template-columns:repeat('+g+',1fr);gap:clamp(6px,2vw,18px);'
         +'align-items:end;border-bottom:1px solid var(--b);margin:8px 0 0">'+barras+'</div>'
@@ -17389,9 +17399,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b34';
+var APP_VERSAO = 'b35';
 var APP_DATA   = '06/08/2026';
 var APP_HISTORICO = [
+  { v:'b35', data:'06/08/2026', itens:[
+    'Cascata trocada por indice com o ano anterior = 100 — ninguem entendia a cascata.',
+    'Horas, pecas e pecas por hora lado a lado: a linha vertical e o ano passado.'
+  ]},
   { v:'b34', data:'06/08/2026', itens:[
     'Cascata passa a decompor sobre horas TOTAIS, nao so a jornada normal.',
     'Em 2026 as horas totais subiram 4% e a producao caiu 6,4% — a queda e de produtividade.'
