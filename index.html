@@ -1060,7 +1060,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.05 · b21</div><div id="alertas-banner" style="display: none;"></div>
+<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b30</div><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -17289,9 +17289,15 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b29';
-var APP_DATA   = '05/08/2026';
+var APP_VERSAO = 'b30';
+var APP_DATA   = '06/08/2026';
 var APP_HISTORICO = [
+  { v:'b30', data:'06/08/2026', itens:[
+    'Simulação de cenários no Planejamento Mestre: PLANO, A, B, C e CAPACIDADE.',
+    'Modo CAPACIDADE monta o ritmo pelas alavancas de absenteísmo e hora extra.',
+    'Dias úteis de dezembro editáveis — o recesso é a premissa mais frágil do plano.',
+    'Simulação não grava nada: a planilha segue como fonte.'
+  ]},
   { v:'b29', data:'05/08/2026', itens:[
     'Previsão × Capacidade e Capacidade Produtiva removidas — conteúdo redistribuído.',
     'Atingimento c/ e s/ hora extra vira coluna no Planejamento Mestre.',
