@@ -16570,30 +16570,67 @@ function printAtiva(){
      peças de plano que não existem. */
   var DIAS_SIM = { SET:21, OUT:21, NOV:19, DEZ:15 };
 
+  /* Alavancas do modo CAPACIDADE. Dezembro fica editável porque o recesso é a
+     premissa mais frágil do plano — 3 dias valem ~5.000 peças. */
+  var _dez = 15;        /* dias úteis de dezembro */
+  var _absMeta = null;  /* null = absenteísmo como está hoje */
+  var _he = true;       /* aplicar a hora extra já praticada */
+
   var CENARIOS = [
     { id:'A', nome:'Jornada normal',  desc:'Sem hora extra estrutural' },
     { id:'B', nome:'Ritmo realizado', desc:'Mantém a hora extra atual' },
-    { id:'C', nome:'Ritmo da venda',  desc:'Não deixa a carteira crescer' }
+    { id:'C', nome:'Ritmo da venda',  desc:'Não deixa a carteira crescer' },
+    { id:'K', nome:'Capacidade',      desc:'Monta o ritmo pelas alavancas' }
   ];
 
-  /* Os três ritmos saem do próprio histórico, com o mesmo critério do veredito:
-     só mês fechado e com horas lançadas entra na conta. */
+  /* Os ritmos saem do próprio histórico, com o mesmo critério do veredito:
+     só mês fechado e com horas lançadas entra na conta. Junto vêm as horas,
+     que é o que permite simular absenteísmo — sem elas o ganho seria chute. */
   function ritmos(recs){
-    var nm=0, rl=0, vn=0, d=0;
+    var nm=0, rl=0, vn=0, d=0, carga=0, falta=0, hn=0;
     recs.forEach(function(r){
       var real=r.producaoReal||0, normal=r.prodSemExtras||0, dias=r.diasTrabalhados||0;
-      if(real>0&&normal>0&&dias>0){ nm+=normal; rl+=real; vn+=(r.qtdeVendida||0); d+=dias; }
+      if(real>0&&normal>0&&dias>0){
+        nm+=normal; rl+=real; vn+=(r.qtdeVendida||0); d+=dias;
+        carga+=(r.horasCarga||0); falta+=(r.totalFaltaAtraso||0); hn+=(r.horasNormais||0);
+      }
     });
-    return d>0 ? { A:nm/d, B:rl/d, C:vn/d, dias:d } : null;
+    if(!d) return null;
+    return { A:nm/d, B:rl/d, C:vn/d, dias:d,
+             abs: carga>0?falta/carga:0,          /* absenteísmo realizado */
+             prodH: hn>0?nm/hn:0,                 /* peças por hora normal */
+             hDia: hn/d,                          /* horas normais por dia */
+             fatHE: nm>0?rl/nm:1 };               /* quanto a HE acrescenta hoje */
   }
+
+  /* Ganho em pç/dia ao levar o absenteísmo até uma meta: as horas que deixam de
+     ser perdidas voltam a produzir na produtividade da jornada normal. Divide
+     por (1−abs) porque a hora recuperada sai da carga disponível, não da já
+     trabalhada. */
+  function ganhoAbs(rit){
+    if(!rit||_absMeta===null||_absMeta>=rit.abs) return 0;
+    return ((rit.abs-_absMeta)/(1-rit.abs))*rit.hDia*rit.prodH;
+  }
+
+  /* Ritmo do cenário ativo. A, B e C são ritmos empíricos e entram como estão —
+     absenteísmo e HE já estão dentro deles. Só o modo CAPACIDADE é montado,
+     partindo da jornada normal, senão a alavanca seria contada duas vezes. */
+  function ritmoAtivo(rit){
+    if(!rit||!_cenario) return 0;
+    if(_cenario!=='K') return rit[_cenario];
+    return (rit.A+ganhoAbs(rit))*(_he?rit.fatHE:1);
+  }
+
+  function diasSim(mes){ return mes==='DEZ' ? _dez : DIAS_SIM[mes]; }
 
   function aplicarCenario(recs, rit){
     if(!_cenario||!rit) return recs;
+    var r_dia=ritmoAtivo(rit);
     return recs.map(function(r){
       /* Fora do horizonte simulado ou já fechado: fica exatamente como veio. */
       if((r.producaoReal||0)>0 || !DIAS_SIM[r.mes]) return r;
       var c={}; for(var k in r) c[k]=r[k];
-      c.previsaoProducao = Math.round(rit[_cenario]*DIAS_SIM[r.mes]);
+      c.previsaoProducao = Math.round(r_dia*diasSim(r.mes));
       c._simulado = true;
       return c;
     });
@@ -16603,18 +16640,53 @@ function printAtiva(){
     var box=document.getElementById('pm-cenarios');
     if(!box) return;
     if(!rit){ box.innerHTML=''; return; }   /* sem mês fechado não há ritmo */
-    box.innerHTML=[{id:null,nome:'Plano da planilha'}].concat(CENARIOS).map(function(c){
+
+    var btns=[{id:null,nome:'Plano da planilha'}].concat(CENARIOS).map(function(c){
       var on=(_cenario===c.id);
-      var tip=c.id?(c.nome+' — '+c.desc+' · '+fi(rit[c.id])+' pç/dia'):'Plano como está na planilha';
+      var pd=c.id?(c.id==='K'?ritmoAtivo(rit)||((rit.A+ganhoAbs(rit))*(_he?rit.fatHE:1)):rit[c.id]):0;
+      var tip=c.id?(c.nome+' — '+c.desc+' · '+fi(pd)+' pç/dia'):'Plano como está na planilha';
       return '<button onclick="pmCenario('+(c.id?("'"+c.id+"'"):'null')+')" title="'+tip+'"'
         +' style="padding:6px 11px;border-radius:5px;cursor:pointer;font-size:.7rem;font-weight:700;'
         +'letter-spacing:.04em;white-space:nowrap;border:1px solid '+(on?'var(--cyan)':'var(--b)')+';'
         +'background:'+(on?'rgba(0,229,255,.14)':'transparent')+';'
-        +'color:'+(on?'var(--cyan)':'var(--t3)')+'">'+(c.id?('CEN. '+c.id):'PLANO')+'</button>';
+        +'color:'+(on?'var(--cyan)':'var(--t3)')+'">'
+        +(c.id?(c.id==='K'?'CAPACIDADE':'CEN. '+c.id):'PLANO')+'</button>';
     }).join('');
+
+    /* Alavancas: dezembro vale para qualquer cenário (é calendário); absenteísmo
+       e hora extra só para CAPACIDADE, porque A/B/C já os têm embutidos. */
+    var sel='padding:5px 7px;border-radius:5px;font-size:.68rem;font-weight:700;cursor:pointer;'
+      +'border:1px solid var(--b);background:var(--panel);color:var(--t2)';
+    var alav='';
+    if(_cenario){
+      alav+='<label style="display:flex;align-items:center;gap:5px;font-size:.62rem;'
+        +'letter-spacing:.08em;text-transform:uppercase;color:var(--t3)">dez'
+        +'<select onchange="pmDez(this.value)" style="'+sel+'" title="Dias úteis de dezembro — depende do recesso coletivo">'
+        +[12,15,18,22].map(function(d){
+            return '<option value="'+d+'"'+(_dez===d?' selected':'')+'>'+d+'d</option>'; }).join('')
+        +'</select></label>';
+    }
+    if(_cenario==='K'){
+      alav+='<label style="display:flex;align-items:center;gap:5px;font-size:.62rem;'
+        +'letter-spacing:.08em;text-transform:uppercase;color:var(--t3)">absent.'
+        +'<select onchange="pmAbs(this.value)" style="'+sel+'" title="Meta de absenteísmo — hoje em '+fd(rit.abs*100,1)+'%">'
+        +'<option value="">atual '+fd(rit.abs*100,1)+'%</option>'
+        +[.10,.08,.06].map(function(m){
+            return '<option value="'+m+'"'+(_absMeta===m?' selected':'')+'>'+(m*100)+'%</option>'; }).join('')
+        +'</select></label>'
+        +'<button onclick="pmHE()" title="Manter a hora extra que a fábrica já pratica ('
+        +fd((rit.fatHE-1)*100,1)+'%)" style="padding:6px 10px;border-radius:5px;cursor:pointer;'
+        +'font-size:.68rem;font-weight:700;white-space:nowrap;border:1px solid '
+        +(_he?'var(--amber)':'var(--b)')+';background:'+(_he?'rgba(245,166,35,.14)':'transparent')
+        +';color:'+(_he?'var(--amber)':'var(--t3)')+'">HORA EXTRA</button>';
+    }
+    box.innerHTML=btns+alav;
   }
 
   window.pmCenario=function(id){ _cenario=id; render(); };
+  window.pmDez=function(v){ _dez=parseInt(v,10)||15; render(); };
+  window.pmAbs=function(v){ _absMeta=v===''?null:parseFloat(v); render(); };
+  window.pmHE=function(){ _he=!_he; render(); };
 
   function fi(n){ return isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—'; }
   function fd(n,d){ return isFinite(n)?n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'; }
@@ -16685,7 +16757,7 @@ function printAtiva(){
       /* Mês simulado usa os dias do cenário: o plano dele nasceu de ritmo × esses
          dias, então dividir por outro denominador devolveria um ritmo necessário
          que não é o do cenário. */
-      var diasP=(r._simulado&&DIAS_SIM[r.mes])?DIAS_SIM[r.mes]:(DIAS_PLAN[r.mes]||22);
+      var diasP=(r._simulado&&DIAS_SIM[r.mes])?diasSim(r.mes):(DIAS_PLAN[r.mes]||22);
       var dias=(fechado&&(r.diasTrabalhados||0)>0)?r.diasTrabalhados:diasP;
       planoAno+=plano;
       if(plano>0) diasPlanoAno+=diasP; else if(!fechado) semPlano.push(r.mes);
@@ -16791,15 +16863,28 @@ function printAtiva(){
 
     /* Deixa explícito que a tela não está mostrando o plano da planilha. Sem
        isso um print de simulação circula como se fosse o plano aprovado. */
-    var avisoSim = (_cenario&&rit)
-      ? '<div style="margin-bottom:12px;padding:11px 15px;background:rgba(0,229,255,.09);'
-        +'border-left:3px solid var(--cyan);border-radius:6px;font-size:.78rem;color:var(--t1);line-height:1.5">'
-        +'<b style="color:var(--cyan)">SIMULAÇÃO — cenário '+_cenario+'.</b> '
-        +'Os meses ainda abertos estão com plano recalculado a <b>'+fi(rit[_cenario])+' pç/dia</b> '
-        +'× dias úteis ('
-        + Object.keys(DIAS_SIM).map(function(m){ return m+' '+DIAS_SIM[m]; }).join(' · ')
-        +'). Meses fechados não foram tocados e <b>nada é gravado na planilha</b>.</div>'
-      : '';
+    var avisoSim='';
+    if(_cenario&&rit){
+      var rAtivo=ritmoAtivo(rit), comp='';
+      if(_cenario==='K'){
+        /* Mostra a conta aberta: quem só vê o resultado não sabe quanto veio de
+           cada alavanca, e é essa separação que sustenta o pedido de capacidade. */
+        var gA=ganhoAbs(rit);
+        comp=' Composto de <b>'+fi(rit.A)+'</b> na jornada normal'
+          +(gA>0?' <b>+ '+fi(gA)+'</b> por levar o absenteísmo de '+fd(rit.abs*100,1)
+                 +'% a '+fd(_absMeta*100,0)+'%':'')
+          +(_he?' <b>× '+fd(rit.fatHE,3)+'</b> da hora extra atual':' <b>sem hora extra</b>')
+          +'. Faltam <b>'+fi(Math.max(0,rit.C-rAtivo))+' pç/dia</b> para o ritmo da carteira.';
+      }
+      avisoSim='<div style="margin-bottom:12px;padding:11px 15px;background:rgba(0,229,255,.09);'
+        +'border-left:3px solid var(--cyan);border-radius:6px;font-size:.78rem;color:var(--t1);line-height:1.55">'
+        +'<b style="color:var(--cyan)">SIMULAÇÃO — '
+        +(_cenario==='K'?'capacidade montada':'cenário '+_cenario)+'.</b> '
+        +'Meses abertos recalculados a <b>'+fi(rAtivo)+' pç/dia</b> × dias úteis ('
+        + Object.keys(DIAS_SIM).map(function(m){ return m+' '+diasSim(m); }).join(' · ')
+        +').'+comp
+        +' Meses fechados não foram tocados e <b>nada é gravado na planilha</b>.</div>';
+    }
 
     document.getElementById('pm-veredito').style.display='';
     document.getElementById('pm-veredito').innerHTML= avisoSim +
@@ -16836,7 +16921,7 @@ function printAtiva(){
 
     /* Guarda o apurado para a impressão executiva montar o relatório sem
        recalcular nem depender do HTML escuro da tela. */
-    _ult = { cenario:_cenario, ano:ano, planoAno:planoAno, realAcum:realAcum, planoAberto:planoAberto,
+    _ult = { cenario:_cenario, cenDez:_dez, cenAbs:_absMeta, cenHE:_he, ano:ano, planoAno:planoAno, realAcum:realAcum, planoAberto:planoAberto,
              diasAbertos:diasAbertos, diasPlanoAno:diasPlanoAno, ritmoPlano:ritmoPlano,
              ritmoExig:ritmoExig, diasPlanFech:diasPlanFech,
              ritmoDem:ritmoDem, ritmoNecR:ritmoNecR, pctFolga:pctFolga, heP:heP,
