@@ -17039,7 +17039,12 @@ function printAtiva(){
     if((r.volumesFaturados||0)>0 && (r.qtdeFaturado||0)>0)
       return { vol:r.volumesFaturados, prod:r.qtdeFaturado, fat:true };
     var v=r.volumesProduzidos||r.volumes||r.qtdeVolumes||0;
-    if(v>0 && (r.producaoReal||0)>0) return { vol:v, prod:r.producaoReal, fat:false };
+    /* produtosReportados vem do mesmo relatório do ERP que os volumes
+       (ReporteVolumes.gs) — fator na mesma base. Sem ela, cai para o
+       producaoReal, que vem de outro corte (~9% menor em JAN/26) e
+       superestima o fator na mesma proporção. */
+    var base=(r.produtosReportados||0)>0?r.produtosReportados:(r.producaoReal||0);
+    if(v>0 && base>0) return { vol:v, prod:base, fat:false };
     return null;
   }
   function blocoVolumes(todos,ano,planoAno,planoAberto){
