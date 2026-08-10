@@ -18149,16 +18149,36 @@ function printAtiva(){
   function renderLista(){
     var el=document.getElementById('pc-lista'); if(!el) return;
     var doPer=itens().filter(function(r){ return r[1]===_ano&&(!_mes||r[0]===_mes); });
-    var lista=doPer.filter(function(r){
-      var ehVol=RE_VOL.test(r[3]);
-      return _tipo==='T'?true:(_tipo==='V'?ehVol:!ehVol);
-    });
-    /* agrega por código (ano inteiro repete o código mês a mês) */
     var agg={};
-    lista.forEach(function(r){
-      if(!agg[r[2]]){ agg[r[2]]={cod:r[2],desc:r[3],q:0}; }
-      agg[r[2]].q+=r[4];
-    });
+    function add(cod,desc,q,unica){
+      if(!agg[cod]) agg[cod]={cod:cod,desc:desc,q:0,unica:!!unica};
+      agg[cod].q+=q;
+      if(!unica) agg[cod].unica=false;
+    }
+    if(_tipo==='V'){
+      /* Volumes = o que a fábrica embalou de verdade: as linhas VOL mais os
+         produtos que não têm SKU de volume (1 caixa cada). Mês a mês, como
+         no lançamento — um produto pode ter ganhado SKU no meio do ano, e a
+         régua anual daria um total diferente do card. */
+      var porMesLista={};
+      doPer.forEach(function(r){ (porMesLista[r[0]]=porMesLista[r[0]]||[]).push(r); });
+      Object.keys(porMesLista).forEach(function(m){
+        var rs=porMesLista[m], nomes=[];
+        rs.forEach(function(r){ if(RE_VOL.test(r[3])) nomes.push(r[3].replace(RE_VOL,'').trim().toUpperCase()); });
+        rs.forEach(function(r){
+          if(RE_VOL.test(r[3])){ add(r[2],r[3],r[4],false); return; }
+          var nome=r[3].trim().toUpperCase();
+          var espelhado=nomes.some(function(nv){ return nome.indexOf(nv)===0; });
+          if(!espelhado) add(r[2],r[3],r[4],true);   /* caixa única, sem SKU de volume */
+        });
+      });
+    } else {
+      doPer.forEach(function(r){
+        var ehVol=RE_VOL.test(r[3]);
+        if(_tipo==='P'&&ehVol) return;
+        add(r[2],r[3],r[4],false);
+      });
+    }
     var linhas=Object.keys(agg).map(function(k){ return agg[k]; });
     var busca=_busca.trim().toUpperCase();
     if(busca) linhas=linhas.filter(function(p){
@@ -18176,17 +18196,12 @@ function printAtiva(){
        o cadastro só ganhou os VOL 1/1 no meio do ano). */
     var infoVol='';
     if(_tipo==='V'&&!_busca.trim()){
-      var todosR=(typeof load==='function')?load():[];
-      var volTot=0;
-      todosR.forEach(function(r){
-        if(r.ano!==_ano||(_mes&&r.mes!==_mes)) return;
-        volTot+=(r.volumesProduzidos||r.volumes||r.qtdeVolumes||0);
-      });
-      var implicito=volTot-total;
-      if(volTot>0&&implicito>0){
-        infoVol=' — os outros <b style="color:var(--t1)">'+fi(implicito)+'</b> volumes do período são '
-          +'produtos de caixa única sem SKU de volume; total de <b style="color:var(--t1)">'+fi(volTot)+'</b> volumes';
-      }
+      var nUnica=linhas.filter(function(p){ return p.unica; }).length;
+      var qUnica=linhas.reduce(function(s,p){ return s+(p.unica?p.q:0); },0);
+      infoVol=nUnica
+        ? ' — inclui <b style="color:var(--t1)">'+fi(qUnica)+'</b> volumes de '+nUnica
+          +' produtos de caixa única (marcados na lista), que não têm SKU de volume próprio'
+        : '';
     }
     el.innerHTML=
       '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
@@ -18196,7 +18211,7 @@ function printAtiva(){
           +'border:1px solid var(--b);border-radius:6px;background:rgba(255,255,255,.03);color:var(--t1);font-size:.74rem">'
       +'</div>'
       +'<div style="font-size:.7rem;color:var(--t3);margin-bottom:8px;line-height:1.5">'
-        +linhas.length+' '+(_tipo==='V'?'itens com SKU de volume':(_tipo==='T'?'itens':'produtos'))
+        +linhas.length+' '+(_tipo==='V'?'itens de volume':(_tipo==='T'?'itens':'produtos'))
         +' · total <b style="color:var(--t1)">'+fi(total)+'</b>'
         +(_tipo==='P'?' — linhas "VOL x/y" (caixas) fora da conta':'')
         +infoVol
@@ -18206,7 +18221,8 @@ function printAtiva(){
         +'<thead><tr><th>Código</th><th>Descrição</th><th style="text-align:right">Qtd</th><th style="text-align:right">%</th></tr></thead>'
         +'<tbody>'+(linhas.map(function(p){
             return '<tr><td style="font-family:var(--mono);white-space:nowrap">'+p.cod+'</td>'
-              +'<td>'+p.desc+'</td>'
+              +'<td>'+p.desc
+                +(p.unica?'<span style="color:var(--t3);font-size:.66rem"> · caixa única</span>':'')+'</td>'
               +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+fi(p.q)+'</td>'
               +'<td style="text-align:right;color:var(--t3);font-size:.72rem">'+fd(total>0?(p.q/total)*100:0,1)+'%</td></tr>';
           }).join('')||'<tr><td colspan="4" style="color:var(--t3)">Nada encontrado com esse filtro.</td></tr>')+'</tbody>'
@@ -18518,9 +18534,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b54';
+var APP_VERSAO = 'b55';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b55', data:'10/08/2026', itens:[
+    'Filtro Volumes unificado: lista as linhas VOL mais os produtos de caixa unica (marcados), fechando exatamente o total do card.',
+    'A conta e feita mes a mes, como no lancamento — produto que ganhou SKU no meio do ano nao distorce o total.'
+  ]},
   { v:'b54', data:'10/08/2026', itens:[
     'Ano em destaque no cabecalho da aba Producao por Produto (mostra MES/ANO quando ha mes filtrado).',
     'Filtro Volumes da listagem explica a diferenca: ele lista so quem tem SKU de volume proprio; produto de caixa unica sem SKU conta 1 volume no total do periodo.'
