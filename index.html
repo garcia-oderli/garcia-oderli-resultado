@@ -17594,58 +17594,134 @@ function printAtiva(){
     }).join('');
 
     /* Produção por produto e volumes — o que a fábrica de fato fabricou.
-       O mês a mês vem da HISTORICO (produtos do reporte e volumes lançados);
-       o top de produtos vem das linhas do reporte mensal (REPORTE_VOLUMES).
-       Sem dado nenhum, a seção não entra e o relatório fica como era. */
+       O mês a mês vem da HISTORICO (produtos do reporte, volumes e quilos
+       lançados); família, Pareto e top de produtos vêm das linhas do reporte
+       mensal (REPORTE_VOLUMES). Sem dado nenhum, a seção não entra. */
     var regsPV=(typeof load==='function'?load():[]).filter(function(r){ return r.ano===u.ano&&(r.producaoReal||0)>0; })
       .sort(function(a,b){ return ORDEM_M.indexOf(a.mes)-ORDEM_M.indexOf(b.mes); });
     var itensPV=loadItens().filter(function(r){ return r[1]===u.ano; });
     var secProd='';
     if(regsPV.some(function(r){ return volPar(r); })||itensPV.length){
-      var linhasPV='', totP=0, totV=0;
+      /* ── mês a mês: produtos, volumes, fator, vol/dia (capacidade da
+         embalagem) e quilos (produção física) ── */
+      var linhasPV='', totP=0, totV=0, totKg=0, totDias=0, fatMin=null, fatMax=null;
       regsPV.forEach(function(r){
         var par=volPar(r);
         var prod=(r.produtosReportados||0)>0?r.produtosReportados:(r.producaoReal||0);
         var vol=par?par.vol:0, fat=(par&&par.prod>0)?par.vol/par.prod:null;
-        totP+=prod; totV+=vol;
+        var kg=r.quilosProduzidos||r.quilos||r.kg||0, dias=r.diasTrabalhados||0;
+        totP+=prod; totV+=vol; totKg+=kg; if(vol>0&&dias>0) totDias+=dias;
+        if(fat){ fatMin=fatMin===null?fat:Math.min(fatMin,fat); fatMax=fatMax===null?fat:Math.max(fatMax,fat); }
         linhasPV+='<tr><td><b>'+r.mes+'/'+String(u.ano).slice(2)+'</b></td>'
           +'<td class="n">'+fi(prod)+'</td>'
           +'<td class="n">'+(vol>0?fi(vol):'—')+'</td>'
-          +'<td class="n">'+(fat?fd(fat,2):'—')+'</td></tr>';
+          +'<td class="n">'+(fat?fd(fat,2):'—')+'</td>'
+          +'<td class="n">'+(vol>0&&dias>0?fi(vol/dias):'—')+'</td>'
+          +'<td class="n">'+(kg>0?fi(kg):'—')+'</td>'
+          +'<td class="n">'+(kg>0&&prod>0?fd(kg/prod,1):'—')+'</td></tr>';
       });
       var tabMesPV=linhasPV
-        ? '<table style="width:auto;min-width:320px"><thead><tr><th>Mês</th><th style="text-align:right">Produtos</th>'
-          +'<th style="text-align:right">Volumes</th><th style="text-align:right">Vol/Prod</th></tr></thead><tbody>'
+        ? '<table style="width:auto"><thead><tr><th>Mês</th><th style="text-align:right">Produtos</th>'
+          +'<th style="text-align:right">Volumes</th><th style="text-align:right">Vol/Prod</th>'
+          +'<th style="text-align:right">Vol/Dia</th>'
+          +'<th style="text-align:right">Kg</th><th style="text-align:right">Kg/Prod</th></tr></thead><tbody>'
           +linhasPV
           +'<tr style="background:#edf2f7"><td><b>TOTAL</b></td><td class="n"><b>'+fi(totP)+'</b></td>'
           +'<td class="n"><b>'+(totV>0?fi(totV):'—')+'</b></td>'
-          +'<td class="n"><b>'+(totV>0&&totP>0?fd(totV/totP,2):'—')+'</b></td></tr>'
+          +'<td class="n"><b>'+(totV>0&&totP>0?fd(totV/totP,2):'—')+'</b></td>'
+          +'<td class="n"><b>'+(totV>0&&totDias>0?fi(totV/totDias):'—')+'</b></td>'
+          +'<td class="n"><b>'+(totKg>0?fi(totKg):'—')+'</b></td>'
+          +'<td class="n"><b>'+(totKg>0&&totP>0?fd(totKg/totP,1):'—')+'</b></td></tr>'
           +'</tbody></table>'
         : '';
-      var topPV='';
+
+      /* ── agregações por produto e por família ── */
+      var tabFam='', topPV='', narrativa='';
       if(itensPV.length){
-        var aggPV={}, totItensPV=0;
+        var aggPV={}, totItensPV=0, mesesProd={};
+        /* família = primeira palavra da descrição; nomes compostos (MESA
+           CABECEIRA, KIT 2 MESAS...) levam a segunda junto para não virar
+           tudo "MESA". */
+        var DUPLA={MESA:1,MESAS:1,KIT:1,CONJUNTO:1,CANTINHO:1,PAINEL:1,HOME:1,GUARDA:1,PORTA:1,MODULO:1};
+        function familiaDe(desc){
+          var p=String(desc).trim().toUpperCase().split(/\s+/);
+          return DUPLA[p[0]]&&p[1]?p[0]+' '+p[1]:p[0];
+        }
         itensPV.forEach(function(r){
           if(RE_IT_VOL.test(r[3])) return;          /* linha VOL x/y é caixa, não produto */
-          if(!aggPV[r[2]]) aggPV[r[2]]={cod:r[2],desc:r[3],q:0};
-          aggPV[r[2]].q+=r[4]; totItensPV+=r[4];
+          if(!aggPV[r[2]]) aggPV[r[2]]={cod:r[2],desc:r[3],q:0,meses:{}};
+          aggPV[r[2]].q+=r[4]; aggPV[r[2]].meses[r[0]]=1; totItensPV+=r[4];
+          mesesProd[r[0]]=1;
         });
-        var topLista=Object.keys(aggPV).map(function(k){ return aggPV[k]; })
-          .sort(function(a,b){ return b.q-a.q; }).slice(0,12);
+        var lista=Object.keys(aggPV).map(function(k){ return aggPV[k]; })
+          .sort(function(a,b){ return b.q-a.q; });
+        var nProdutos=lista.length;
+
+        /* Pareto: quantos produtos concentram 80% das unidades */
+        var acum=0, n80=0;
+        for(var i=0;i<lista.length;i++){ acum+=lista[i].q; if(n80===0&&acum>=totItensPV*0.8){ n80=i+1; } }
+
+        /* famílias */
+        var fam={};
+        lista.forEach(function(p){
+          var f=familiaDe(p.desc);
+          if(!fam[f]) fam[f]={nome:f,q:0,itens:0};
+          fam[f].q+=p.q; fam[f].itens++;
+        });
+        var famLista=Object.keys(fam).map(function(k){ return fam[k]; })
+          .sort(function(a,b){ return b.q-a.q; });
+        var famTop=famLista.slice(0,10);
+        var famResto=famLista.slice(10).reduce(function(s,f){ return s+f.q; },0);
+        tabFam='<table style="width:auto;min-width:270px"><thead><tr><th>Família</th>'
+          +'<th style="text-align:right">Itens</th><th style="text-align:right">Qtd</th>'
+          +'<th style="text-align:right">%</th></tr></thead><tbody>'
+          +famTop.map(function(f){
+              return '<tr><td><b>'+f.nome+'</b></td><td class="n">'+f.itens+'</td>'
+                +'<td class="n"><b>'+fi(f.q)+'</b></td><td class="n">'+fd((f.q/totItensPV)*100,1)+'%</td></tr>';
+            }).join('')
+          +(famResto>0?'<tr><td colspan="2" style="color:#718096">+ '+(famLista.length-10)+' famílias</td>'
+            +'<td class="n">'+fi(famResto)+'</td><td class="n">'+fd((famResto/totItensPV)*100,1)+'%</td></tr>':'')
+          +'</tbody></table>';
+
+        /* top produtos com % acumulado e média nos meses em que rodou */
+        var nMeses=Object.keys(mesesProd).length||1;
+        var acum2=0;
         topPV='<table><thead><tr><th>Código</th><th>Produto</th>'
-          +'<th style="text-align:right">Qtd</th><th style="text-align:right">% do ano</th></tr></thead><tbody>'
-          +topLista.map(function(p){
+          +'<th style="text-align:right">Qtd</th><th style="text-align:right">Méd/Mês</th>'
+          +'<th style="text-align:right">%</th><th style="text-align:right">% Acum.</th></tr></thead><tbody>'
+          +lista.slice(0,15).map(function(p){
+              acum2+=p.q;
               return '<tr><td>'+p.cod+'</td><td>'+p.desc+'</td>'
-                +'<td class="n"><b>'+fi(p.q)+'</b></td><td class="n">'+fd((p.q/totItensPV)*100,1)+'%</td></tr>';
+                +'<td class="n"><b>'+fi(p.q)+'</b></td>'
+                +'<td class="n">'+fi(p.q/nMeses)+'</td>'
+                +'<td class="n">'+fd((p.q/totItensPV)*100,1)+'%</td>'
+                +'<td class="n">'+fd((acum2/totItensPV)*100,1)+'%</td></tr>';
             }).join('')
           +'</tbody></table>'
-          +'<div style="font-size:7.5pt;color:#718096;margin-top:4px">Top 12 de '+Object.keys(aggPV).length
-          +' produtos fabricados no ano · '+fi(totItensPV)+' unidades no total '
-          +'(linhas de volume "VOL x/y" fora da conta para não contar duas vezes).</div>';
+          +'<div style="font-size:7.5pt;color:#718096;margin-top:4px">Top 15 de '+nProdutos
+          +' produtos fabricados em '+nMeses+' meses · '+fi(totItensPV)+' unidades no total '
+          +'(linhas de volume "VOL x/y" fora da conta). Méd/Mês sobre os '+nMeses+' meses com reporte.</div>';
+
+        /* leitura executiva: concentração, mix e o que o fator faz */
+        var f1=famLista[0], f2=famLista[1];
+        narrativa='<div style="border-left:4px solid #0f3460;background:#f8fafc;border-radius:5px;'
+          +'padding:9px 13px;margin-bottom:9px;font-size:9pt;line-height:1.55;color:#2d3748">'
+          +'A produção de '+u.ano+' é concentrada: <b>'+n80+' de '+nProdutos+' produtos ('
+          +fd((n80/nProdutos)*100,0)+'%) respondem por 80% das unidades</b>.'
+          +(f1?' A família líder é <b>'+f1.nome+'</b> ('+fd((f1.q/totItensPV)*100,1)+'%)'
+            +(f2?', seguida de <b>'+f2.nome+'</b> ('+fd((f2.q/totItensPV)*100,1)+'%).':'.'):'')
+          +(fatMin!==null&&fatMax!==null&&fatMax>fatMin
+            ?' O fator de embalagem oscilou de <b>'+fd(fatMin,2)+' a '+fd(fatMax,2)
+              +' vol/produto</b> ao longo do ano — o mix muda mês a mês, e é essa oscilação que faz o plano '
+              +'em volumes (linha TOTAL VOLUMES) valer mais que um fator fixo.':'')
+          +'</div>';
       }
+
       secProd='<div class="st">Produção por Produto e Volumes — '+u.ano+'</div>'
-        +'<div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">'
-        +'<div>'+tabMesPV+'</div><div style="flex:1;min-width:380px">'+topPV+'</div></div>';
+        +narrativa
+        +'<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:9px">'
+        +'<div>'+tabMesPV+'</div><div style="flex:1;min-width:270px">'+tabFam+'</div></div>'
+        +(topPV?'<div class="st">Top produtos do ano — Pareto</div>'+topPV:'');
     }
 
     var w=window.open('','_blank','width=1250,height=900');
@@ -17798,9 +17874,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b45';
+var APP_VERSAO = 'b46';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b46', data:'10/08/2026', itens:[
+    'Relatorio de producao ganha leitura de PCP: kg e vol/dia no mes a mes, producao por familia, Pareto (quantos produtos concentram 80%) e paragrafo de analise.',
+    'Top produtos com % acumulado e media mensal nos meses em que o produto rodou.'
+  ]},
   { v:'b45', data:'10/08/2026', itens:[
     'Sai a listagem de lotes programados (a pedido) — a matriz ja vive na PLANO MESTRE.',
     'Relatorio impresso ganha a secao Producao por Produto e Volumes: mes a mes (produtos, volumes, fator) e top 12 produtos do ano.',
