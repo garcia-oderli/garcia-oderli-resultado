@@ -17856,10 +17856,10 @@ function printAtiva(){
   }
   function secao(t){ return '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ '+t+'</div>'; }
   /* barra horizontal em CSS — mesmo desenho do bloco de ponte do mestre */
-  function barraH(rot,sub,v,max,cor,extra){
+  function barraH(rot,sub,v,max,cor,extra,tip){
     var w=max>0?(v/max)*100:0;
-    return '<div style="display:grid;grid-template-columns:minmax(150px,220px) 1fr minmax(120px,auto);align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--b)">'
-      +'<span style="font-size:.74rem;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+rot+'">'+rot
+    return '<div style="display:grid;grid-template-columns:minmax(150px,240px) 1fr minmax(120px,auto);align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--b)">'
+      +'<span style="font-size:.74rem;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(tip||rot)+'">'+rot
         +(sub?'<span style="color:var(--t3);font-size:.62rem"> · '+sub+'</span>':'')+'</span>'
       +'<span style="position:relative;display:block;height:15px;background:rgba(255,255,255,.03);border-radius:2px">'
         +'<span style="position:absolute;top:0;bottom:0;left:0;width:'+Math.max(w,0.5)+'%;background:'+cor+';border-radius:2px"></span>'
@@ -17997,7 +17997,10 @@ function printAtiva(){
       +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 18px">'
       +lista.slice(0,12).map(function(p){
           acum2+=p.q;
-          return barraH(p.desc, p.cod, p.q, maxTop, '#00E5FF', fi(p.q)+' · acum '+fd((acum2/totProdI)*100,0)+'%');
+          /* sem o código na barra: com ele, nome e código cortavam os dois.
+             O código fica no tooltip e na listagem completa, que tem coluna. */
+          return barraH(p.desc, '', p.q, maxTop, '#00E5FF',
+                        fi(p.q)+' · acum '+fd((acum2/totProdI)*100,0)+'%', p.cod+' — '+p.desc);
         }).join('')
       +'<div style="font-size:.68rem;color:var(--t3);padding-top:8px">'+n80+' de '+lista.length
         +' produtos ('+fd((n80/Math.max(lista.length,1))*100,0)+'%) concentram 80% das unidades do período.</div>'
@@ -18484,9 +18487,12 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b51';
+var APP_VERSAO = 'b52';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b52', data:'10/08/2026', itens:[
+    'Pareto sem o codigo na barra: com ele, nome e codigo cortavam os dois. O codigo fica no tooltip e na listagem completa.'
+  ]},
   { v:'b51', data:'10/08/2026', itens:[
     'Comparativo contra o ano anterior na aba Producao por Produto — so os meses presentes nos dois anos, senao seria comparacao de calendario.',
     'Produtos, volumes, fator, quilos e peso por produto lado a lado, mais as familias que moveram o mix (em pontos percentuais).',
