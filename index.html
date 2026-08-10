@@ -4237,10 +4237,23 @@ Fórmula: Faltas + Atrasos
     </table>
   </div>
   <div class="cEmpty" id="pm-empty" style="display:none">Sem previsão de produção informada para este ano.</div>
-  <!-- Produtos produzidos por código (reporte mensal do ERP) -->
-  <div id="pm-itens"></div>
 </div>
 <!-- ══ FIM PÁGINA: PLANEJAMENTO MESTRE ══ -->
+<!-- ══ PÁGINA: PRODUÇÃO POR PRODUTO ══ -->
+<div class="page" id="page-prodcod">
+  <div class="pageHdr">
+    <div class="pageHdrIcon" style="background:#FF9800">
+      <svg viewBox="0 0 24 24" fill="var(--bg)"><path d="M20 6h-2.18c.11-.31.18-.65.18-1a2.996 2.996 0 0 0-5.5-1.65l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"></path></svg>
+    </div>
+    <div>
+      <div class="pageHdrTitle">Produção por Produto</div>
+      <div class="pageHdrSub">O que a fábrica fabricou, código a código — produtos, volumes, famílias e Pareto</div>
+    </div>
+    <span id="pc-ano-lbl" style="margin-left:auto;font-family:var(--mono);font-size:.75rem;color:var(--t3)">—</span>
+  </div>
+  <div id="pc-corpo"></div>
+</div>
+<!-- ══ FIM PÁGINA: PRODUÇÃO POR PRODUTO ══ -->
 </div><!-- /main -->
 </div><!-- /layout -->
 
@@ -11890,9 +11903,10 @@ function cfInicializar() {
       label: 'PPCP / Capacidade',
       cor:   DS.C.demanda,
       pages: [
-        { id: 'mestre', label: 'Planejamento Mestre', icon: '🗓' },
-        { id: 'ppcp',   label: 'PPCP',               icon: '⚙' },
-        { id: 'capfat', label: 'Cap × Faturamento',  icon: '📈' }
+        { id: 'mestre',  label: 'Planejamento Mestre', icon: '🗓' },
+        { id: 'ppcp',    label: 'PPCP',               icon: '⚙' },
+        { id: 'capfat',  label: 'Cap × Faturamento',  icon: '📈' },
+        { id: 'prodcod', label: 'Produção por Produto', icon: '📦' }
       ]
     },
     'producao-grp': {
@@ -16752,7 +16766,6 @@ function printAtiva(){
       if(tabela) tabela.style.display='none';
       document.getElementById('pm-kpis').innerHTML='';
       document.getElementById('pm-veredito').style.display='none';
-      renderItens(ano);   /* a listagem de produção não depende de haver plano */
       return;
     }
     if(vazio) vazio.style.display='none';
@@ -16929,8 +16942,6 @@ function printAtiva(){
       +blocoVolumes(todos,ano,planoAno,planoAberto)
       +graficoRitmo(mesesTab,ritmoPlano)
       +blocoPonte(todos,ano);
-
-    renderItens(ano);
 
     /* Guarda o apurado para a impressão executiva montar o relatório sem
        recalcular nem depender do HTML escuro da tela. */
@@ -17203,83 +17214,11 @@ function printAtiva(){
       +'</div>';
   }
 
-  /* ── Produtos produzidos por código ──
-     As linhas do reporte mensal do ERP (REPORTE_VOLUMES) chegam pelo Web App
-     e respondem "o que a fábrica produziu no mês, código a código". Filtro
-     por mês, busca por código/descrição e separação produto × volume — a
-     linha "VOL x/y" é a caixa, não o produto, e por padrão fica de fora
-     para a lista não contar a mesma coisa duas vezes. */
-  var _itMes='', _itTipo='P', _itBusca='', _itAno=null;
+  /* ── Itens do reporte mensal (REPORTE_VOLUMES) ──
+     A listagem e os gráficos ganharam aba própria (Produção por Produto);
+     estes helpers ficam porque o relatório impresso desta aba usa os dois. */
   var RE_IT_VOL=/^VOL\.?\s*\d+\s*\/\s*\d+\s+/i;
   function loadItens(){ try{ return JSON.parse(localStorage.getItem('dash_prod_itens_v1'))||[] }catch(e){ return [] } }
-
-  window._pmItMes=function(m){ _itMes=m; renderItens(_itAno); };
-  window._pmItTipo=function(t){ _itTipo=t; renderItens(_itAno); };
-  window._pmItBusca=function(v){ _itBusca=v||''; renderItens(_itAno); };
-
-  function renderItens(ano){
-    var el=document.getElementById('pm-itens'); if(!el) return;
-    _itAno=ano;
-    var itens=loadItens().filter(function(r){ return r[1]===ano; });
-    if(!itens.length){ el.innerHTML=''; return; }   /* Web App antigo ou aba vazia: seção some */
-
-    var meses=ORDEM_M.filter(function(m){ return itens.some(function(r){ return r[0]===m; }); });
-    if(meses.indexOf(_itMes)<0) _itMes=meses[meses.length-1];
-    var doMes=itens.filter(function(r){ return r[0]===_itMes; });
-
-    var lista=doMes.filter(function(r){
-      var ehVol=RE_IT_VOL.test(r[3]);
-      return _itTipo==='T' ? true : (_itTipo==='V' ? ehVol : !ehVol);
-    });
-    var busca=_itBusca.trim().toUpperCase();
-    if(busca) lista=lista.filter(function(r){
-      return String(r[2]).indexOf(busca)>=0 || String(r[3]).toUpperCase().indexOf(busca)>=0;
-    });
-    lista=lista.slice().sort(function(a,b){ return b[4]-a[4]; });
-    var total=lista.reduce(function(s,r){ return s+r[4]; },0);
-
-    function chip(rot,ativo,onclick){
-      return '<button onclick="'+onclick+'" style="padding:5px 11px;border-radius:14px;font-size:.68rem;cursor:pointer;'
-        +'border:1px solid '+(ativo?'var(--cyan)':'var(--b)')+';'
-        +'background:'+(ativo?'rgba(0,229,255,.12)':'transparent')+';'
-        +'color:'+(ativo?'var(--cyan)':'var(--t2)')+';font-weight:'+(ativo?'700':'400')+'">'+rot+'</button>';
-    }
-    var chipsMes=meses.map(function(m){ return chip(m,_itMes===m,"_pmItMes('"+m+"')"); }).join('');
-    var tipos=[['P','Produtos'],['V','Volumes'],['T','Tudo']];
-    var chipsTipo=tipos.map(function(t){ return chip(t[1],_itTipo===t[0],"_pmItTipo('"+t[0]+"')"); }).join('');
-
-    var linhas=lista.map(function(r){
-      var pct=total>0?(r[4]/total)*100:0;
-      return '<tr><td style="font-family:var(--mono);white-space:nowrap">'+r[2]+'</td>'
-        +'<td>'+r[3]+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+fi(r[4])+'</td>'
-        +'<td style="text-align:right;color:var(--t3);font-size:.72rem">'+fd(pct,1)+'%</td></tr>';
-    }).join('');
-
-    el.innerHTML=
-      '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:24px 0 10px;padding-left:2px">'
-        +'▸ Produtos produzidos por código — '+_itMes+'/'+ano+'</div>'
-      +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 18px">'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
-        +chipsMes
-        +'<span style="width:1px;height:18px;background:var(--b);margin:0 4px"></span>'
-        +chipsTipo
-        +'<input placeholder="buscar código ou descrição…" value="'+_itBusca.replace(/"/g,'&quot;')+'" '
-          +'oninput="_pmItBusca(this.value)" style="margin-left:auto;min-width:210px;padding:6px 11px;'
-          +'border:1px solid var(--b);border-radius:6px;background:rgba(255,255,255,.03);color:var(--t1);font-size:.74rem">'
-      +'</div>'
-      +'<div style="font-size:.7rem;color:var(--t3);margin-bottom:8px">'
-        +lista.length+' '+(_itTipo==='V'?'volumes':(_itTipo==='T'?'itens':'produtos'))+' · total <b style="color:var(--t1)">'+fi(total)+'</b>'
-        +(_itTipo==='P'?' — linhas "VOL x/y" (caixas) fora da conta; use o filtro Volumes para vê-las':'')
-      +'</div>'
-      +'<div style="max-height:430px;overflow:auto;border:1px solid var(--b);border-radius:6px">'
-        +'<table class="prod-table" style="margin:0">'
-        +'<thead><tr><th>Código</th><th>Descrição</th><th style="text-align:right">Qtd</th><th style="text-align:right">%</th></tr></thead>'
-        +'<tbody>'+(linhas||'<tr><td colspan="4" style="color:var(--t3)">Nada encontrado com esse filtro.</td></tr>')+'</tbody>'
-        +'</table>'
-      +'</div>'
-      +'</div>';
-  }
 
   /* ── Evolução do ritmo — SVG, não canvas: acompanha a largura da tela e
        sai no PDF sem virar imagem borrada. Três séries por mês:
@@ -17855,6 +17794,265 @@ function printAtiva(){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(ligar,500); });
   else setTimeout(ligar,500);
 })();
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PRODUÇÃO POR PRODUTO — aba dedicada (grupo PPCP/Capacidade)
+   ─────────────────────────────────────────────────────────────────────────
+   As linhas do reporte mensal do ERP (REPORTE_VOLUMES) respondem "o que a
+   fábrica fabricou, código a código". Aqui elas viram análise: KPIs do
+   período, evolução produtos × volumes, produção por família (o retrato do
+   mix), Pareto e a listagem completa com busca. A linha "VOL x/y" é a
+   caixa, não o produto — fica de fora das contas de produto e aparece só
+   no filtro Volumes da listagem. */
+(function(){
+  var ORDEM_M=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  var RE_VOL=/^VOL\.?\s*\d+\s*\/\s*\d+\s+/i;
+  var DUPLA={MESA:1,MESAS:1,KIT:1,CONJUNTO:1,CANTINHO:1,PAINEL:1,HOME:1,GUARDA:1,PORTA:1,MODULO:1};
+  function fi(n){ return isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—'; }
+  function fd(n,d){ return isFinite(n)?n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'; }
+  function itens(){ try{ return JSON.parse(localStorage.getItem('dash_prod_itens_v1'))||[] }catch(e){ return [] } }
+  function familiaDe(desc){
+    var p=String(desc).trim().toUpperCase().split(/\s+/);
+    return DUPLA[p[0]]&&p[1]?p[0]+' '+p[1]:p[0];
+  }
+
+  var _mes='', _tipo='P', _busca='', _ano=null;
+  window._pcMes=function(m){ _mes=m; render(); };
+  window._pcTipo=function(t){ _tipo=t; renderLista(); };
+  window._pcBusca=function(v){ _busca=v||''; renderLista(); };
+
+  function chip(rot,ativo,onclick,cor){
+    cor=cor||'#FF9800';
+    return '<button onclick="'+onclick+'" style="padding:5px 12px;border-radius:14px;font-size:.7rem;cursor:pointer;'
+      +'border:1px solid '+(ativo?cor:'var(--b)')+';background:'+(ativo?'rgba(255,152,0,.12)':'transparent')+';'
+      +'color:'+(ativo?cor:'var(--t2)')+';font-weight:'+(ativo?'700':'400')+'">'+rot+'</button>';
+  }
+  function card(lbl,val,sub,cor){
+    return '<div class="kCard" style="border-top:3px solid '+cor+'">'
+      +'<div class="kLbl">'+lbl+'</div>'
+      +'<div class="kVal" style="color:'+cor+';font-size:1.6rem">'+val+'</div>'
+      +'<div class="kSub">'+sub+'</div></div>';
+  }
+  function secao(t){ return '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ '+t+'</div>'; }
+  /* barra horizontal em CSS — mesmo desenho do bloco de ponte do mestre */
+  function barraH(rot,sub,v,max,cor,extra){
+    var w=max>0?(v/max)*100:0;
+    return '<div style="display:grid;grid-template-columns:minmax(150px,220px) 1fr minmax(120px,auto);align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--b)">'
+      +'<span style="font-size:.74rem;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+rot+'">'+rot
+        +(sub?'<span style="color:var(--t3);font-size:.62rem"> · '+sub+'</span>':'')+'</span>'
+      +'<span style="position:relative;display:block;height:15px;background:rgba(255,255,255,.03);border-radius:2px">'
+        +'<span style="position:absolute;top:0;bottom:0;left:0;width:'+Math.max(w,0.5)+'%;background:'+cor+';border-radius:2px"></span>'
+      +'</span>'
+      +'<span style="font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.8rem;font-weight:700;text-align:right;color:var(--t1)">'+extra+'</span>'
+      +'</div>';
+  }
+
+  /* Evolução mensal produtos × volumes — SVG, padrão da casa (sai no zoom e
+     no print sem virar imagem borrada). */
+  function graficoEvolucao(porMes){
+    var meses=ORDEM_M.filter(function(m){ return porMes[m]; });
+    if(meses.length<2) return '';
+    var W=1000,H=210,mL=58,mR=14,mT=16,mB=26,gW=W-mL-mR,gH=H-mT-mB;
+    var mx=0;
+    meses.forEach(function(m){ mx=Math.max(mx,porMes[m].prod,porMes[m].vol); });
+    if(mx<=0) return '';
+    mx*=1.08;
+    var passo=gW/meses.length, larg=Math.min(passo*0.3,34);
+    function Y(v){ return mT+gH-(v/mx)*gH; }
+    var barras='',rot='',grade='',eixo='';
+    for(var g=0;g<=4;g++){
+      var v=mx*g/4, y=Y(v);
+      grade+='<line x1="'+mL+'" y1="'+y.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+y.toFixed(1)+'" stroke="rgba(255,255,255,.07)" stroke-width="1"/>';
+      eixo+='<text x="'+(mL-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end" font-size="11" fill="#5a86b0">'+fi(v)+'</text>';
+    }
+    meses.forEach(function(m,i){
+      var x0=mL+i*passo+passo/2, d=porMes[m];
+      barras+='<rect x="'+(x0-larg-2).toFixed(1)+'" y="'+Y(d.prod).toFixed(1)+'" width="'+larg+'" height="'+(mT+gH-Y(d.prod)).toFixed(1)+'" rx="2" fill="#F5A623"><title>'+m+': '+fi(d.prod)+' produtos</title></rect>';
+      if(d.vol>0) barras+='<rect x="'+(x0+2).toFixed(1)+'" y="'+Y(d.vol).toFixed(1)+'" width="'+larg+'" height="'+(mT+gH-Y(d.vol)).toFixed(1)+'" rx="2" fill="#00E5FF"><title>'+m+': '+fi(d.vol)+' volumes</title></rect>';
+      rot+='<text x="'+x0.toFixed(1)+'" y="'+(H-9)+'" text-anchor="middle" font-size="11" fill="#5a86b0">'+m+'</text>';
+    });
+    return '<div style="display:flex;gap:16px;font-size:.68rem;color:var(--t2);margin-bottom:6px">'
+      +'<span><span style="display:inline-block;width:10px;height:10px;background:#F5A623;border-radius:2px;margin-right:5px"></span>Produtos</span>'
+      +'<span><span style="display:inline-block;width:10px;height:10px;background:#00E5FF;border-radius:2px;margin-right:5px"></span>Volumes</span></div>'
+      +'<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grade+eixo+barras+rot+'</svg>';
+  }
+
+  function render(){
+    var corpo=document.getElementById('pc-corpo'); if(!corpo) return;
+    var todos=(typeof load==='function')?load():[];
+    var its=itens();
+    var ano=(typeof anoAtivo!=='undefined'&&anoAtivo)?anoAtivo:null;
+    if(!ano){
+      var anos=its.map(function(r){ return r[1]; });
+      ano=anos.length?Math.max.apply(null,anos):new Date().getFullYear();
+    }
+    _ano=ano;
+    var lbl=document.getElementById('pc-ano-lbl'); if(lbl) lbl.textContent='Produção '+ano;
+
+    var doAno=its.filter(function(r){ return r[1]===ano; });
+    if(!doAno.length){
+      corpo.innerHTML='<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid #FF9800;border-radius:var(--r);padding:16px 20px;font-size:.82rem;color:var(--t1);line-height:1.6;max-width:960px">'
+        +'Os dados desta aba vêm das linhas do reporte mensal do ERP na aba <b>REPORTE_VOLUMES</b> da planilha '
+        +'e chegam no sync com o Sheets. Se não aparecer nada: confira se a REPORTE_VOLUMES tem os meses colados '
+        +'(ou a automação do Drive rodando) e se o Web App implantado é o que envia <b>producaoItens</b> (b44+).</div>';
+      return;
+    }
+
+    var meses=ORDEM_M.filter(function(m){ return doAno.some(function(r){ return r[0]===m; }); });
+    if(_mes&&meses.indexOf(_mes)<0) _mes='';
+    var periodo=_mes?doAno.filter(function(r){ return r[0]===_mes; }):doAno;
+    var rotPer=_mes?_mes+'/'+ano:'ano de '+ano;
+
+    /* agregados do período (itens): produtos por código, famílias */
+    var agg={}, totProdI=0, totVolLin=0;
+    periodo.forEach(function(r){
+      if(RE_VOL.test(r[3])){ totVolLin+=r[4]; return; }
+      if(!agg[r[2]]) agg[r[2]]={cod:r[2],desc:r[3],q:0};
+      agg[r[2]].q+=r[4]; totProdI+=r[4];
+    });
+    var lista=Object.keys(agg).map(function(k){ return agg[k]; }).sort(function(a,b){ return b.q-a.q; });
+
+    /* volumes/kg lançados na HISTORICO para o período — sem exigir produção
+       fechada: o lançamento de volumes pode chegar antes do fechamento das
+       horas, e o mês não pode sumir da conta por isso */
+    var regs=todos.filter(function(r){ return r.ano===ano&&(!_mes||r.mes===_mes); });
+    var volH=0,kgH=0;
+    regs.forEach(function(r){ volH+=(r.volumesProduzidos||r.volumes||r.qtdeVolumes||0); kgH+=(r.quilosProduzidos||r.quilos||r.kg||0); });
+    var fator=volH>0&&totProdI>0?volH/totProdI:null;
+
+    /* Pareto */
+    var acum=0,n80=0;
+    for(var i=0;i<lista.length;i++){ acum+=lista[i].q; if(!n80&&acum>=totProdI*0.8) n80=i+1; }
+
+    /* famílias */
+    var fam={};
+    lista.forEach(function(p){
+      var f=familiaDe(p.desc);
+      if(!fam[f]) fam[f]={nome:f,q:0,itens:0};
+      fam[f].q+=p.q; fam[f].itens++;
+    });
+    var famLista=Object.keys(fam).map(function(k){ return fam[k]; }).sort(function(a,b){ return b.q-a.q; });
+
+    /* evolução mensal (sempre o ano inteiro, mesmo com mês filtrado) */
+    var porMes={};
+    doAno.forEach(function(r){
+      if(RE_VOL.test(r[3])) return;
+      if(!porMes[r[0]]) porMes[r[0]]={prod:0,vol:0};
+      porMes[r[0]].prod+=r[4];
+    });
+    todos.filter(function(r){ return r.ano===ano; }).forEach(function(r){
+      var v=r.volumesProduzidos||r.volumes||r.qtdeVolumes||0;
+      if(v>0&&porMes[r.mes]) porMes[r.mes].vol=v;
+    });
+
+    var chips='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+      +chip('ANO',_mes==='',"_pcMes('')")
+      +meses.map(function(m){ return chip(m,_mes===m,"_pcMes('"+m+"')"); }).join('')
+      +'</div>';
+
+    var kpis='<div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">'
+      +card('Produtos fabricados', fi(totProdI), rotPer, '#F5A623')
+      +card('Volumes', volH>0?fi(volH):'—', volH>0?'lançados na HISTORICO':'sem lançamento no período', '#00E5FF')
+      +card('Fator de embalagem', fator?fd(fator,2):'—', fator?'volumes ÷ produtos':'—', '#00E5FF')
+      +card('Produtos distintos', fi(lista.length), n80?(n80+' fazem 80% da produção'):'—', '#FF9800')
+      +(kgH>0?card('Quilos produzidos', fi(kgH), fd(kgH/totProdI,1)+' kg/produto', '#4CAF50'):'')
+      +'</div>';
+
+    var maxFam=famLista.length?famLista[0].q:0;
+    var famHtml=secao('Produção por família — '+rotPer)
+      +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 18px">'
+      +famLista.slice(0,10).map(function(f){
+          return barraH(f.nome, f.itens+' itens', f.q, maxFam, '#F5A623', fi(f.q)+' · '+fd((f.q/totProdI)*100,1)+'%');
+        }).join('')
+      +(famLista.length>10?'<div style="font-size:.68rem;color:var(--t3);padding-top:8px">+ '+(famLista.length-10)+' famílias menores</div>':'')
+      +'</div>';
+
+    var maxTop=lista.length?lista[0].q:0, acum2=0;
+    var paretoHtml=secao('Pareto — top 12 produtos de '+rotPer)
+      +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 18px">'
+      +lista.slice(0,12).map(function(p){
+          acum2+=p.q;
+          return barraH(p.desc, p.cod, p.q, maxTop, '#00E5FF', fi(p.q)+' · acum '+fd((acum2/totProdI)*100,0)+'%');
+        }).join('')
+      +'<div style="font-size:.68rem;color:var(--t3);padding-top:8px">'+n80+' de '+lista.length
+        +' produtos ('+fd((n80/Math.max(lista.length,1))*100,0)+'%) concentram 80% das unidades do período.</div>'
+      +'</div>';
+
+    var evolucao=graficoEvolucao(porMes);
+    var evolHtml=evolucao
+      ? secao('Evolução mensal — produtos × volumes')
+        +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 18px">'+evolucao+'</div>'
+      : '';
+
+    corpo.innerHTML=chips+kpis+evolHtml
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;align-items:start">'
+      +'<div>'+famHtml+'</div><div>'+paretoHtml+'</div></div>'
+      +secao('Listagem completa — '+rotPer)
+      +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 18px" id="pc-lista"></div>';
+    renderLista();
+  }
+
+  /* Listagem com busca e tipo — renderizada à parte para a digitação na busca
+     não redesenhar os gráficos (e não perder o foco do campo). */
+  function renderLista(){
+    var el=document.getElementById('pc-lista'); if(!el) return;
+    var doPer=itens().filter(function(r){ return r[1]===_ano&&(!_mes||r[0]===_mes); });
+    var lista=doPer.filter(function(r){
+      var ehVol=RE_VOL.test(r[3]);
+      return _tipo==='T'?true:(_tipo==='V'?ehVol:!ehVol);
+    });
+    /* agrega por código (ano inteiro repete o código mês a mês) */
+    var agg={};
+    lista.forEach(function(r){
+      if(!agg[r[2]]){ agg[r[2]]={cod:r[2],desc:r[3],q:0}; }
+      agg[r[2]].q+=r[4];
+    });
+    var linhas=Object.keys(agg).map(function(k){ return agg[k]; });
+    var busca=_busca.trim().toUpperCase();
+    if(busca) linhas=linhas.filter(function(p){
+      return p.cod.indexOf(busca)>=0||p.desc.toUpperCase().indexOf(busca)>=0;
+    });
+    linhas.sort(function(a,b){ return b.q-a.q; });
+    var total=linhas.reduce(function(s,p){ return s+p.q; },0);
+
+    var tipos=[['P','Produtos'],['V','Volumes'],['T','Tudo']];
+    var chipsTipo=tipos.map(function(t){ return chip(t[1],_tipo===t[0],"_pcTipo('"+t[0]+"')"); }).join('');
+    el.innerHTML=
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
+        +chipsTipo
+        +'<input placeholder="buscar código ou descrição…" value="'+_busca.replace(/"/g,'&quot;')+'" '
+          +'oninput="_pcBusca(this.value)" style="margin-left:auto;min-width:210px;padding:6px 11px;'
+          +'border:1px solid var(--b);border-radius:6px;background:rgba(255,255,255,.03);color:var(--t1);font-size:.74rem">'
+      +'</div>'
+      +'<div style="font-size:.7rem;color:var(--t3);margin-bottom:8px">'
+        +linhas.length+' '+(_tipo==='V'?'volumes (caixas)':(_tipo==='T'?'itens':'produtos'))
+        +' · total <b style="color:var(--t1)">'+fi(total)+'</b>'
+        +(_tipo==='P'?' — linhas "VOL x/y" (caixas) fora da conta':'')
+      +'</div>'
+      +'<div style="max-height:430px;overflow:auto;border:1px solid var(--b);border-radius:6px">'
+        +'<table class="prod-table" style="margin:0">'
+        +'<thead><tr><th>Código</th><th>Descrição</th><th style="text-align:right">Qtd</th><th style="text-align:right">%</th></tr></thead>'
+        +'<tbody>'+(linhas.map(function(p){
+            return '<tr><td style="font-family:var(--mono);white-space:nowrap">'+p.cod+'</td>'
+              +'<td>'+p.desc+'</td>'
+              +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+fi(p.q)+'</td>'
+              +'<td style="text-align:right;color:var(--t3);font-size:.72rem">'+fd(total>0?(p.q/total)*100:0,1)+'%</td></tr>';
+          }).join('')||'<tr><td colspan="4" style="color:var(--t3)">Nada encontrado com esse filtro.</td></tr>')+'</tbody>'
+        +'</table>'
+      +'</div>';
+  }
+
+  function ligar(){
+    render();
+    if(window.DashBus&&window.DashBus.on){
+      window.DashBus.on('dados:salvos',render);
+      window.DashBus.on('render:feito',render);
+      window.DashBus.on('pagina:mudou',function(p){ if(p&&p.id==='prodcod') setTimeout(render,40); });
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(ligar,600); });
+  else setTimeout(ligar,600);
+})();
 </script>
 <style id="status-pulse">
 /* Veredito de status pulsa na própria cor — puxa o olho para a conclusão */
@@ -17874,9 +18072,14 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b46';
+var APP_VERSAO = 'b47';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b47', data:'10/08/2026', itens:[
+    'Aba dedicada Producao por Produto no grupo PPCP/Capacidade, com graficos.',
+    'KPIs do periodo, evolucao mensal produtos x volumes, producao por familia, Pareto e listagem completa com busca.',
+    'A listagem sai da aba Planejamento Mestre — agora mora na aba propria.'
+  ]},
   { v:'b46', data:'10/08/2026', itens:[
     'Relatorio de producao ganha leitura de PCP: kg e vol/dia no mes a mes, producao por familia, Pareto (quantos produtos concentram 80%) e paragrafo de analise.',
     'Top produtos com % acumulado e media mensal nos meses em que o produto rodou.'
