@@ -18010,11 +18010,124 @@ function printAtiva(){
       : '';
 
     corpo.innerHTML=chips+kpis+evolHtml
+      +comparativo(doAno,todos,ano)
       +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;align-items:start">'
       +'<div>'+famHtml+'</div><div>'+paretoHtml+'</div></div>'
       +secao('Listagem completa — '+rotPer)
       +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 18px" id="pc-lista"></div>';
     renderLista();
+  }
+
+  /* ── Comparativo contra o ano anterior ──
+     Só os meses presentes NOS DOIS anos: 2026 tem 7 meses e 2025 tem 12; sem
+     esse corte, "produção caiu 47%" seria só calendário. Compara produtos,
+     volumes, fator e peso — e mostra quais famílias moveram o mix, que é a
+     pergunta que o fator sozinho não responde. */
+  function comparativo(itsAno,todos,ano){
+    var anoAnt=ano-1;
+    var itsAnt=itens().filter(function(r){ return r[1]===anoAnt; });
+    if(!itsAnt.length||!itsAno.length) return '';
+    var mesesA={},mesesB={};
+    itsAnt.forEach(function(r){ if(!RE_VOL.test(r[3])) mesesA[r[0]]=1; });
+    itsAno.forEach(function(r){ if(!RE_VOL.test(r[3])) mesesB[r[0]]=1; });
+    var comuns=ORDEM_M.filter(function(m){
+      return mesesA[m]&&mesesB[m]&&(!_mes||m===_mes);
+    });
+    if(!comuns.length) return '';
+
+    function apura(its,anoRef){
+      var prod=0, fam={};
+      its.forEach(function(r){
+        if(RE_VOL.test(r[3])||comuns.indexOf(r[0])<0) return;
+        prod+=r[4];
+        var f=familiaDe(r[3]);
+        fam[f]=(fam[f]||0)+r[4];
+      });
+      var vol=0,kg=0;
+      todos.forEach(function(r){
+        if(r.ano!==anoRef||comuns.indexOf(r.mes)<0) return;
+        vol+=(r.volumesProduzidos||r.volumes||r.qtdeVolumes||0);
+        kg+=(r.quilosProduzidos||r.quilos||r.kg||0);
+      });
+      return { prod:prod, vol:vol, kg:kg,
+               fator:prod>0?vol/prod:0, kgPc:prod>0?kg/prod:0, fam:fam };
+    }
+    var A=apura(itsAnt,anoAnt), B=apura(itsAno,ano);
+    if(!A.prod||!B.prod) return '';
+
+    function linha(rot,a,b,dec,sufixo,inverso){
+      if(!a||!b) return '';
+      var d=(b/a-1)*100;
+      var cor=(inverso?-d:d)>=0?'#4CAF50':'#F44336';
+      return '<tr><td style="padding:7px 10px;color:var(--t2);font-size:.78rem">'+rot+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--t2)">'+(dec?fd(a,dec):fi(a))+(sufixo||'')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-family:var(--mono);font-weight:700;color:var(--t1)">'+(dec?fd(b,dec):fi(b))+(sufixo||'')+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-family:var(--mono);font-weight:700;color:'+cor+'">'
+        +(d>=0?'+':'')+fd(d,1)+'%</td></tr>';
+    }
+
+    /* famílias que mais moveram participação — é o mix mudando de verdade */
+    var chaves={};
+    Object.keys(A.fam).forEach(function(k){ chaves[k]=1; });
+    Object.keys(B.fam).forEach(function(k){ chaves[k]=1; });
+    var movs=Object.keys(chaves).map(function(k){
+      var pa=(A.fam[k]||0)/A.prod*100, pb=(B.fam[k]||0)/B.prod*100;
+      return { nome:k, qa:A.fam[k]||0, qb:B.fam[k]||0, pa:pa, pb:pb, dp:pb-pa };
+    }).filter(function(x){ return x.qa>0||x.qb>0; })
+      .sort(function(x,y){ return Math.abs(y.dp)-Math.abs(x.dp); }).slice(0,8);
+
+    var linhasFam=movs.map(function(f){
+      var cor=f.dp>=0?'#4CAF50':'#F44336';
+      return '<tr><td style="padding:6px 10px;font-size:.76rem;color:var(--t1)">'+f.nome+'</td>'
+        +'<td style="padding:6px 10px;text-align:right;font-family:var(--mono);color:var(--t2);font-size:.75rem">'+fi(f.qa)+' · '+fd(f.pa,1)+'%</td>'
+        +'<td style="padding:6px 10px;text-align:right;font-family:var(--mono);color:var(--t1);font-size:.75rem;font-weight:700">'+fi(f.qb)+' · '+fd(f.pb,1)+'%</td>'
+        +'<td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700;color:'+cor+'">'
+        +(f.dp>=0?'+':'')+fd(f.dp,1)+' p.p.</td></tr>';
+    }).join('');
+
+    var dFator=A.fator&&B.fator?(B.fator/A.fator-1)*100:null;
+    var dPeso=A.kgPc&&B.kgPc?(B.kgPc/A.kgPc-1)*100:null;
+    var lider=movs.filter(function(f){ return f.dp>0; })[0];
+    var perde=movs.filter(function(f){ return f.dp<0; })[0];
+    var msg='Comparando os mesmos <b>'+comuns.length+'</b> '+(comuns.length>1?'meses':'mês')
+      +' ('+comuns.join(', ')+') de '+anoAnt+' e '+ano+'. ';
+    if(dFator!==null){
+      msg+='Cada produto saiu em <b style="color:'+(dFator>=0?'#FF9800':'#4CAF50')+'">'+fd(B.fator,2)
+        +' volumes</b> contra '+fd(A.fator,2)+' — '+(dFator>=0?'mais':'menos')+' caixas por produto ('
+        +(dFator>=0?'+':'')+fd(dFator,1)+'%). ';
+    }
+    if(dPeso!==null){
+      msg+='O peso médio por produto '+(dPeso>=0?'subiu':'caiu')+' <b>'+(dPeso>=0?'+':'')+fd(dPeso,1)
+        +'%</b> ('+fd(B.kgPc,1)+' kg contra '+fd(A.kgPc,1)+'): '
+        +(dPeso>=0?'a fábrica está fazendo peças maiores, que consomem mais linha e mais caixa por unidade.'
+                  :'as peças ficaram menores — mais unidades pelo mesmo esforço físico.');
+    }
+    if(lider||perde){
+      msg+=' No mix, '+(lider?'<b>'+lider.nome+'</b> ganhou '+fd(lider.dp,1)+' p.p.':'')
+        +(lider&&perde?' e ':'')+(perde?'<b>'+perde.nome+'</b> perdeu '+fd(Math.abs(perde.dp),1)+' p.p.':'')+'.';
+    }
+
+    return secao('Contra '+anoAnt+' — mesmos meses')
+      +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid #F5A623;border-radius:var(--r);padding:14px 18px">'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px;align-items:start">'
+      +'<div><table style="width:100%;border-collapse:collapse">'
+        +'<thead><tr>'
+          +'<th style="text-align:left;padding:6px 10px;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--b)">Indicador</th>'
+          +'<th style="text-align:right;padding:6px 10px;font-size:.6rem;letter-spacing:.1em;color:var(--t3);border-bottom:1px solid var(--b)">'+anoAnt+'</th>'
+          +'<th style="text-align:right;padding:6px 10px;font-size:.6rem;letter-spacing:.1em;color:var(--t3);border-bottom:1px solid var(--b)">'+ano+'</th>'
+          +'<th style="text-align:right;padding:6px 10px;font-size:.6rem;letter-spacing:.1em;color:var(--t3);border-bottom:1px solid var(--b)">Δ</th>'
+        +'</tr></thead><tbody>'
+        +linha('Produtos fabricados',A.prod,B.prod)
+        +linha('Volumes',A.vol,B.vol)
+        +linha('Fator de embalagem',A.fator,B.fator,2,' vol')
+        +linha('Quilos produzidos',A.kg,B.kg)
+        +linha('Peso por produto',A.kgPc,B.kgPc,1,' kg')
+        +'</tbody></table></div>'
+      +'<div><div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);padding:0 10px 6px">Famílias que moveram o mix</div>'
+        +'<table style="width:100%;border-collapse:collapse"><tbody>'+linhasFam+'</tbody></table></div>'
+      +'</div>'
+      +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1);margin-top:12px;max-width:1000px">'+msg+'</div>'
+      +'</div>';
   }
 
   /* Listagem com busca e tipo — renderizada à parte para a digitação na busca
@@ -18134,6 +18247,49 @@ function printAtiva(){
         +'<td class="n"><b>'+(kgH>0?fi(kgH):'—')+'</b></td></tr></tbody></table>';
     }
 
+    /* Comparativo contra o ano anterior — mesmos meses, mesma régua da tela */
+    var secComp='';
+    (function(){
+      var anoAnt=ano-1;
+      var itsAnt=itens().filter(function(r){ return r[1]===anoAnt&&!RE_VOL.test(r[3]); });
+      if(!itsAnt.length) return;
+      var mA={},mB={};
+      itsAnt.forEach(function(r){ mA[r[0]]=1; });
+      periodo.forEach(function(r){ if(!RE_VOL.test(r[3])) mB[r[0]]=1; });
+      var comuns=ORDEM_M.filter(function(m){ return mA[m]&&mB[m]; });
+      if(!comuns.length) return;
+      function ap(src,anoRef){
+        var prod=0;
+        src.forEach(function(r){ if(!RE_VOL.test(r[3])&&comuns.indexOf(r[0])>=0) prod+=r[4]; });
+        var vol=0,kg=0;
+        todos.forEach(function(r){
+          if(r.ano!==anoRef||comuns.indexOf(r.mes)<0) return;
+          vol+=(r.volumesProduzidos||r.volumes||r.qtdeVolumes||0);
+          kg+=(r.quilosProduzidos||r.quilos||r.kg||0);
+        });
+        return { prod:prod, vol:vol, kg:kg, fator:prod?vol/prod:0, kgPc:prod?kg/prod:0 };
+      }
+      var A=ap(itsAnt,anoAnt), B=ap(periodo,ano);
+      if(!A.prod||!B.prod) return;
+      function ln(rot,a,b,dec,suf){
+        if(!a||!b) return '';
+        var d=(b/a-1)*100;
+        return '<tr><td>'+rot+'</td><td class="n">'+(dec?fd(a,dec):fi(a))+(suf||'')+'</td>'
+          +'<td class="n"><b>'+(dec?fd(b,dec):fi(b))+(suf||'')+'</b></td>'
+          +'<td class="n" style="color:'+(d>=0?'#2f855a':'#c53030')+'"><b>'+(d>=0?'+':'')+fd(d,1)+'%</b></td></tr>';
+      }
+      secComp='<div class="st">Contra '+anoAnt+' — mesmos '+comuns.length+' meses ('+comuns.join(', ')+')</div>'
+        +'<table style="width:auto;min-width:420px"><thead><tr><th>Indicador</th>'
+        +'<th style="text-align:right">'+anoAnt+'</th><th style="text-align:right">'+ano+'</th>'
+        +'<th style="text-align:right">Δ</th></tr></thead><tbody>'
+        +ln('Produtos fabricados',A.prod,B.prod)
+        +ln('Volumes',A.vol,B.vol)
+        +ln('Fator de embalagem',A.fator,B.fator,2,' vol')
+        +ln('Quilos produzidos',A.kg,B.kg)
+        +ln('Peso por produto',A.kgPc,B.kgPc,1,' kg')
+        +'</tbody></table>';
+    })();
+
     var f1=famLista[0], f2=famLista[1];
     var narrativa='<div class="ver"><p>'
       +'No período ('+rotPer+') a fábrica produziu <b>'+fi(totProdI)+' produtos</b> de <b>'+lista.length
@@ -18246,6 +18402,7 @@ function printAtiva(){
       +kpis
       +narrativa
       +tabMes
+      +secComp
       +tabFam
       +listagem
       +'</div>'
@@ -18327,9 +18484,14 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b50';
+var APP_VERSAO = 'b51';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b51', data:'10/08/2026', itens:[
+    'Comparativo contra o ano anterior na aba Producao por Produto — so os meses presentes nos dois anos, senao seria comparacao de calendario.',
+    'Produtos, volumes, fator, quilos e peso por produto lado a lado, mais as familias que moveram o mix (em pontos percentuais).',
+    'O mesmo quadro entra no relatorio impresso da aba.'
+  ]},
   { v:'b50', data:'10/08/2026', itens:[
     'Filtro lateral de mes sincroniza (mao unica) com as abas de filtro proprio: um mes marcado na sidebar vira o mes inicial da Producao por Produto e do Cap x Faturamento.',
     'Aviso discreto nas duas abas explicando quem manda no periodo.'
