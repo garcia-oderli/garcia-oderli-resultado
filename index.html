@@ -4266,6 +4266,11 @@ body.pg-reuniao aside.sidebar { max-height: calc(100vh - 225px); overflow-y: aut
 body.pg-reuniao.tv-mode aside.sidebar { max-height: calc(100vh - 265px); }
 body.pg-reuniao aside.sidebar::-webkit-scrollbar { width: 6px; }
 body.pg-reuniao aside.sidebar::-webkit-scrollbar-thumb { background: var(--b); border-radius: 3px; }
+/* card que desce um nível da pirâmide: só sinaliza no hover, para não poluir
+   a tela projetada com afordância que ninguém usa durante a fala */
+#page-reuniao .reu-link { transition: border-color .15s, transform .15s; }
+#page-reuniao .reu-link:hover { border-color: var(--cyan); transform: translateY(-2px); }
+#page-reuniao .reu-link:hover .reu-lbl::after { content: ' ↗'; color: var(--cyan); }
 </style>
 <div class="page" id="page-reuniao">
   <div class="pageHdr">
@@ -4274,7 +4279,7 @@ body.pg-reuniao aside.sidebar::-webkit-scrollbar-thumb { background: var(--b); b
     </div>
     <div>
       <div class="pageHdrTitle">Reunião do Mês</div>
-      <div class="pageHdrSub">Entrega · capacidade · demanda · mix — tudo em uma tela</div>
+      <div class="pageHdrSub">Nível 1 da pirâmide — diretoria, mensal · clique num indicador para descer ao detalhe</div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
       <span id="reu-per-lbl" style="font-family:var(--mono);font-size:1rem;font-weight:800;letter-spacing:.06em;
@@ -18653,8 +18658,13 @@ function printAtiva(){
   }
   /* Compacto de propósito: os cinco blocos têm de caber em 1080p sem
      rolagem, com sidebar aberta. Cada folga aqui vira rolagem no telão. */
-  function card(lbl,val,sub,cor,grande){
-    return '<div class="reu-card'+(grande?' reu-big':'')+'" style="background:var(--panel);border:1px solid var(--b);border-top:3px solid '+cor+';'
+  /* Pirâmide: esta tela é o nível 1 (diretoria, mensal). Quando alguém pede o
+     detalhe, o card leva à aba que o apura — nível 2 ou 3. É o que permite
+     "sem navegação" na maior parte da reunião sem perder a profundidade. */
+  function card(lbl,val,sub,cor,grande,ir){
+    var nav=ir?' onclick="reuIr(\''+ir+'\')" title="Ver o detalhe — '+ir+'" style="cursor:pointer;':' style="';
+    return '<div class="reu-card'+(grande?' reu-big':'')+(ir?' reu-link':'')+'"'+nav
+      +'background:var(--panel);border:1px solid var(--b);border-top:3px solid '+cor+';'
       +'border-radius:var(--r);padding:'+(grande?'11px 15px':'9px 13px')+'">'
       +'<div class="reu-lbl" style="font-size:.57rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">'+lbl+'</div>'
       +'<div class="reu-val" style="font-family:var(--mono);font-size:'+(grande?'1.85rem':'1.3rem')+';font-weight:800;line-height:1.05;color:'+cor+'">'+val+'</div>'
@@ -18731,50 +18741,50 @@ function printAtiva(){
     /* ── 2 · entrega ── */
     var b2=card('Produção de '+mes, fi(rMes.producaoReal)+' pç',
                 planoMes>0?(fd(atMes,1)+'% do plano do mês'):'sem plano no mês',
-                planoMes>0?corMeta(atMes,100):'#F5A623', true)
+                planoMes>0?corMeta(atMes,100):'#F5A623', true, 'mestre')
       +card('Acumulado do ano', fi(Y.prod)+' pç',
             pm&&pm.planoAno>0?(fd((Y.prod/pm.planoAno)*100,1)+'% do plano do ano'):(Y.n+' meses fechados'),
-            '#F5A623', true)
+            '#F5A623', true, 'mestre')
       +(pm?card('Ritmo demonstrado', fi(pm.ritmoDem)+' pç/dia',
-              'exigido '+fi(pm.ritmoExig)+' pç/dia', pm.pctFolga>=0?'#4CAF50':'#F44336', true):'')
+              'exigido '+fi(pm.ritmoExig)+' pç/dia', pm.pctFolga>=0?'#4CAF50':'#F44336', true, 'mestre'):'')
       +(pm&&pm.planoAberto>0?card('Falta produzir', fi(pm.planoAberto)+' pç',
-              pm.diasAbertos+' dias úteis · '+fi(pm.ritmoNecR)+' pç/dia', '#FF9800', true):'');
+              pm.diasAbertos+' dias úteis · '+fi(pm.ritmoNecR)+' pç/dia', '#FF9800', true, 'mestre'):'');
 
     /* ── 3 · capacidade e custo ── */
     var META_EF_=(typeof META_EF!=='undefined')?META_EF:90;
-    var b3=card('Eficiência', fd(A.efMed,1)+'%', 'ano '+fd(Y.efMed,1)+'% · meta '+META_EF_+'%', corMeta(A.efMed,META_EF_))
-      +card('Absenteísmo', fd(A.absMed,1)+'%', 'ano '+fd(Y.absMed,1)+'%', corMeta(A.absMed,5,true))
-      +card('Hora extra', fi(A.he)+' h', fd(A.pctHE,1)+'% das horas · ano '+fi(Y.he)+' h', A.pctHE<=15?'#4CAF50':'#FF9800')
-      +(pm&&pm.heP>0?card('Só saiu com HE', fi(pm.heP)+' pç', 'peças que dependeram de hora extra no ano', '#FF9800'):'')
-      +(A.tktMed>0?card('Ticket médio', 'R$ '+fd(A.tktMed,2), 'ano R$ '+fd(Y.tktMed,2), '#00E5FF'):'');
+    var b3=card('Eficiência', fd(A.efMed,1)+'%', 'ano '+fd(Y.efMed,1)+'% · meta '+META_EF_+'%', corMeta(A.efMed,META_EF_), false, 'eficiencia')
+      +card('Absenteísmo', fd(A.absMed,1)+'%', 'ano '+fd(Y.absMed,1)+'%', corMeta(A.absMed,5,true), false, 'pessoas')
+      +card('Hora extra', fi(A.he)+' h', fd(A.pctHE,1)+'% das horas · ano '+fi(Y.he)+' h', A.pctHE<=15?'#4CAF50':'#FF9800', false, 'eficiencia')
+      +(pm&&pm.heP>0?card('Só saiu com HE', fi(pm.heP)+' pç', 'peças que dependeram de hora extra no ano', '#FF9800', false, 'mestre'):'')
+      +(A.tktMed>0?card('Ticket médio', 'R$ '+fd(A.tktMed,2), 'ano R$ '+fd(Y.tktMed,2), '#00E5FF', false, 'producao'):'');
 
     /* ── 4 · demanda × capacidade ── */
     var b4='';
     if(pm&&pm.planoFech>0&&(pm.fatFech>0||pm.venFech>0)){
       var backlog=pm.venFech-pm.fatFech;
       var pv=pm.venFech>0?((pm.planoFech/pm.venFech)-1)*100:null;
-      b4=card('Plano do período', fi(pm.planoFech)+' pç', 'meses já fechados', '#00E5FF')
-        +card('Faturado', fi(pm.fatFech)+' pç', 'no mesmo período', '#F5A623')
+      b4=card('Plano do período', fi(pm.planoFech)+' pç', 'meses já fechados', '#00E5FF', false, 'mestre')
+        +card('Faturado', fi(pm.fatFech)+' pç', 'no mesmo período', '#F5A623', false, 'capfat')
         +card('Vendido (carteira)', fi(pm.venFech)+' pç',
-              pv!==null?('plano '+pct(pv)+' vs vendido'):'', pv!==null&&pv<0?'#F44336':'#4CAF50')
+              pv!==null?('plano '+pct(pv)+' vs vendido'):'', pv!==null&&pv<0?'#F44336':'#4CAF50', false, 'mestre')
         +card('Carteira a faturar', (backlog>=0?'+':'')+fi(backlog)+' pç',
               backlog>0?'fila que a fábrica ainda deve':'consumiu carteira anterior',
-              backlog>0?'#FF9800':'#4CAF50');
+              backlog>0?'#FF9800':'#4CAF50', false, 'mestre');
     }
 
     /* ── 5 · mix e volumes ── */
     var b5='';
     if(pcM){
       var pnt=pm&&pm.ponte?pm.ponte:null;
-      b5=card('Volumes de '+mes, fi(pcM.vol), 'caixas embaladas no mês', '#00E5FF')
-        +card('Fator de embalagem', fd(pcM.fator,2)+' vol/pç', 'ano '+(pcY?fd(pcY.fator,2):'—')+' vol/pç', '#00E5FF')
+      b5=card('Volumes de '+mes, fi(pcM.vol), 'caixas embaladas no mês', '#00E5FF', false, 'prodcod')
+        +card('Fator de embalagem', fd(pcM.fator,2)+' vol/pç', 'ano '+(pcY?fd(pcY.fator,2):'—')+' vol/pç', '#00E5FF', false, 'prodcod')
         +(pcM.kgPc>0?card('Peso por produto', fd(pcM.kgPc,1)+' kg',
-              pnt&&pnt.temKg?('contra '+fd(pnt.kgPc_a,1)+' kg em '+pnt.anoAnt):'produção física do mês','#4CAF50'):'')
+              pnt&&pnt.temKg?('contra '+fd(pnt.kgPc_a,1)+' kg em '+pnt.anoAnt):'produção física do mês','#4CAF50', false, 'prodcod'):'')
         +(pcM.famLider?card('Família líder', pcM.famLider.nome,
-              fd((pcM.famLider.q/pcM.prod)*100,1)+'% da produção do mês','#F5A623'):'')
+              fd((pcM.famLider.q/pcM.prod)*100,1)+'% da produção do mês','#F5A623', false, 'prodcod'):'')
         +(pnt?card('Peças por hora vs '+pnt.anoAnt, pct(pnt.pctPcH),
               pnt.temKg?('em quilos '+pct(pnt.pctKgH)+' — mix explica a diferença'):'sem quilos para separar mix',
-              pnt.pctPcH>=0?'#4CAF50':'#F44336'):'');
+              pnt.pctPcH>=0?'#4CAF50':'#F44336', false, 'mestre'):'');
     }
 
     corpo.innerHTML=manchete
@@ -18827,6 +18837,21 @@ function printAtiva(){
     w.document.close();
     w.addEventListener('afterprint', function(){ w.close(); });
     setTimeout(function(){ w.focus(); w.print(); }, 700);
+  };
+
+  /* Descida de nível: leva à aba que apura o número do card. */
+  window.reuIr=function(id){
+    if(typeof mudarPagina==='function') mudarPagina(id);
+    /* acende o grupo certo na barra de cima, senão o usuário se perde */
+    try{
+      var g={mestre:'ppcp-cap',prodcod:'ppcp-cap',capfat:'ppcp-cap',ppcp:'ppcp-cap',
+             eficiencia:'operacao',pessoas:'operacao',producao:'producao-grp',takt:'producao-grp'}[id];
+      if(g&&typeof mudarGrupo==='function'){
+        var btn=document.querySelector('.pTab[data-group="'+g+'"]');
+        mudarGrupo(g,btn);
+        if(typeof mudarSubPagina==='function') mudarSubPagina(id,null);
+      }
+    }catch(e){}
   };
 
   /* A classe no body liga o CSS que faz a barra lateral rolar por dentro —
@@ -18911,9 +18936,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b57';
+var APP_VERSAO = 'b58';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b58', data:'10/08/2026', itens:[
+    'Piramide de KPI explicita: a aba Reuniao e o nivel 1 (diretoria, mensal) e cada indicador desce para a aba que o apura.',
+    'Clicar num card leva a aba de detalhe e acende o grupo certo na barra — a reuniao so navega quando alguem pede o detalhe.'
+  ]},
   { v:'b57', data:'10/08/2026', itens:[
     'Aba Reuniao do Mes: uma tela so com o que a diretoria discute — veredito do plano, entrega, capacidade e custo, demanda e mix.',
     'Nao recalcula nada: consome o apurado do Planejamento Mestre e da Producao por Produto, entao nenhum numero diverge das abas de origem.',
