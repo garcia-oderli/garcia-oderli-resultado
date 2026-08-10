@@ -53,7 +53,8 @@ function doGet() {
     var plano = lerPlanoMestre(ss);
     aplicarPlano(dados, plano);
     saida = { ok: true, dados: dados, plano: plano.produtos,
-              planoVolumes: plano.volumes, geradoEm: new Date().toISOString() };
+              planoVolumes: plano.volumes, planoLotes: plano.lotes,
+              geradoEm: new Date().toISOString() };
   } catch (e) {
     saida = { ok: false, erro: String(e && e.message || e) };
   }
@@ -250,11 +251,12 @@ function lerHistorico(ss) {
 }
 
 /* ══ PLANO MESTRE ══
-   Devolve { produtos: { '2026': { JAN: 22828, ... } }, volumes: {...} }
-   lendo as linhas TOTAL GERAL e TOTAL VOLUMES (opcional) e o cabeçalho de
-   meses da própria aba. */
+   Devolve { produtos: { '2026': { JAN: 22828, ... } }, volumes: {...},
+   lotes: [{ lote:'032-26', meses:{ '2026': { SET: 9000 } } }, ...] }
+   lendo as linhas TOTAL GERAL e TOTAL VOLUMES (opcional), a matriz de lotes
+   entre o cabeçalho e o total, e o cabeçalho de meses da própria aba. */
 function lerPlanoMestre(ss) {
-  var plano = { produtos: {}, volumes: {} };
+  var plano = { produtos: {}, volumes: {}, lotes: [] };
   var aba = ss.getSheetByName(ABA_PLANO);
   if (!aba) return plano;
 
@@ -283,6 +285,18 @@ function lerPlanoMestre(ss) {
   }
   lerLinha(iTotal, plano.produtos);
   lerLinha(iVol, plano.volumes);
+
+  /* Matriz de lotes: as linhas entre o cabeçalho de meses e o TOTAL GERAL.
+     É a programação em si — cada linha diz quanto de cada lote está
+     programado em cada mês. Linha sem código ou de total não entra. */
+  for (var r = iMes + 1; r < iTotal; r++) {
+    var codigo = txt(linhas[r][0]);
+    if (!codigo || normaliza(codigo).indexOf('total') === 0) continue;
+    var meses = {};
+    lerLinha(r, meses);
+    if (!Object.keys(meses).length) continue;   /* lote sem quantidade nenhuma */
+    plano.lotes.push({ lote: codigo, meses: meses });
+  }
   return plano;
 }
 
@@ -338,6 +352,8 @@ function testeManual() {
   Logger.log('Plano lido do ' + ABA_PLANO + ': ' + JSON.stringify(plano.produtos));
   Logger.log('Plano em volumes (' + LINHA_VOLUMES + '): '
     + (Object.keys(plano.volumes).length ? JSON.stringify(plano.volumes) : 'linha ausente — dashboard usa fator realizado'));
+  Logger.log('Lotes programados: ' + plano.lotes.length
+    + (plano.lotes.length ? ' (' + plano.lotes.map(function (l) { return l.lote; }).join(', ') + ')' : ''));
 
   var dados = lerHistorico(ss);
   aplicarPlano(dados, plano);
