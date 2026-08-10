@@ -100,32 +100,54 @@ function calcularVolumesMes() {
     if (RV_MESES.indexOf(mes) < 0 || !ano || !desc || !qtd) return;
     var chave = mes + '/' + ano;
     if (!meses[chave]) {
-      meses[chave] = { mes: mes, ano: ano, vol: 0, prod: 0, nomesVol: [], produtos: [] };
+      meses[chave] = { mes: mes, ano: ano, vol: 0, prod: 0, grupos: {}, produtos: [] };
       ordem.push(chave);
     }
     var g = meses[chave], m = desc.match(RV_RE_VOL);
-    if (m) { g.vol += qtd; g.nomesVol.push(m[3].trim().toUpperCase()); }
-    else   { g.prod += qtd; g.produtos.push({ nome: desc.toUpperCase(), qtd: qtd }); }
+    if (m) {
+      /* grupo por produto: quantas caixas ele tem (o "de" do x/de) e quanto
+         foi reportado nessas linhas */
+      var nome = m[3].trim().toUpperCase();
+      var grp = g.grupos[nome] || (g.grupos[nome] = { n: 1, q: 0 });
+      grp.n = Math.max(grp.n, parseInt(m[2], 10) || 1);
+      grp.q += qtd;
+    } else {
+      g.prod += qtd;
+      g.produtos.push({ nome: desc.toUpperCase(), qtd: qtd });
+    }
   });
   if (!ordem.length) return rvErro('Nenhuma linha válida em ' + RV_ABA + ' (MES, ANO, CODIGO, DESCRICAO, QUANTIDADE).');
 
   var saida = ordem.map(function (chave) {
     var g = meses[chave];
-    /* Produto espelhado = algum nome de VOL do mês é prefixo do nome dele
-       (as descrições do relatório truncam, e a linha VOL trunca mais cedo
-       por causa do prefixo "VOL x/y "). Espelhado: volumes já contados nas
-       linhas VOL. Sem espelho: usa o cadastro; sem cadastro, 1 caixa. */
-    var pend = {};
+    /* VOLUMES = quantidade do produto × nº de caixas dele.
+       Somar as linhas VOL parecia mais direto, mas elas divergem do produto
+       quando a caixa é apontada em mês diferente (39 de 138 produtos em
+       JAN/26), e aí o fator chega a ficar abaixo de 1 — impossível, já que
+       nenhum produto sai em menos de uma caixa. Multiplicar é imune a essa
+       defasagem: cada unidade produzida gera as caixas que a embalagem dela
+       exige. O nº de caixas vem da estrutura VOL x/de do próprio mês; sem
+       linha VOL, vem do cadastro; sem cadastro, 1 caixa. */
+    var pend = {}, usados = {};
     g.produtos.forEach(function (p) {
-      var espelhado = g.nomesVol.some(function (nv) { return p.nome.indexOf(nv) === 0; });
-      if (espelhado) return;
+      var achou = null;
+      Object.keys(g.grupos).some(function (nv) {
+        if (p.nome.indexOf(nv) === 0 || rvAbrevia(nv, p.nome)) { achou = nv; return true; }
+        return false;
+      });
+      if (achou) { g.vol += p.qtd * g.grupos[achou].n; usados[achou] = true; return; }
       var nVols = 0;
       Object.keys(cadastro).some(function (nc) {
-        if (p.nome.indexOf(nc) === 0) { nVols = cadastro[nc]; return true; }
+        if (p.nome.indexOf(nc) === 0 || rvAbrevia(nc, p.nome)) { nVols = cadastro[nc]; return true; }
         return false;
       });
       if (nVols > 0) { g.vol += p.qtd * nVols; }
       else           { g.vol += p.qtd; pend[p.nome] = true; }
+    });
+    /* Linhas VOL sem produto correspondente no mês: entram como reportadas,
+       senão a caixa apontada some da conta. */
+    Object.keys(g.grupos).forEach(function (nv) {
+      if (!usados[nv]) g.vol += g.grupos[nv].q;
     });
     var pendentes = Object.keys(pend);
     return [g.mes, g.ano, g.vol, g.prod, g.prod > 0 ? g.vol / g.prod : '',
@@ -389,6 +411,32 @@ function criarLinhaTotalVolumes() {
 }
 
 /* ══ HELPERS ══ */
+
+/* A linha VOL abrevia e trunca a descrição do produto: "PENT CAMARIM 1PT
+   2GAV" contra "PENTEADEIRA CAMARIM 1PT 2GAV BRANCO", "CONJ 2 MESAS" contra
+   "CONJUNTO 2 MESAS", "CANT CAFE" contra "CANTINHO DO CAFE". Só comparar
+   começo de texto não casa esses, e o produto era contado como caixa única
+   ALÉM das linhas VOL dele — 5% de volume a mais no ano. Aqui cada palavra
+   do VOL precisa ser começo da palavra correspondente do produto (ou vice-
+   versa), ignorando conectores; qualquer palavra diferente reprova o
+   casamento, então "MESA CABECEIRA SLEEP" não casa com "MESA CABECEIRA
+   MAVIE". */
+var RV_STOP = { DO:1, DA:1, DE:1, DOS:1, DAS:1, E:1 };
+function rvPalavras(s) {
+  return String(s || '').toUpperCase().split(/[\s\/]+/).filter(function (t) {
+    return t && !RV_STOP[t];
+  });
+}
+function rvAbrevia(nomeVol, nomeProduto) {
+  var a = rvPalavras(nomeVol), b = rvPalavras(nomeProduto);
+  var n = Math.min(a.length, b.length);
+  if (n < 2) return false;
+  for (var i = 0; i < n; i++) {
+    if (b[i].indexOf(a[i]) !== 0 && a[i].indexOf(b[i]) !== 0) return false;
+  }
+  return true;
+}
+
 function rvNum(v) {
   if (typeof v === 'number') return isFinite(v) ? v : 0;
   var s = String(v === null || v === undefined ? '' : v).trim();
