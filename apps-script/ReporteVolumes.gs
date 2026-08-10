@@ -218,6 +218,7 @@ function onOpen() {
     .addItem('Lançar na HISTORICO', 'lancarVolumesNaHistorico')
     .addSeparator()
     .addItem('Instalar processamento diário', 'instalarProcessamentoDiario')
+    .addItem('Criar linha TOTAL VOLUMES no plano mestre', 'criarLinhaTotalVolumes')
     .addToUi();
 }
 
@@ -329,6 +330,62 @@ function rvMoverParaProcessados(pasta, pdf) {
   var sub = pasta.getFoldersByName(RV_PROCESSADOS);
   var destino = sub.hasNext() ? sub.next() : pasta.createFolder(RV_PROCESSADOS);
   pdf.moveTo(destino);
+}
+
+/* ══ 6 · PLANO MESTRE EM VOLUMES ══
+   A capacidade da embalagem é por volume, então o plano também precisa
+   existir nessa unidade — mas a matriz de lotes continua em produtos, que é
+   o que o resto do painel (ritmos, simulação, demanda) consome. A saída é
+   uma linha oficial TOTAL VOLUMES logo abaixo da TOTAL GERAL: nasce como
+   fórmula (produtos do mês × fator, editável na coluna O) e o planejamento
+   pode sobrescrever qualquer mês com o número decidido. O Code.gs lê a
+   linha e o dashboard passa a usar o plano oficial em vez do fator médio. */
+
+var RV_PM_ABA    = 'PLANO MESTRE';
+var RV_PM_TOTAL  = 'TOTAL GERAL';
+var RV_PM_LINHA  = 'TOTAL VOLUMES';
+/* Colunas da matriz: A = rótulo, B..M = jan..dez, N = TOTAL ANO, O = fator. */
+var RV_PM_COL_JAN = 2, RV_PM_COL_DEZ = 13, RV_PM_COL_TOTAL = 14, RV_PM_COL_FATOR = 15;
+/* Fator inicial: realizado JAN–JUL/26 (254.821 volumes ÷ 210.961 produtos). */
+var RV_PM_FATOR_INICIAL = 1.208;
+
+function criarLinhaTotalVolumes() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var aba = ss.getSheetByName(RV_PM_ABA);
+  if (!aba) return rvErro('Aba "' + RV_PM_ABA + '" não encontrada.');
+
+  var valores = aba.getDataRange().getValues();
+  var iTotal = -1, iVol = -1;
+  for (var i = 0; i < valores.length; i++) {
+    var a = rvNormaliza(valores[i][0]);
+    if (iTotal < 0 && a === rvNormaliza(RV_PM_TOTAL)) iTotal = i + 1;
+    if (iVol < 0 && a === rvNormaliza(RV_PM_LINHA)) iVol = i + 1;
+  }
+  if (iVol > 0)   return rvAvisar('Linha ' + RV_PM_LINHA + ' já existe (linha ' + iVol + ') — nada foi alterado.');
+  if (iTotal < 0) return rvErro('Linha "' + RV_PM_TOTAL + '" não encontrada na ' + RV_PM_ABA + '.');
+
+  aba.insertRowsAfter(iTotal, 1);
+  var nova = iTotal + 1;
+  aba.getRange(nova, 1).setValue(RV_PM_LINHA).setFontWeight('bold');
+  aba.getRange(nova, RV_PM_COL_FATOR).setValue(RV_PM_FATOR_INICIAL);
+  aba.getRange(nova, RV_PM_COL_FATOR + 1)
+     .setValue('← fator vol/produto — edite aqui, ou digite o volume direto no mês')
+     .setFontStyle('italic');
+
+  /* Mês sem plano fica traço, como o resto da matriz; com plano, produtos ×
+     fator. É fórmula de propósito: enquanto o planejamento não decidir o
+     número, a linha acompanha o plano de produtos sozinha. */
+  var f = [];
+  for (var c = RV_PM_COL_JAN; c <= RV_PM_COL_DEZ; c++) {
+    var letra = String.fromCharCode(64 + c);
+    f.push('=IF(N(' + letra + iTotal + ')=0,"-",ROUND(' + letra + iTotal + '*$O$' + nova + ',0))');
+  }
+  aba.getRange(nova, RV_PM_COL_JAN, 1, f.length).setFormulas([f]);
+  aba.getRange(nova, RV_PM_COL_TOTAL).setFormula('=SUM(B' + nova + ':M' + nova + ')');
+
+  rvAvisar('Linha ' + RV_PM_LINHA + ' criada abaixo da ' + RV_PM_TOTAL + ' com fator '
+    + RV_PM_FATOR_INICIAL + ' (realizado JAN–JUL/26). Ajuste o fator na coluna O ou digite '
+    + 'os meses direto. Reimplante o Web App para o dashboard passar a ler o plano em volumes.');
 }
 
 /* ══ HELPERS ══ */

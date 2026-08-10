@@ -17051,6 +17051,14 @@ function printAtiva(){
     if(planoAno<=0) return '';
     var tit='<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Plano em volumes</div>';
 
+    /* Plano OFICIAL em volumes: linha TOTAL VOLUMES da PLANO MESTRE, lida
+       pelo Apps Script e injetada como previsaoVolumes. Quando existe, ela
+       manda — o fator médio vira só conferência. Sem ela, cai no modo de
+       conversão logo abaixo (comportamento b41). */
+    var recsAno=todos.filter(function(r){ return r.ano===ano; });
+    if(recsAno.some(function(r){ return (r.previsaoVolumes||0)>0; }))
+      return tit+blocoVolumesOficial(recsAno,ano,planoAno);
+
     var doAno=todos.filter(function(r){ return r.ano===ano && volPar(r); });
     var base=doAno.length?doAno:todos.filter(volPar);
 
@@ -17111,8 +17119,76 @@ function printAtiva(){
       +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1);max-width:960px">'
         +'O plano é contado em produtos; convertido pelo fator realizado, o ano planejado equivale a <b style="color:#00E5FF">'
         +fi(planoVol)+' volumes</b>. O fator supõe que o mix do que falta repete o dos meses já produzidos — '
-        +'se a carteira deslocar para produtos com mais volumes, a conta sobe junto.'
+        +'se a carteira deslocar para produtos com mais volumes, a conta sobe junto. '
+        +'Para um plano oficial em volumes, crie a linha <b>TOTAL VOLUMES</b> na PLANO MESTRE '
+        +'(menu 📦 Volumes da planilha) — este bloco passa a usá-la no lugar do fator.'
       +'</div>'
+      +aviso
+      +'</div>';
+  }
+
+  /* ── Plano oficial em volumes ──
+     A embalagem trabalha por volume; a linha TOTAL VOLUMES é o plano nessa
+     unidade. O bloco compara com o realizado (volumesProduzidos) e mostra o
+     ritmo em vol/dia — a leitura de capacidade da embaladora. O fator
+     implícito do plano (volumes ÷ produtos planejados) é confrontado com o
+     realizado: distância grande entre os dois é o plano apostando num mix
+     que a fábrica não está produzindo. */
+  function blocoVolumesOficial(recs,ano,planoProdAno){
+    var planoVol=0, planoVolFech=0, abertoVol=0, diasAbertos=0, realVol=0, diasTrab=0;
+    var mesesFech=0, mesesVol=0, semVol=[], rp=0, rv=0;
+    recs.forEach(function(r){
+      var pv=r.previsaoVolumes||0, fechado=(r.producaoReal||0)>0;
+      if((r.previsaoProducao||0)>0&&pv<=0&&!fechado) semVol.push(r.mes);
+      if(pv>0){
+        planoVol+=pv;
+        if(!fechado){ abertoVol+=pv; diasAbertos+=(r._simulado&&DIAS_SIM[r.mes])?diasSim(r.mes):(DIAS_PLAN[r.mes]||22); }
+        else planoVolFech+=pv;
+      }
+      if(fechado){
+        mesesFech++;
+        var p=volPar(r);
+        if(p){ mesesVol++; realVol+=p.vol; rv+=p.vol; rp+=p.prod; if((r.diasTrabalhados||0)>0) diasTrab+=r.diasTrabalhados; }
+      }
+    });
+    var ritmoNec=diasAbertos>0?abertoVol/diasAbertos:null;
+    var ritmoDem=diasTrab>0?realVol/diasTrab:null;
+    var fatorPlano=planoProdAno>0?planoVol/planoProdAno:0;
+    var fatorReal=rp>0?rv/rp:0;
+    var desvioFator=(fatorPlano>0&&fatorReal>0)?(fatorPlano/fatorReal-1)*100:null;
+    var corRitmo=(ritmoDem!==null&&ritmoNec!==null)?(ritmoDem>=ritmoNec?'#4CAF50':'#F44336'):'var(--t1)';
+
+    function item(lbl,val,sub,c){
+      return '<div style="flex:1;min-width:160px"><div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">'+lbl+'</div>'
+        +'<div style="font-family:var(--mono);font-size:1.25rem;font-weight:700;color:'+c+'">'+val+'</div>'
+        +'<div style="font-size:.63rem;color:var(--t3);margin-top:2px">'+sub+'</div></div>';
+    }
+    var msg='Plano oficial da linha TOTAL VOLUMES: <b style="color:#00E5FF">'+fi(planoVol)+' volumes</b> no ano'
+      +' (fator implícito '+fd(fatorPlano,2)+' vol/produto'
+      +(fatorReal>0?' contra <b>'+fd(fatorReal,2)+'</b> realizado':'')+').';
+    if(desvioFator!==null&&Math.abs(desvioFator)>=10){
+      msg+=' <b style="color:#FF9800">O plano aposta num mix '+(desvioFator>0?'mais pesado':'mais leve')
+        +' em volumes do que o que a fábrica vem produzindo ('+(desvioFator>0?'+':'')+fd(desvioFator,0)
+        +'%)</b> — vale conferir a linha ou o mix antes de dimensionar a embalagem por ela.';
+    } else if(ritmoNec!==null&&ritmoDem!==null){
+      msg+=' O que falta pede <b>'+fi(ritmoNec)+' vol/dia</b> e a embalagem vem entregando <b style="color:'+corRitmo+'">'
+        +fi(ritmoDem)+' vol/dia</b>.';
+    }
+    var aviso=semVol.length
+      ? '<div style="margin-top:10px;padding:9px 13px;background:rgba(255,152,0,.08);border-left:2px solid rgba(255,152,0,.5);'
+        +'border-radius:6px;font-size:.76rem;color:var(--t2)"><b style="color:#FF9800">Atenção:</b> '
+        +semVol.length+' '+(semVol.length>1?'meses abertos com plano de produtos mas sem':'mês aberto com plano de produtos mas sem')
+        +' TOTAL VOLUMES ('+semVol.join(', ')+') — o plano em volumes não cobre o horizonte inteiro.</div>'
+      : '';
+    return '<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid #00E5FF;border-radius:var(--r);padding:16px 20px">'
+      +'<div style="display:flex;gap:26px;flex-wrap:wrap;margin-bottom:12px">'
+        +item('Plano do ano em volumes', fi(planoVol), 'Linha TOTAL VOLUMES · fator '+fd(fatorPlano,2), '#00E5FF')
+        +(abertoVol>0?item('Falta produzir em volumes', fi(abertoVol), diasAbertos+' dias úteis planejados', '#FF9800'):'')
+        +(ritmoNec!==null?item('Ritmo exigido', fi(ritmoNec)+' vol/dia', 'O que falta ÷ dias planejados', '#00E5FF'):'')
+        +(ritmoDem!==null?item('Ritmo demonstrado', fi(ritmoDem)+' vol/dia', 'Volumes ÷ dias trabalhados', corRitmo):'')
+        +(realVol>0?item('Volumes já produzidos', fi(realVol), mesesVol+' de '+mesesFech+' meses fechados', '#F5A623'):'')
+      +'</div>'
+      +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1);max-width:960px">'+msg+'</div>'
       +aviso
       +'</div>';
   }
@@ -17578,9 +17654,15 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b41';
+var APP_VERSAO = 'b42';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b42', data:'10/08/2026', itens:[
+    'Plano mestre por volumes: linha TOTAL VOLUMES na PLANO MESTRE vira o plano oficial em volumes.',
+    'Quando ela existe, o bloco Plano em volumes usa o numero oficial e mostra ritmo em vol/dia — a capacidade da embalagem.',
+    'Fator implicito do plano confrontado com o realizado: distancia grande e alerta de mix.',
+    'A matriz de lotes segue em produtos — ritmos, simulacao e demanda nao mudam de unidade.'
+  ]},
   { v:'b41', data:'10/08/2026', itens:[
     'Plano em volumes na aba Planejamento Mestre: o plano e contado em produtos, a expedicao carrega volumes.',
     'Fator de embalagem sai do realizado — nada de fator inventado. O ERP fatura produto, entao a fonte e o campo de volumes das NF-e (ou cadastro x itens faturados).',

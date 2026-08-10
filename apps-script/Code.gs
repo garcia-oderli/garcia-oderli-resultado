@@ -28,6 +28,10 @@ var ABA_HISTORICO = 'HISTORICO';
 var ABA_PLANO = 'PLANO MESTRE';
 /* Rótulo da linha de totais dentro da aba do plano. */
 var LINHA_TOTAL = 'TOTAL GERAL';
+/* Linha opcional com o plano em volumes (a embalagem trabalha por volume;
+   um produto vira um ou mais volumes). Sem ela, nada muda — o dashboard
+   segue convertendo por fator realizado. */
+var LINHA_VOLUMES = 'TOTAL VOLUMES';
 
 var MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
@@ -39,7 +43,7 @@ var SECRET = 'TROQUE_ESTA_SENHA_2026';
 /* Colunas que o app NÃO pode sobrescrever ao gravar. A previsão vem do
    PLANO MESTRE; se o app pudesse escrevê-la, um dado local desatualizado
    apagaria o plano. */
-var COLUNAS_PROTEGIDAS = ['previsaoproducao', 'previsao'];
+var COLUNAS_PROTEGIDAS = ['previsaoproducao', 'previsao', 'previsaovolumes'];
 
 function doGet() {
   var saida;
@@ -48,7 +52,8 @@ function doGet() {
     var dados = lerHistorico(ss);
     var plano = lerPlanoMestre(ss);
     aplicarPlano(dados, plano);
-    saida = { ok: true, dados: dados, plano: plano, geradoEm: new Date().toISOString() };
+    saida = { ok: true, dados: dados, plano: plano.produtos,
+              planoVolumes: plano.volumes, geradoEm: new Date().toISOString() };
   } catch (e) {
     saida = { ok: false, erro: String(e && e.message || e) };
   }
@@ -245,32 +250,39 @@ function lerHistorico(ss) {
 }
 
 /* ══ PLANO MESTRE ══
-   Devolve { '2026': { JAN: 22828, FEV: 27893, ... } } lendo a linha TOTAL
-   GERAL e o cabeçalho de meses da própria aba. */
+   Devolve { produtos: { '2026': { JAN: 22828, ... } }, volumes: {...} }
+   lendo as linhas TOTAL GERAL e TOTAL VOLUMES (opcional) e o cabeçalho de
+   meses da própria aba. */
 function lerPlanoMestre(ss) {
-  var plano = {};
+  var plano = { produtos: {}, volumes: {} };
   var aba = ss.getSheetByName(ABA_PLANO);
   if (!aba) return plano;
 
   var linhas = aba.getDataRange().getValues();
-  var iTotal = -1, iMes = -1;
+  var iTotal = -1, iVol = -1, iMes = -1;
   for (var i = 0; i < linhas.length; i++) {
     var a = normaliza(linhas[i][0]);
     if (iTotal < 0 && a === normaliza(LINHA_TOTAL)) iTotal = i;
+    if (iVol < 0 && a === normaliza(LINHA_VOLUMES)) iVol = i;
     if (iMes < 0 && contaMeses(linhas[i]) >= 6) iMes = i;
   }
   if (iTotal < 0 || iMes < 0) return plano;
 
-  var cab = linhas[iMes], tot = linhas[iTotal];
-  for (var c = 1; c < cab.length; c++) {
-    var mv = mesEAno(cab[c]);
-    if (!mv) continue;
-    var v = num(tot[c]);
-    if (!v) continue;
-    var chave = String(mv.ano);
-    if (!plano[chave]) plano[chave] = {};
-    plano[chave][mv.mes] = v;
+  var cab = linhas[iMes];
+  function lerLinha(idx, destino) {
+    if (idx < 0) return;
+    for (var c = 1; c < cab.length; c++) {
+      var mv = mesEAno(cab[c]);
+      if (!mv) continue;
+      var v = num(linhas[idx][c]);
+      if (!v) continue;
+      var chave = String(mv.ano);
+      if (!destino[chave]) destino[chave] = {};
+      destino[chave][mv.mes] = v;
+    }
   }
+  lerLinha(iTotal, plano.produtos);
+  lerLinha(iVol, plano.volumes);
   return plano;
 }
 
@@ -278,10 +290,10 @@ function lerPlanoMestre(ss) {
    onde ele tem número, ele vence o que estiver no HISTORICO. */
 function aplicarPlano(dados, plano) {
   dados.forEach(function (r) {
-    var doAno = plano[String(r.ano)];
-    if (!doAno) return;
-    var v = doAno[r.mes];
-    if (v > 0) r.previsaoProducao = v;
+    var doAno = plano.produtos[String(r.ano)];
+    if (doAno && doAno[r.mes] > 0) r.previsaoProducao = doAno[r.mes];
+    var volAno = plano.volumes[String(r.ano)];
+    if (volAno && volAno[r.mes] > 0) r.previsaoVolumes = volAno[r.mes];
   });
 }
 
@@ -323,7 +335,9 @@ function testeManual() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   var plano = lerPlanoMestre(ss);
-  Logger.log('Plano lido do ' + ABA_PLANO + ': ' + JSON.stringify(plano));
+  Logger.log('Plano lido do ' + ABA_PLANO + ': ' + JSON.stringify(plano.produtos));
+  Logger.log('Plano em volumes (' + LINHA_VOLUMES + '): '
+    + (Object.keys(plano.volumes).length ? JSON.stringify(plano.volumes) : 'linha ausente — dashboard usa fator realizado'));
 
   var dados = lerHistorico(ss);
   aplicarPlano(dados, plano);
