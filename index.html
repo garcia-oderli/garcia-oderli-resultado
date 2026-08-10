@@ -1060,7 +1060,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 #tip .enh-tip-interp{margin-top:5px;font-size:.68rem;color:#5a8fbd;line-height:1.5}</style><style id="mes-status-accent-style">#mes-card-status-wrap.mes-card::before { background: #F44336 !important; }</style>  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./favicon-32.png">
 </head>
-<body><div id="app-version" title="Versão publicada — muda a cada atualização" style="position:fixed;right:8px;bottom:6px;z-index:99999;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;background:rgba(0,0,0,.5);border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 7px;pointer-events:none;letter-spacing:.04em">v2026.08.06 · b40</div><div id="alertas-banner" style="display: none;"></div>
+<body><div id="alertas-banner" style="display: none;"></div>
 <div id="app">
 
 <!-- ══ HEADER ══ -->
@@ -1168,6 +1168,13 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
       <input type="file" id="inputJSON" accept=".json" style="display:none" onchange="carregarJSON(this)">
       <button class="sBtn" style="color:var(--red);border-color:rgba(244,67,54,.3)" onclick="if(confirm('Isso apaga TODOS os dados. Tem certeza?'))resetDados()">↺ Resetar</button>
     </div>
+  </div>
+  <!-- Selo de versão — no rodapé da sidebar: sempre à vista, sem flutuar por
+       cima de tabela nenhuma. Clique abre o histórico de versões. -->
+  <div style="margin-top:10px;padding:7px 8px;border-top:1px solid var(--b);text-align:center">
+    <span id="app-version" title="Versão publicada — clique para ver o que mudou"
+      style="display:inline-block;font:600 10px/1.2 Consolas,monospace;color:#7aa0c0;letter-spacing:.04em;
+      border:1px solid rgba(120,144,156,.3);border-radius:5px;padding:3px 9px;background:rgba(0,0,0,.25)">v2026.08.10 · b48</span>
   </div>
 </aside>
 
@@ -4249,7 +4256,16 @@ Fórmula: Faltas + Atrasos
       <div class="pageHdrTitle">Produção por Produto</div>
       <div class="pageHdrSub">O que a fábrica fabricou, código a código — produtos, volumes, famílias e Pareto</div>
     </div>
-    <span id="pc-ano-lbl" style="margin-left:auto;font-family:var(--mono);font-size:.75rem;color:var(--t3)">—</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+      <span id="pc-ano-lbl" style="font-family:var(--mono);font-size:.75rem;color:var(--t3)">—</span>
+      <button onclick="pcImprimir()" title="Relatório de produção por produto e volumes em PDF"
+        style="display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border:1px solid #FF9800;
+        border-radius:6px;background:rgba(255,152,0,.08);color:#FF9800;font-size:.76rem;font-weight:700;
+        text-transform:uppercase;letter-spacing:.05em;cursor:pointer;white-space:nowrap">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"></path></svg>
+        Relatório
+      </button>
+    </div>
   </div>
   <div id="pc-corpo"></div>
 </div>
@@ -18042,6 +18058,166 @@ function printAtiva(){
       +'</div>';
   }
 
+  /* ── Relatório dedicado — impressão executiva desta aba ──
+     Respeita o filtro de período da tela (ANO ou um mês): KPIs, leitura
+     executiva, mês a mês, famílias, Pareto e a listagem completa do período
+     para conferência. Retrato: relatório de listagem lê melhor em pé. */
+  window.pcImprimir=function(){
+    var todos=(typeof load==='function')?load():[];
+    var its=itens().filter(function(r){ return r[1]===_ano; });
+    if(!its.length){ if(typeof toast==='function') toast('Sem dados de produção por produto para imprimir.','wn'); return; }
+    var ano=_ano, hoje=new Date().toLocaleDateString('pt-BR');
+    var periodo=_mes?its.filter(function(r){ return r[0]===_mes; }):its;
+    var rotPer=_mes?_mes+'/'+ano:'JAN–'
+      +ORDEM_M.filter(function(m){ return its.some(function(r){ return r[0]===m; }); }).slice(-1)[0]+'/'+ano;
+
+    /* mesmos agregados da tela */
+    var agg={}, totProdI=0;
+    periodo.forEach(function(r){
+      if(RE_VOL.test(r[3])) return;
+      if(!agg[r[2]]) agg[r[2]]={cod:r[2],desc:r[3],q:0};
+      agg[r[2]].q+=r[4]; totProdI+=r[4];
+    });
+    var lista=Object.keys(agg).map(function(k){ return agg[k]; }).sort(function(a,b){ return b.q-a.q; });
+    if(!lista.length){ if(typeof toast==='function') toast('Sem linhas de produto no período.','wn'); return; }
+
+    var regs=todos.filter(function(r){ return r.ano===ano&&(!_mes||r.mes===_mes); });
+    var volH=0,kgH=0;
+    regs.forEach(function(r){ volH+=(r.volumesProduzidos||r.volumes||r.qtdeVolumes||0); kgH+=(r.quilosProduzidos||r.quilos||r.kg||0); });
+    var fator=volH>0&&totProdI>0?volH/totProdI:null;
+
+    var acum=0,n80=0;
+    for(var i=0;i<lista.length;i++){ acum+=lista[i].q; if(!n80&&acum>=totProdI*0.8) n80=i+1; }
+
+    var fam={};
+    lista.forEach(function(p){
+      var f=familiaDe(p.desc);
+      if(!fam[f]) fam[f]={nome:f,q:0,itens:0};
+      fam[f].q+=p.q; fam[f].itens++;
+    });
+    var famLista=Object.keys(fam).map(function(k){ return fam[k]; }).sort(function(a,b){ return b.q-a.q; });
+
+    /* mês a mês (só na visão de ano) */
+    var tabMes='';
+    if(!_mes){
+      var linhas='';
+      ORDEM_M.forEach(function(m){
+        var doMes=its.filter(function(r){ return r[0]===m&&!RE_VOL.test(r[3]); });
+        if(!doMes.length) return;
+        var p=doMes.reduce(function(s,r){ return s+r[4]; },0);
+        var reg=regs.filter(function(r){ return r.mes===m; })[0]||{};
+        var v=reg.volumesProduzidos||reg.volumes||reg.qtdeVolumes||0;
+        var kg=reg.quilosProduzidos||reg.quilos||reg.kg||0, dias=reg.diasTrabalhados||0;
+        linhas+='<tr><td><b>'+m+'/'+String(ano).slice(2)+'</b></td>'
+          +'<td class="n">'+fi(p)+'</td>'
+          +'<td class="n">'+(v>0?fi(v):'—')+'</td>'
+          +'<td class="n">'+(v>0&&p>0?fd(v/p,2):'—')+'</td>'
+          +'<td class="n">'+(v>0&&dias>0?fi(v/dias):'—')+'</td>'
+          +'<td class="n">'+(kg>0?fi(kg):'—')+'</td></tr>';
+      });
+      tabMes='<div class="st">Mês a mês</div>'
+        +'<table><thead><tr><th>Mês</th><th style="text-align:right">Produtos</th><th style="text-align:right">Volumes</th>'
+        +'<th style="text-align:right">Vol/Prod</th><th style="text-align:right">Vol/Dia</th><th style="text-align:right">Kg</th></tr></thead>'
+        +'<tbody>'+linhas
+        +'<tr style="background:#edf2f7"><td><b>TOTAL</b></td><td class="n"><b>'+fi(totProdI)+'</b></td>'
+        +'<td class="n"><b>'+(volH>0?fi(volH):'—')+'</b></td>'
+        +'<td class="n"><b>'+(fator?fd(fator,2):'—')+'</b></td><td class="n">—</td>'
+        +'<td class="n"><b>'+(kgH>0?fi(kgH):'—')+'</b></td></tr></tbody></table>';
+    }
+
+    var f1=famLista[0], f2=famLista[1];
+    var narrativa='<div class="ver"><p>'
+      +'No período ('+rotPer+') a fábrica produziu <b>'+fi(totProdI)+' produtos</b> de <b>'+lista.length
+      +' códigos distintos</b>'+(volH>0?', embalados em <b>'+fi(volH)+' volumes</b> (fator '+fd(fator,2)+' vol/produto)':'')
+      +(kgH>0?', somando <b>'+fi(kgH)+' kg</b>':'')+'. '
+      +'<b>'+n80+' produtos ('+fd((n80/lista.length)*100,0)+'%) concentram 80% das unidades</b>.'
+      +(f1?' A família líder é <b>'+f1.nome+'</b> ('+fd((f1.q/totProdI)*100,1)+'%)'
+        +(f2?', seguida de <b>'+f2.nome+'</b> ('+fd((f2.q/totProdI)*100,1)+'%).':'.'):'')
+      +'</p></div>';
+
+    var tabFam='<div class="st">Produção por família</div>'
+      +'<table><thead><tr><th>Família</th><th style="text-align:right">Itens</th>'
+      +'<th style="text-align:right">Qtd</th><th style="text-align:right">%</th></tr></thead><tbody>'
+      +famLista.slice(0,12).map(function(f){
+          return '<tr><td><b>'+f.nome+'</b></td><td class="n">'+f.itens+'</td>'
+            +'<td class="n"><b>'+fi(f.q)+'</b></td><td class="n">'+fd((f.q/totProdI)*100,1)+'%</td></tr>';
+        }).join('')
+      +(famLista.length>12?'<tr><td colspan="2" style="color:#718096">+ '+(famLista.length-12)+' famílias</td>'
+        +'<td class="n">'+fi(famLista.slice(12).reduce(function(s,f){ return s+f.q; },0))+'</td><td class="n"></td></tr>':'')
+      +'</tbody></table>';
+
+    var acum2=0;
+    var listagem='<div class="st">Listagem completa — '+lista.length+' produtos ('+rotPer+')</div>'
+      +'<table><thead><tr><th>#</th><th>Código</th><th>Produto</th>'
+      +'<th style="text-align:right">Qtd</th><th style="text-align:right">%</th><th style="text-align:right">% Acum.</th></tr></thead><tbody>'
+      +lista.map(function(p,i){
+          acum2+=p.q;
+          return '<tr'+(i<n80?'':' style="color:#718096"')+'><td>'+(i+1)+'</td><td>'+p.cod+'</td><td>'+p.desc+'</td>'
+            +'<td class="n"><b>'+fi(p.q)+'</b></td>'
+            +'<td class="n">'+fd((p.q/totProdI)*100,1)+'%</td>'
+            +'<td class="n">'+fd((acum2/totProdI)*100,1)+'%</td></tr>';
+        }).join('')
+      +'</tbody></table>'
+      +'<div style="font-size:7.5pt;color:#718096;margin-top:4px">Linhas em cinza: fora dos '+n80
+      +' produtos que fazem 80% do período. Linhas de volume ("VOL x/y") não entram — são caixas, não produtos.</div>';
+
+    function kpi(l,v,s){ return '<div class="k"><div class="kl">'+l+'</div><div class="kv">'+v+'</div><div class="ks">'+s+'</div></div>'; }
+    var kpis='<div class="kg">'
+      +kpi('Produtos', fi(totProdI), rotPer)
+      +kpi('Volumes', volH>0?fi(volH):'—', volH>0?'lançados na HISTORICO':'sem lançamento')
+      +kpi('Fator', fator?fd(fator,2):'—', 'volumes ÷ produtos')
+      +kpi('Códigos distintos', fi(lista.length), n80+' fazem 80%')
+      +kpi('Quilos', kgH>0?fi(kgH):'—', kgH>0?fd(kgH/totProdI,1)+' kg/produto':'—')
+      +kpi('Famílias', fi(famLista.length), (f1?f1.nome+' lidera':'—'))
+      +'</div>';
+
+    var w=window.open('','_blank','width=1000,height=900');
+    w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>'
+      +'<title>Produção por Produto — '+rotPer+'</title><style>'
+      +'@page{size:A4 portrait;margin:10mm 12mm;}'
+      +'*{box-sizing:border-box;margin:0;padding:0}'
+      +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:8.5pt;color:#1a1a2e;background:#fff;'
+        +'-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      +'.hd{background:linear-gradient(135deg,#1a1a2e,#16213e 60%,#0f3460);color:#fff;padding:13px 22px}'
+      +'.hd .lb{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#FF9800;font-weight:700}'
+      +'.hd h1{font-size:16px;margin:3px 0 2px}.hd .sb{font-size:9px;color:#a0aec0}'
+      +'.bd{padding:11px 22px}'
+      +'.st{font-size:8px;letter-spacing:1.8px;text-transform:uppercase;color:#c05621;font-weight:700;'
+        +'margin:12px 0 7px;padding-bottom:3px;border-bottom:1.5px solid #edf2f7}'
+      +'.ver{border-left:5px solid #FF9800;background:#fffaf0;border-radius:6px;padding:10px 14px;margin-bottom:10px}'
+      +'.ver p{font-size:9.5pt;line-height:1.55;color:#2d3748}'
+      +'.kg{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-bottom:4px}'
+      +'.k{background:#f8fafc;border-left:3px solid #FF9800;border-radius:5px;padding:8px 10px}'
+      +'.kl{font-size:7.5px;letter-spacing:.6px;text-transform:uppercase;color:#718096;font-weight:600}'
+      +'.kv{font-size:13.5pt;font-weight:800;color:#1a202c;margin:2px 0}'
+      +'.ks{font-size:7pt;color:#a0aec0}'
+      +'table{width:100%;border-collapse:collapse;font-size:8pt}'
+      +'th{background:#1a1a2e;color:#fff;padding:5px 8px;text-align:left;font-size:7px;'
+        +'letter-spacing:.8px;text-transform:uppercase}'
+      +'td{padding:4px 8px;border-bottom:1px solid #edf2f7}'
+      +'td.n{text-align:right;font-variant-numeric:tabular-nums}'
+      +'tr{page-break-inside:avoid}'
+      +'.ft{display:flex;justify-content:space-between;font-size:7pt;color:#a0aec0;'
+        +'padding:8px 22px;border-top:1px solid #edf2f7;margin-top:8px}'
+      +'</style></head><body>'
+      +'<div class="hd"><div class="lb">PPCP · Capacidade &amp; Eficiência — Patrimar Móveis</div>'
+      +'<h1>Produção por Produto e Volumes — '+rotPer+'</h1>'
+      +'<div class="sb">O que a fábrica fabricou, código a código · fonte: reporte mensal do ERP (transação 3)</div></div>'
+      +'<div class="bd">'
+      +kpis
+      +narrativa
+      +tabMes
+      +tabFam
+      +listagem
+      +'</div>'
+      +'<div class="ft"><span>Dashboard PPCP — Capacidade &amp; Eficiência</span>'
+      +'<span>Gerado em: '+hoje+'</span></div>'
+      +'</body></html>');
+    w.document.close();
+    w.addEventListener('afterprint', function(){ w.close(); });
+    setTimeout(function(){ w.focus(); w.print(); }, 700);
+  };
+
   function ligar(){
     render();
     if(window.DashBus&&window.DashBus.on){
@@ -18072,9 +18248,14 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b47';
+var APP_VERSAO = 'b48';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b48', data:'10/08/2026', itens:[
+    'Relatorio dedicado da aba Producao por Produto (botao Relatorio): KPIs, leitura executiva, mes a mes, familias e a listagem completa com Pareto.',
+    'Respeita o filtro da tela: ANO imprime o acumulado, mes imprime so o mes. Retrato, para a listagem ler melhor.',
+    'Selo de versao sai do canto flutuante e vai para o rodape da sidebar — sempre a vista, sem cobrir tabela.'
+  ]},
   { v:'b47', data:'10/08/2026', itens:[
     'Aba dedicada Producao por Produto no grupo PPCP/Capacidade, com graficos.',
     'KPIs do periodo, evolucao mensal produtos x volumes, producao por familia, Pareto e listagem completa com busca.',
