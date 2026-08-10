@@ -16918,6 +16918,7 @@ function printAtiva(){
       +'</div>'
       +blocoDemanda(planoFech,fatFech,venFech)
       +blocoProjecao(realAcum,diasFech,planoAno,planoAberto,diasAbertos,ritmoDem)
+      +blocoVolumes(todos,ano,planoAno,planoAberto)
       +graficoRitmo(mesesTab,ritmoPlano)
       +blocoPonte(todos,ano);
 
@@ -17021,6 +17022,99 @@ function printAtiva(){
             +'</b> peças — <b>'+fd(Math.abs(pct),1)+'% abaixo</b> do plano. O que resta pede <b>'+fi(precisa)
             +'</b> pç/dia contra os '+fi(ritmoTotal)+' que vêm sendo entregues.')
       +'</div></div>';
+  }
+
+  /* ── Plano em volumes ──
+     O plano é contado em produtos, mas expedição, carregamento e estoque
+     trabalham em volumes — um produto embala em um ou mais volumes. O ERP
+     fatura produto e não volume, então o número mensal vem de onde ele já
+     existe: o campo de volumes das NF-e do mês (qVol, o que o motorista
+     confere), ou itens faturados × volumes por produto do cadastro. Lançado
+     na coluna volumesFaturados da HISTORICO, o fator sai de volumes ÷
+     produtos FATURADOS (coluna Z) — mesma base, senão a razão mistura
+     horizontes. Aceita também volumesProduzidos (÷ produção real) para quem
+     apontar na embalagem. Sem coluna nenhuma o bloco diz o que preencher em
+     vez de inventar um fator. */
+  function volPar(r){
+    if((r.volumesFaturados||0)>0 && (r.qtdeFaturado||0)>0)
+      return { vol:r.volumesFaturados, prod:r.qtdeFaturado, fat:true };
+    var v=r.volumesProduzidos||r.volumes||r.qtdeVolumes||0;
+    /* produtosReportados vem do mesmo relatório do ERP que os volumes
+       (ReporteVolumes.gs) — fator na mesma base. Sem ela, cai para o
+       producaoReal, que vem de outro corte (~9% menor em JAN/26) e
+       superestima o fator na mesma proporção. */
+    var base=(r.produtosReportados||0)>0?r.produtosReportados:(r.producaoReal||0);
+    if(v>0 && base>0) return { vol:v, prod:base, fat:false };
+    return null;
+  }
+  function blocoVolumes(todos,ano,planoAno,planoAberto){
+    if(planoAno<=0) return '';
+    var tit='<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Plano em volumes</div>';
+
+    var doAno=todos.filter(function(r){ return r.ano===ano && volPar(r); });
+    var base=doAno.length?doAno:todos.filter(volPar);
+
+    if(!base.length){
+      return tit
+        +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid #FF9800;border-radius:var(--r);padding:16px 20px">'
+        +'<div style="font-size:.82rem;line-height:1.6;color:var(--t1);max-width:960px">'
+        +'O plano é contado em <b>produtos</b>, mas a expedição carrega <b>volumes</b> — um produto vira um ou mais '
+        +'volumes na embalagem. O ERP fatura produto, mas o número de volumes já existe em dois lugares: no campo '
+        +'<b>quantidade de volumes das NF-e</b> do mês (o que o motorista confere no carregamento) ou em '
+        +'<b>itens faturados × volumes por produto do cadastro</b>. Lance o total do mês na coluna '
+        +'<b style="color:var(--cyan)">volumesFaturados</b> da HISTORICO (mesmo caminho da coluna de quilos): '
+        +'o fator realizado — volumes ÷ produtos faturados — passa a ser calculado sozinho e o plano '
+        +'aparece também em volumes. Sem esse lançamento não existe fator honesto para estimar.</div>'
+        +'</div>';
+    }
+
+    var vol=0, pr=0, usouFat=false, usouProd=false;
+    base.forEach(function(r){
+      var p=volPar(r); vol+=p.vol; pr+=p.prod;
+      if(p.fat) usouFat=true; else usouProd=true;
+    });
+    var fator=vol/pr;
+    var planoVol=planoAno*fator, abertoVol=planoAberto*fator;
+    var rotVol=usouFat&&!usouProd?'Volumes faturados':(usouProd&&!usouFat?'Volumes produzidos':'Volumes lançados');
+
+    /* Meses fechados do ano SEM volume lançado: o realizado em volumes só
+       soma quem tem dado, então a lacuna precisa ficar dita. */
+    var fechAno=todos.filter(function(r){ return r.ano===ano && (r.producaoReal||0)>0; });
+    var faltamVol=fechAno.filter(function(r){ return !volPar(r); }).map(function(r){ return r.mes; });
+    var volAno=0;
+    doAno.forEach(function(r){ volAno+=volPar(r).vol; });
+
+    var rotBase=(doAno.length
+      ? 'média de '+doAno.length+(doAno.length>1?' meses fechados':' mês fechado')+' de '+ano
+      : 'média de '+base.length+' meses históricos — '+ano+' ainda sem volume lançado')
+      +(usouFat&&!usouProd?' · base faturamento':'');
+
+    function item(lbl,val,sub,c){
+      return '<div style="flex:1;min-width:160px"><div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">'+lbl+'</div>'
+        +'<div style="font-family:var(--mono);font-size:1.25rem;font-weight:700;color:'+c+'">'+val+'</div>'
+        +'<div style="font-size:.63rem;color:var(--t3);margin-top:2px">'+sub+'</div></div>';
+    }
+    var aviso=faltamVol.length
+      ? '<div style="margin-top:10px;padding:9px 13px;background:rgba(255,152,0,.08);border-left:2px solid rgba(255,152,0,.5);'
+        +'border-radius:6px;font-size:.76rem;color:var(--t2)"><b style="color:#FF9800">Atenção:</b> '
+        +faltamVol.length+' '+(faltamVol.length>1?'meses fechados ainda sem volume lançado':'mês fechado ainda sem volume lançado')
+        +' ('+faltamVol.join(', ')+') — os volumes já produzidos somam só os meses lançados.</div>'
+      : '';
+    return tit
+      +'<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid #00E5FF;border-radius:var(--r);padding:16px 20px">'
+      +'<div style="display:flex;gap:26px;flex-wrap:wrap;margin-bottom:12px">'
+        +item('Fator de embalagem', fd(fator,2)+' vol/produto', rotBase, 'var(--t1)')
+        +item('Plano do ano em volumes', fi(planoVol), fi(planoAno)+' produtos × '+fd(fator,2), '#00E5FF')
+        +(planoAberto>0?item('Falta produzir em volumes', fi(abertoVol), fi(planoAberto)+' produtos ainda no plano', '#FF9800'):'')
+        +(doAno.length?item(rotVol, fi(volAno), doAno.length+' de '+fechAno.length+' meses fechados', '#F5A623'):'')
+      +'</div>'
+      +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1);max-width:960px">'
+        +'O plano é contado em produtos; convertido pelo fator realizado, o ano planejado equivale a <b style="color:#00E5FF">'
+        +fi(planoVol)+' volumes</b>. O fator supõe que o mix do que falta repete o dos meses já produzidos — '
+        +'se a carteira deslocar para produtos com mais volumes, a conta sobe junto.'
+      +'</div>'
+      +aviso
+      +'</div>';
   }
 
   /* ── Evolução do ritmo — SVG, não canvas: acompanha a largura da tela e
@@ -17484,9 +17578,14 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b40';
-var APP_DATA   = '06/08/2026';
+var APP_VERSAO = 'b41';
+var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b41', data:'10/08/2026', itens:[
+    'Plano em volumes na aba Planejamento Mestre: o plano e contado em produtos, a expedicao carrega volumes.',
+    'Fator de embalagem sai do realizado — nada de fator inventado. O ERP fatura produto, entao a fonte e o campo de volumes das NF-e (ou cadastro x itens faturados).',
+    'Coluna volumesFaturados na HISTORICO (fator sobre a col Z, mesma base); aceita volumesProduzidos para quem apontar na embalagem.'
+  ]},
   { v:'b40', data:'06/08/2026', itens:[
     'Quilos por peca mes a mes no comparativo — mostra o mix pesando ao longo do ano.',
     'Serie sustentavel: cada mes novo entra quando o quilo for lancado na HISTORICO.'
