@@ -4237,8 +4237,6 @@ Fórmula: Faltas + Atrasos
     </table>
   </div>
   <div class="cEmpty" id="pm-empty" style="display:none">Sem previsão de produção informada para este ano.</div>
-  <!-- Listagem de produtos programados (lotes do plano mestre) — renderizada pelo módulo PM -->
-  <div id="pm-lotes"></div>
   <!-- Produtos produzidos por código (reporte mensal do ERP) -->
   <div id="pm-itens"></div>
 </div>
@@ -4677,12 +4675,6 @@ function _carregarDoSheetsAoAbrir(){
     .then(function(r){ return r.json(); })
     .then(function(json){
       if (!json || !json.ok || !json.dados || !json.dados.length) return;
-      /* Lotes programados da PLANO MESTRE — alimentam a listagem da aba
-         Planejamento Mestre. Guardados à parte porque não são registro
-         mensal: são a programação (lote × mês × quantidade). */
-      if (json.planoLotes && json.planoLotes.length) {
-        localStorage.setItem('dash_plano_lotes', JSON.stringify(json.planoLotes));
-      }
       var dados = json.dados.map(function(r){
         var rec = Object.assign({id: uid()}, _traduzirCampos(r));
         CAMPOS_NUM.forEach(function(c){ rec[c] = _numBR(rec[c]); });
@@ -16568,7 +16560,6 @@ function printAtiva(){
   var DIAS_PLAN={JAN:17,FEV:20,MAR:22,ABR:20,MAI:20,JUN:21,JUL:23,AGO:21,SET:22,OUT:22,NOV:21,DEZ:23};
   var _ult = null;   /* último apurado, usado pela impressão executiva */
   var _ponte = null; /* comparativo com o ano anterior, idem */
-  var _loteMes = ''; /* filtro da listagem de lotes: '' = todos os meses */
 
   /* ══ SIMULAÇÃO DE CENÁRIOS ══
      Troca o plano dos meses ainda abertos por ritmo × dias úteis, só na tela.
@@ -16761,7 +16752,6 @@ function printAtiva(){
       if(tabela) tabela.style.display='none';
       document.getElementById('pm-kpis').innerHTML='';
       document.getElementById('pm-veredito').style.display='none';
-      renderLotes(ano);
       renderItens(ano);   /* a listagem de produção não depende de haver plano */
       return;
     }
@@ -16825,7 +16815,6 @@ function printAtiva(){
         +'</tr>';
     });
     document.getElementById('pm-tbody').innerHTML=linhas;
-    renderLotes(ano);
 
     /* ── Ritmo ──
        O veredito compara o ritmo demonstrado com o ritmo que o PLANO INTEIRO
@@ -17581,111 +17570,6 @@ function printAtiva(){
     return {f:f,w:w,o:o,a:a};
   }
 
-  /* ── Produtos programados — listagem dos lotes do plano mestre ──
-     A planilha programa por lote (matriz lote × mês na PLANO MESTRE); o
-     Apps Script manda essa matriz em planoLotes e o sync guarda em
-     localStorage. Aqui ela vira a listagem do que foi programado, com filtro
-     por mês — a soma de cada mês é, por construção, a linha TOTAL GERAL. */
-  function lerLotes(){
-    try{
-      var v=JSON.parse(localStorage.getItem('dash_plano_lotes')||'[]');
-      return Array.isArray(v)?v:[];
-    }catch(e){ return []; }
-  }
-
-  function lotesDoAno(ano){
-    var chave=String(ano), out=[];
-    lerLotes().forEach(function(l){
-      var m=l&&l.meses&&l.meses[chave];
-      if(!m) return;
-      var meses={}, total=0;
-      ORDEM_M.forEach(function(ms){
-        var q=Number(m[ms])||0;
-        if(q>0){ meses[ms]=q; total+=q; }
-      });
-      if(total>0) out.push({ lote:String(l.lote), meses:meses, total:total });
-    });
-    return out;
-  }
-
-  window.pmLoteMes=function(v){ _loteMes=v||''; render(); };
-
-  function renderLotes(ano){
-    var box=document.getElementById('pm-lotes');
-    if(!box) return;
-    var titulo='<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:20px 0 10px;padding-left:2px">▸ Produtos programados — lotes do plano mestre</div>';
-
-    var lotes=ano?lotesDoAno(ano):[];
-    if(!lotes.length){
-      /* Sem lote nenhum no storage: o Web App implantado ainda não envia a
-         matriz. Com lotes de outros anos, é só este ano que está sem plano. */
-      box.innerHTML=titulo
-        +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 18px;font-size:.8rem;color:var(--t2);line-height:1.55">'
-        +(lerLotes().length
-          ? 'Nenhum lote programado na PLANO MESTRE para '+(ano||'este ano')+'.'
-          : 'A listagem vem da matriz de lotes da aba <b>PLANO MESTRE</b> e chega no sync com o Sheets. '
-            +'Se não aparecer, reimplante o Web App (Code.gs) na versão que envia <b>planoLotes</b>.')
-        +'</div>';
-      return;
-    }
-
-    var mesesCol=ORDEM_M.filter(function(ms){
-      return lotes.some(function(l){ return l.meses[ms]; });
-    });
-    if(_loteMes&&mesesCol.indexOf(_loteMes)<0) _loteMes='';   /* mês filtrado sumiu do plano */
-    var visiveis=_loteMes?lotes.filter(function(l){ return l.meses[_loteMes]; }):lotes;
-    var colunas=_loteMes?[_loteMes]:mesesCol;
-
-    var totMes={}, totGeral=0;
-    colunas.forEach(function(ms){ totMes[ms]=0; });
-    visiveis.forEach(function(l){
-      colunas.forEach(function(ms){ totMes[ms]+=l.meses[ms]||0; });
-    });
-    colunas.forEach(function(ms){ totGeral+=totMes[ms]; });
-
-    var seletor='<select onchange="pmLoteMes(this.value)" title="Filtrar a listagem por mês programado" '
-      +'style="padding:5px 9px;border-radius:5px;font-size:.68rem;font-weight:700;cursor:pointer;'
-      +'border:1px solid var(--b);background:var(--panel);color:var(--t2)">'
-      +'<option value="">Todos os meses</option>'
-      +mesesCol.map(function(ms){
-          return '<option value="'+ms+'"'+(_loteMes===ms?' selected':'')+'>'+ms+'/'+String(ano).slice(2)+'</option>';
-        }).join('')
-      +'</select>';
-
-    var head='<tr><th>Lote</th>'
-      +colunas.map(function(ms){ return '<th style="text-align:right">'+ms+'/'+String(ano).slice(2)+'</th>'; }).join('')
-      +(_loteMes?'<th style="text-align:right">% do mês</th>':'<th style="text-align:right">Total do lote</th>')
-      +'</tr>';
-
-    var corpo=visiveis.map(function(l){
-      var cels=colunas.map(function(ms){
-        var q=l.meses[ms];
-        return '<td style="text-align:right">'+(q?fi(q):'—')+'</td>';
-      }).join('');
-      var fim=_loteMes
-        ? '<td style="text-align:right;color:var(--t2)">'+(totMes[_loteMes]>0?fd((l.meses[_loteMes]/totMes[_loteMes])*100,1)+'%':'—')+'</td>'
-        : '<td style="text-align:right;font-weight:700">'+fi(l.total)+'</td>';
-      return '<tr><td style="font-family:var(--mono);font-weight:700">'+l.lote+'</td>'+cels+fim+'</tr>';
-    }).join('');
-
-    var rodape='<tr style="border-top:2px solid var(--b)">'
-      +'<td style="font-weight:700;color:var(--cyan)">TOTAL</td>'
-      +colunas.map(function(ms){ return '<td style="text-align:right;font-weight:700;color:var(--cyan)">'+fi(totMes[ms])+'</td>'; }).join('')
-      +'<td style="text-align:right;font-weight:700;color:var(--cyan)">'+(_loteMes?'100%':fi(totGeral))+'</td>'
-      +'</tr>';
-
-    box.innerHTML=titulo
-      +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">'
-      +seletor
-      +'<span style="font-family:var(--mono);font-size:.74rem;color:var(--t3)">'
-      +visiveis.length+' '+(visiveis.length>1?'lotes programados':'lote programado')
-      +(_loteMes?' em '+_loteMes+'/'+String(ano).slice(2):' no ano')
-      +' · '+fi(totGeral)+' pç</span>'
-      +'</div>'
-      +'<div class="prod-table-wrap"><table class="prod-table">'
-      +'<thead>'+head+'</thead><tbody>'+corpo+rodape+'</tbody></table></div>';
-  }
-
   window.pmImprimir = function(){
     if(!_ult){ if(typeof toast==='function') toast('Abra a aba e aguarde os dados carregarem.','wn'); return; }
     var u=_ult, sw=swot(u), hoje=new Date().toLocaleDateString('pt-BR');
@@ -17709,30 +17593,59 @@ function printAtiva(){
         +'<td class="n"><b>'+(m.ritmoReal!==null?fi(m.ritmoReal):'—')+'</b></td></tr>';
     }).join('');
 
-    /* Listagem de produtos programados — mesma matriz da tela. Só entra no
-       relatório se o Web App já estiver mandando os lotes. */
-    var lotesImp=lotesDoAno(u.ano), secLotes='';
-    if(lotesImp.length){
-      var mesesImp=ORDEM_M.filter(function(ms){ return lotesImp.some(function(l){ return l.meses[ms]; }); });
-      var totImp={}, totGImp=0;
-      mesesImp.forEach(function(ms){ totImp[ms]=0; });
-      lotesImp.forEach(function(l){
-        mesesImp.forEach(function(ms){ totImp[ms]+=l.meses[ms]||0; });
-        totGImp+=l.total;
+    /* Produção por produto e volumes — o que a fábrica de fato fabricou.
+       O mês a mês vem da HISTORICO (produtos do reporte e volumes lançados);
+       o top de produtos vem das linhas do reporte mensal (REPORTE_VOLUMES).
+       Sem dado nenhum, a seção não entra e o relatório fica como era. */
+    var regsPV=(typeof load==='function'?load():[]).filter(function(r){ return r.ano===u.ano&&(r.producaoReal||0)>0; })
+      .sort(function(a,b){ return ORDEM_M.indexOf(a.mes)-ORDEM_M.indexOf(b.mes); });
+    var itensPV=loadItens().filter(function(r){ return r[1]===u.ano; });
+    var secProd='';
+    if(regsPV.some(function(r){ return volPar(r); })||itensPV.length){
+      var linhasPV='', totP=0, totV=0;
+      regsPV.forEach(function(r){
+        var par=volPar(r);
+        var prod=(r.produtosReportados||0)>0?r.produtosReportados:(r.producaoReal||0);
+        var vol=par?par.vol:0, fat=(par&&par.prod>0)?par.vol/par.prod:null;
+        totP+=prod; totV+=vol;
+        linhasPV+='<tr><td><b>'+r.mes+'/'+String(u.ano).slice(2)+'</b></td>'
+          +'<td class="n">'+fi(prod)+'</td>'
+          +'<td class="n">'+(vol>0?fi(vol):'—')+'</td>'
+          +'<td class="n">'+(fat?fd(fat,2):'—')+'</td></tr>';
       });
-      secLotes='<div class="st">Produtos Programados — Lotes do Plano '+u.ano+'</div>'
-        +'<table><thead><tr><th>Lote</th>'
-        +mesesImp.map(function(ms){ return '<th style="text-align:right">'+ms+'</th>'; }).join('')
-        +'<th style="text-align:right">Total</th></tr></thead><tbody>'
-        +lotesImp.map(function(l){
-            return '<tr><td><b>'+l.lote+'</b></td>'
-              +mesesImp.map(function(ms){ return '<td class="n">'+(l.meses[ms]?fi(l.meses[ms]):'—')+'</td>'; }).join('')
-              +'<td class="n"><b>'+fi(l.total)+'</b></td></tr>';
-          }).join('')
-        +'<tr style="background:#edf2f7"><td><b>TOTAL</b></td>'
-        +mesesImp.map(function(ms){ return '<td class="n"><b>'+fi(totImp[ms])+'</b></td>'; }).join('')
-        +'<td class="n"><b>'+fi(totGImp)+'</b></td></tr>'
-        +'</tbody></table>';
+      var tabMesPV=linhasPV
+        ? '<table style="width:auto;min-width:320px"><thead><tr><th>Mês</th><th style="text-align:right">Produtos</th>'
+          +'<th style="text-align:right">Volumes</th><th style="text-align:right">Vol/Prod</th></tr></thead><tbody>'
+          +linhasPV
+          +'<tr style="background:#edf2f7"><td><b>TOTAL</b></td><td class="n"><b>'+fi(totP)+'</b></td>'
+          +'<td class="n"><b>'+(totV>0?fi(totV):'—')+'</b></td>'
+          +'<td class="n"><b>'+(totV>0&&totP>0?fd(totV/totP,2):'—')+'</b></td></tr>'
+          +'</tbody></table>'
+        : '';
+      var topPV='';
+      if(itensPV.length){
+        var aggPV={}, totItensPV=0;
+        itensPV.forEach(function(r){
+          if(RE_IT_VOL.test(r[3])) return;          /* linha VOL x/y é caixa, não produto */
+          if(!aggPV[r[2]]) aggPV[r[2]]={cod:r[2],desc:r[3],q:0};
+          aggPV[r[2]].q+=r[4]; totItensPV+=r[4];
+        });
+        var topLista=Object.keys(aggPV).map(function(k){ return aggPV[k]; })
+          .sort(function(a,b){ return b.q-a.q; }).slice(0,12);
+        topPV='<table><thead><tr><th>Código</th><th>Produto</th>'
+          +'<th style="text-align:right">Qtd</th><th style="text-align:right">% do ano</th></tr></thead><tbody>'
+          +topLista.map(function(p){
+              return '<tr><td>'+p.cod+'</td><td>'+p.desc+'</td>'
+                +'<td class="n"><b>'+fi(p.q)+'</b></td><td class="n">'+fd((p.q/totItensPV)*100,1)+'%</td></tr>';
+            }).join('')
+          +'</tbody></table>'
+          +'<div style="font-size:7.5pt;color:#718096;margin-top:4px">Top 12 de '+Object.keys(aggPV).length
+          +' produtos fabricados no ano · '+fi(totItensPV)+' unidades no total '
+          +'(linhas de volume "VOL x/y" fora da conta para não contar duas vezes).</div>';
+      }
+      secProd='<div class="st">Produção por Produto e Volumes — '+u.ano+'</div>'
+        +'<div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">'
+        +'<div>'+tabMesPV+'</div><div style="flex:1;min-width:380px">'+topPV+'</div></div>';
     }
 
     var w=window.open('','_blank','width=1250,height=900');
@@ -17839,7 +17752,7 @@ function printAtiva(){
         : '')
       +'<table><thead><tr><th>Mês</th><th>Status</th><th>Plano</th><th>Realizado</th><th>Desvio</th>'
         +'<th>Dias úteis</th><th>Ritmo nec.</th><th>Ritmo real.</th></tr></thead><tbody>'+linhas+'</tbody></table>'
-      +secLotes
+      +secProd
       +'<div class="st">Análise SWOT — Planejamento Mestre '+u.ano+'</div>'
       +'<div class="swg">'
         +box('Forças', sw.f, 'f')+box('Fraquezas', sw.w, 'w')
@@ -17885,9 +17798,14 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b44';
+var APP_VERSAO = 'b45';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b45', data:'10/08/2026', itens:[
+    'Sai a listagem de lotes programados (a pedido) — a matriz ja vive na PLANO MESTRE.',
+    'Relatorio impresso ganha a secao Producao por Produto e Volumes: mes a mes (produtos, volumes, fator) e top 12 produtos do ano.',
+    'Sem mudanca no Apps Script: o payload continua igual.'
+  ]},
   { v:'b44', data:'10/08/2026', itens:[
     'Produtos produzidos por codigo na aba Planejamento Mestre: as linhas do reporte mensal do ERP, mes a mes.',
     'Filtro por mes, busca por codigo/descricao e separacao produto x volume (linha VOL x/y e caixa, nao produto).',
