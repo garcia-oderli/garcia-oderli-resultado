@@ -18146,20 +18146,47 @@ function printAtiva(){
         +'<td class="n">'+fi(famLista.slice(12).reduce(function(s,f){ return s+f.q; },0))+'</td><td class="n"></td></tr>':'')
       +'</tbody></table>';
 
+    /* Listagem por MODELO: cor/acabamento somados no mesmo produto. A lista
+       por código dava 300+ linhas e 8 páginas — para reunião o que importa é
+       "MESA CABECEIRA MADERO: 13.797", não cada variação de cor. O corte é
+       na primeira palavra de cor/acabamento da descrição. */
+    var CORES={BRANCO:1,BRANCA:1,PRETO:1,PRETA:1,OFF:1,CINAMOMO:1,CUMARU:1,CEDRO:1,ROSA:1,AZUL:1,
+      GRAFITE:1,MARSALA:1,ALECRIM:1,NATURE:1,CANELATO:1,CINZA:1,AMENDOA:1,CARVALHO:1,NOGUEIRA:1,
+      FREIJO:1,TAUARI:1,MADEIRADO:1,VERDE:1,AMARELO:1};
+    function modeloDe(desc){
+      var p=String(desc).trim().toUpperCase().split(/\s+/), out=[];
+      for(var i=0;i<p.length;i++){
+        var t=p[i];
+        if(CORES[t.split('/')[0]]||t.indexOf('/')>=0||((t==='AC'||t==='BR')&&i>=2)) break;
+        out.push(t);
+      }
+      return out.join(' ')||String(desc).toUpperCase();
+    }
+    var mod={};
+    lista.forEach(function(p){
+      var m=modeloDe(p.desc);
+      if(!mod[m]) mod[m]={nome:m,q:0,cores:0};
+      mod[m].q+=p.q; mod[m].cores++;
+    });
+    var modLista=Object.keys(mod).map(function(k){ return mod[k]; }).sort(function(a,b){ return b.q-a.q; });
+    var acumM=0,n80m=0;
+    for(var j=0;j<modLista.length;j++){ acumM+=modLista[j].q; if(!n80m&&acumM>=totProdI*0.8) n80m=j+1; }
     var acum2=0;
-    var listagem='<div class="st">Listagem completa — '+lista.length+' produtos ('+rotPer+')</div>'
-      +'<table><thead><tr><th>#</th><th>Código</th><th>Produto</th>'
+    var listagem='<div class="st">Listagem por modelo — '+modLista.length+' modelos, cores somadas ('+rotPer+')</div>'
+      +'<table><thead><tr><th>#</th><th>Modelo</th><th style="text-align:right">Variações</th>'
       +'<th style="text-align:right">Qtd</th><th style="text-align:right">%</th><th style="text-align:right">% Acum.</th></tr></thead><tbody>'
-      +lista.map(function(p,i){
+      +modLista.map(function(p,i){
           acum2+=p.q;
-          return '<tr'+(i<n80?'':' style="color:#718096"')+'><td>'+(i+1)+'</td><td>'+p.cod+'</td><td>'+p.desc+'</td>'
+          return '<tr'+(i<n80m?'':' style="color:#718096"')+'><td>'+(i+1)+'</td><td><b>'+p.nome+'</b></td>'
+            +'<td class="n">'+p.cores+'</td>'
             +'<td class="n"><b>'+fi(p.q)+'</b></td>'
             +'<td class="n">'+fd((p.q/totProdI)*100,1)+'%</td>'
             +'<td class="n">'+fd((acum2/totProdI)*100,1)+'%</td></tr>';
         }).join('')
       +'</tbody></table>'
-      +'<div style="font-size:7.5pt;color:#718096;margin-top:4px">Linhas em cinza: fora dos '+n80
-      +' produtos que fazem 80% do período. Linhas de volume ("VOL x/y") não entram — são caixas, não produtos.</div>';
+      +'<div style="font-size:7.5pt;color:#718096;margin-top:4px">Cores e acabamentos do mesmo modelo somados ('
+      +lista.length+' códigos → '+modLista.length+' modelos). Linhas em cinza: fora dos '+n80m
+      +' modelos que fazem 80% do período. O detalhe código a código continua na tela da aba, com busca.</div>';
 
     function kpi(l,v,s){ return '<div class="k"><div class="kl">'+l+'</div><div class="kv">'+v+'</div><div class="ks">'+s+'</div></div>'; }
     var kpis='<div class="kg">'
@@ -18179,6 +18206,7 @@ function printAtiva(){
       +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:8.5pt;color:#1a1a2e;background:#fff;'
         +'-webkit-print-color-adjust:exact;print-color-adjust:exact}'
       +'.hd{background:linear-gradient(135deg,#1a1a2e,#16213e 60%,#0f3460);color:#fff;padding:13px 22px}'
+      +'.hd .hdrow{display:flex;align-items:center;gap:16px}'
       +'.hd .lb{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#FF9800;font-weight:700}'
       +'.hd h1{font-size:16px;margin:3px 0 2px}.hd .sb{font-size:9px;color:#a0aec0}'
       +'.bd{padding:11px 22px}'
@@ -18200,9 +18228,11 @@ function printAtiva(){
       +'.ft{display:flex;justify-content:space-between;font-size:7pt;color:#a0aec0;'
         +'padding:8px 22px;border-top:1px solid #edf2f7;margin-top:8px}'
       +'</style></head><body>'
-      +'<div class="hd"><div class="lb">PPCP · Capacidade &amp; Eficiência — Patrimar Móveis</div>'
+      +'<div class="hd"><div class="hdrow">'+(typeof logoImprimir==='function'?logoImprimir(30):'')+'<div>'
+      +'<div class="lb">PPCP · Capacidade &amp; Eficiência — Patrimar Móveis</div>'
       +'<h1>Produção por Produto e Volumes — '+rotPer+'</h1>'
-      +'<div class="sb">O que a fábrica fabricou, código a código · fonte: reporte mensal do ERP (transação 3)</div></div>'
+      +'<div class="sb">O que a fábrica fabricou, código a código · fonte: reporte mensal do ERP (transação 3)</div>'
+      +'</div></div></div>'
       +'<div class="bd">'
       +kpis
       +narrativa
@@ -18248,9 +18278,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b48';
+var APP_VERSAO = 'b49';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b49', data:'10/08/2026', itens:[
+    'Relatorio de Producao por Produto ganha a logomarca Patrimar no cabecalho.',
+    'Listagem por MODELO (cores e acabamentos somados): 329 codigos viram ~1 pagina em vez de 8. O detalhe por codigo segue na tela, com busca.'
+  ]},
   { v:'b48', data:'10/08/2026', itens:[
     'Relatorio dedicado da aba Producao por Produto (botao Relatorio): KPIs, leitura executiva, mes a mes, familias e a listagem completa com Pareto.',
     'Respeita o filtro da tela: ANO imprime o acumulado, mes imprime so o mes. Retrato, para a listagem ler melhor.',
