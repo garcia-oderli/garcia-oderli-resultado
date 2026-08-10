@@ -18,7 +18,17 @@
  * dashboard calcula o fator na base coerente em vez de dividir pelo
  * producaoReal, que vem de outro corte (~9% menor que o relatório em JAN/26).
  *
- * COMO USAR:
+ * MODO AUTOMÁTICO (o do dia a dia):
+ *   1. Crie no Drive uma pasta chamada REPORTES DE VOLUMES;
+ *   2. Todo mês, salve nela o PDF do relatório (3 - REPORTE, Tipo: Todos);
+ *   3. O resto é sozinho: processarReportesDrive() converte o PDF, extrai as
+ *      linhas, atualiza a REPORTE_VOLUMES, recalcula e lança na HISTORICO.
+ *      Rode instalarProcessamentoDiario() uma vez e nem o clique precisa —
+ *      a pasta é varrida todo dia de manhã; PDF processado vai para a
+ *      subpasta PROCESSADOS. Também dá para disparar na hora pelo menu
+ *      "📦 Volumes" que aparece na planilha.
+ *
+ * MODO MANUAL (continua valendo, e é o plano B se o PDF mudar de cara):
  *   1. criarAbaReporteVolumes() — uma vez; monta a aba REPORTE_VOLUMES;
  *   2. Cole o relatório do mês: MES | ANO | CODIGO | DESCRICAO | QUANTIDADE.
  *      A DESCRICAO é obrigatória: é ela que diz o que é volume ("VOL x/y…")
@@ -28,8 +38,8 @@
  *   4. Confira e rode lancarVolumesNaHistorico() — grava volumesProduzidos
  *      (e produtosReportados, se a coluna existir) casando mês+ano.
  *
- * Roda dentro da própria planilha, à mão, como a carga do plano — o Web App
- * não escreve nessas colunas.
+ * Roda dentro da própria planilha, como a carga do plano — o Web App não
+ * escreve nessas colunas.
  */
 
 var RV_ABA           = 'REPORTE_VOLUMES';
@@ -188,6 +198,194 @@ function lancarVolumesNaHistorico() {
     + (semLinha.length ? '. SEM linha na HISTORICO (mês ainda não existe lá): ' + semLinha.join(', ') : '')
     + (col.prod === undefined ? '. Dica: crie também a coluna "produtosReportados" para o dashboard usar o fator exato.' : '')
     + '. O dashboard pega no próximo sync.');
+}
+
+/* ══ 5 · AUTOMÁTICO — PDF do Drive direto para a HISTORICO ══
+   O ERP é local e não conversa com a planilha; o combinado é: o PDF do mês
+   cai na pasta REPORTES DE VOLUMES do Drive e daqui para frente ninguém
+   digita nada. A conversão PDF→texto usa o próprio Drive (copiar o arquivo
+   como Documento Google extrai o texto, o mesmo truque do OCR), as linhas
+   são lidas com a mesma régua do modo manual e o mês inteiro é substituído
+   na REPORTE_VOLUMES — rodar duas vezes não duplica. */
+
+var RV_PASTA      = 'REPORTES DE VOLUMES';
+var RV_PROCESSADOS = 'PROCESSADOS';
+
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('📦 Volumes')
+    .addItem('Processar PDFs da pasta do Drive', 'processarReportesDrive')
+    .addItem('Recalcular resumo (dados colados)', 'calcularVolumesMes')
+    .addItem('Lançar na HISTORICO', 'lancarVolumesNaHistorico')
+    .addSeparator()
+    .addItem('Instalar processamento diário', 'instalarProcessamentoDiario')
+    .addItem('Criar linha TOTAL VOLUMES no plano mestre', 'criarLinhaTotalVolumes')
+    .addToUi();
+}
+
+function processarReportesDrive() {
+  var pastas = DriveApp.getFoldersByName(RV_PASTA);
+  if (!pastas.hasNext()) {
+    return rvErro('Pasta "' + RV_PASTA + '" não encontrada no Drive — crie a pasta e solte os PDFs do relatório nela.');
+  }
+  var pasta = pastas.next();
+  var arquivos = pasta.getFilesByType(MimeType.PDF);
+  var feitos = [], falhas = [];
+
+  while (arquivos.hasNext()) {
+    var pdf = arquivos.next();
+    try {
+      var texto = rvPdfParaTexto(pdf.getId());
+      var mesAno = rvPeriodoDoTexto(texto);
+      if (!mesAno) throw new Error('não achei "Período: dd/mm/aa" no PDF');
+      var linhas = rvLinhasDoTexto(texto, mesAno);
+      if (!linhas.length) throw new Error('nenhuma linha de produto/volume reconhecida');
+      rvSubstituirMes(mesAno, linhas);
+      rvMoverParaProcessados(pasta, pdf);
+      feitos.push(pdf.getName() + ' → ' + mesAno.mes + '/' + mesAno.ano + ' (' + linhas.length + ' linhas)');
+    } catch (e) {
+      falhas.push(pdf.getName() + ': ' + (e && e.message || e));
+    }
+  }
+
+  if (feitos.length) {
+    calcularVolumesMes();
+    lancarVolumesNaHistorico();
+  }
+  rvAvisar((feitos.length ? 'Processados:\n' + feitos.join('\n') : 'Nenhum PDF novo na pasta.')
+    + (falhas.length ? '\n\nFALHARAM (ficaram na pasta):\n' + falhas.join('\n') : ''));
+}
+
+/* Um gatilho por dia, de manhã. Reinstalar não duplica. */
+function instalarProcessamentoDiario() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'processarReportesDrive') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('processarReportesDrive').timeBased().everyDays(1).atHour(6).create();
+  rvAvisar('Instalado: a pasta "' + RV_PASTA + '" é varrida todo dia por volta das 6h. '
+    + 'É só salvar o PDF do mês lá dentro; o resultado aparece na HISTORICO e o dashboard pega no sync.');
+}
+
+/* Copia o PDF como Documento Google (o Drive extrai o texto), lê e apaga a
+   cópia. Não mexe no PDF original. */
+function rvPdfParaTexto(fileId) {
+  var resp = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '/copy', {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({ name: 'tmp_reporte_volumes', mimeType: 'application/vnd.google-apps.document' }),
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
+  if (resp.getResponseCode() >= 300) {
+    throw new Error('conversão do PDF falhou (HTTP ' + resp.getResponseCode() + ')');
+  }
+  var docId = JSON.parse(resp.getContentText()).id;
+  try {
+    return DocumentApp.openById(docId).getBody().getText();
+  } finally {
+    try { DriveApp.getFileById(docId).setTrashed(true); } catch (ignore) {}
+  }
+}
+
+function rvPeriodoDoTexto(texto) {
+  var m = texto.match(/Per[íi]odo:\s*\d{2}\/(\d{2})\/(\d{2,4})/);
+  if (!m) return null;
+  var ano = parseInt(m[2], 10);
+  if (ano < 100) ano += 2000;
+  return { mes: RV_MESES[parseInt(m[1], 10) - 1], ano: ano };
+}
+
+/* Mesma régua do PDF: código 000.000.000, descrição, três números no fim
+   (quantidade, peso, custo). Linha de cabeçalho/rodapé não casa e é
+   ignorada de graça. */
+function rvLinhasDoTexto(texto, mesAno) {
+  var out = [];
+  texto.split('\n').forEach(function (ln) {
+    var m = ln.trim().match(/^(\d{3}\.\d{3}\.\d{3})\s+(.+?)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)$/);
+    if (!m) return;
+    var qtd = rvNum(m[3]);
+    if (!qtd) return;
+    out.push([mesAno.mes, mesAno.ano, m[1], m[2].trim(), qtd]);
+  });
+  return out;
+}
+
+/* Troca as linhas do mês na REPORTE_VOLUMES pelas recém-lidas — reprocessar
+   o mesmo mês (PDF corrigido, por exemplo) substitui em vez de somar. */
+function rvSubstituirMes(mesAno, novas) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var aba = ss.getSheetByName(RV_ABA);
+  if (!aba) { criarAbaReporteVolumes(); aba = ss.getSheetByName(RV_ABA); }
+  var alt = Math.max(aba.getLastRow() - 1, 0);
+  var atuais = alt ? aba.getRange(2, 1, alt, 5).getValues() : [];
+  var mantidas = atuais.filter(function (l) {
+    var m = String(l[0] || '').trim().toUpperCase().slice(0, 3);
+    return l[0] && !(m === mesAno.mes && parseInt(l[1], 10) === mesAno.ano);
+  });
+  var tudo = mantidas.concat(novas);
+  if (alt) aba.getRange(2, 1, alt, 5).clearContent();
+  if (tudo.length) aba.getRange(2, 1, tudo.length, 5).setValues(tudo);
+}
+
+function rvMoverParaProcessados(pasta, pdf) {
+  var sub = pasta.getFoldersByName(RV_PROCESSADOS);
+  var destino = sub.hasNext() ? sub.next() : pasta.createFolder(RV_PROCESSADOS);
+  pdf.moveTo(destino);
+}
+
+/* ══ 6 · PLANO MESTRE EM VOLUMES ══
+   A capacidade da embalagem é por volume, então o plano também precisa
+   existir nessa unidade — mas a matriz de lotes continua em produtos, que é
+   o que o resto do painel (ritmos, simulação, demanda) consome. A saída é
+   uma linha oficial TOTAL VOLUMES logo abaixo da TOTAL GERAL: nasce como
+   fórmula (produtos do mês × fator, editável na coluna O) e o planejamento
+   pode sobrescrever qualquer mês com o número decidido. O Code.gs lê a
+   linha e o dashboard passa a usar o plano oficial em vez do fator médio. */
+
+var RV_PM_ABA    = 'PLANO MESTRE';
+var RV_PM_TOTAL  = 'TOTAL GERAL';
+var RV_PM_LINHA  = 'TOTAL VOLUMES';
+/* Colunas da matriz: A = rótulo, B..M = jan..dez, N = TOTAL ANO, O = fator. */
+var RV_PM_COL_JAN = 2, RV_PM_COL_DEZ = 13, RV_PM_COL_TOTAL = 14, RV_PM_COL_FATOR = 15;
+/* Fator inicial: realizado JAN–JUL/26 (254.821 volumes ÷ 210.961 produtos). */
+var RV_PM_FATOR_INICIAL = 1.208;
+
+function criarLinhaTotalVolumes() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var aba = ss.getSheetByName(RV_PM_ABA);
+  if (!aba) return rvErro('Aba "' + RV_PM_ABA + '" não encontrada.');
+
+  var valores = aba.getDataRange().getValues();
+  var iTotal = -1, iVol = -1;
+  for (var i = 0; i < valores.length; i++) {
+    var a = rvNormaliza(valores[i][0]);
+    if (iTotal < 0 && a === rvNormaliza(RV_PM_TOTAL)) iTotal = i + 1;
+    if (iVol < 0 && a === rvNormaliza(RV_PM_LINHA)) iVol = i + 1;
+  }
+  if (iVol > 0)   return rvAvisar('Linha ' + RV_PM_LINHA + ' já existe (linha ' + iVol + ') — nada foi alterado.');
+  if (iTotal < 0) return rvErro('Linha "' + RV_PM_TOTAL + '" não encontrada na ' + RV_PM_ABA + '.');
+
+  aba.insertRowsAfter(iTotal, 1);
+  var nova = iTotal + 1;
+  aba.getRange(nova, 1).setValue(RV_PM_LINHA).setFontWeight('bold');
+  aba.getRange(nova, RV_PM_COL_FATOR).setValue(RV_PM_FATOR_INICIAL);
+  aba.getRange(nova, RV_PM_COL_FATOR + 1)
+     .setValue('← fator vol/produto — edite aqui, ou digite o volume direto no mês')
+     .setFontStyle('italic');
+
+  /* Mês sem plano fica traço, como o resto da matriz; com plano, produtos ×
+     fator. É fórmula de propósito: enquanto o planejamento não decidir o
+     número, a linha acompanha o plano de produtos sozinha. */
+  var f = [];
+  for (var c = RV_PM_COL_JAN; c <= RV_PM_COL_DEZ; c++) {
+    var letra = String.fromCharCode(64 + c);
+    f.push('=IF(N(' + letra + iTotal + ')=0,"-",ROUND(' + letra + iTotal + '*$O$' + nova + ',0))');
+  }
+  aba.getRange(nova, RV_PM_COL_JAN, 1, f.length).setFormulas([f]);
+  aba.getRange(nova, RV_PM_COL_TOTAL).setFormula('=SUM(B' + nova + ':M' + nova + ')');
+
+  rvAvisar('Linha ' + RV_PM_LINHA + ' criada abaixo da ' + RV_PM_TOTAL + ' com fator '
+    + RV_PM_FATOR_INICIAL + ' (realizado JAN–JUL/26). Ajuste o fator na coluna O ou digite '
+    + 'os meses direto. Reimplante o Web App para o dashboard passar a ler o plano em volumes.');
 }
 
 /* ══ HELPERS ══ */
