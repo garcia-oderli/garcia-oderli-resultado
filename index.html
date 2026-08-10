@@ -1183,6 +1183,11 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 
 <!-- ══ ABAS DE NAVEGAÇÃO (4 grupos MES) ══ -->
 <nav class="pageNav" id="main-nav">
+  <!-- 0 · REUNIÃO — primeira porque é a tela que se abre na reunião -->
+  <button class="pTab" data-group="reuniao" onclick="mudarGrupo('reuniao',this)">
+    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4z"></path></svg>
+    Reunião
+  </button>
   <!-- 1 · VISÃO GERAL -->
   <button class="pTab on" data-group="geral" onclick="mudarGrupo('geral',this)">
     <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M3 13h4v8H3v-8zm7-6h4v14h-4V7zm7-4h4v18h-4V3z"></path></svg>
@@ -4247,6 +4252,46 @@ Fórmula: Faltas + Atrasos
   <div class="cEmpty" id="pm-empty" style="display:none">Sem previsão de produção informada para este ano.</div>
 </div>
 <!-- ══ FIM PÁGINA: PLANEJAMENTO MESTRE ══ -->
+<!-- ══ PÁGINA: REUNIÃO DO MÊS ══
+     Tela única para a reunião de diretoria: o que a fábrica entregou, a que
+     custo, se cobre a demanda e o que explica o desvio. Sem navegação e sem
+     rolagem — cabe em 1080p e escala no Modo TV. Não calcula nada: consome
+     window.pmApurado() (plano) e window.pcApurado() (mix/volumes). -->
+<style>
+/* Na tela de reunião quem estourava a altura era a barra lateral (900px de
+   filtros), não o conteúdo (490px). Aqui ela rola por dentro em vez de
+   esticar a página — os filtros continuam à mão e a tela cabe em 1080p. */
+body.pg-reuniao aside.sidebar { max-height: calc(100vh - 225px); overflow-y: auto; }
+/* no Modo TV o cabeçalho e as abas crescem — a barra cede o resto */
+body.pg-reuniao.tv-mode aside.sidebar { max-height: calc(100vh - 265px); }
+body.pg-reuniao aside.sidebar::-webkit-scrollbar { width: 6px; }
+body.pg-reuniao aside.sidebar::-webkit-scrollbar-thumb { background: var(--b); border-radius: 3px; }
+</style>
+<div class="page" id="page-reuniao">
+  <div class="pageHdr">
+    <div class="pageHdrIcon" style="background:#F5A623">
+      <svg viewBox="0 0 24 24" fill="var(--bg)"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34z"></path></svg>
+    </div>
+    <div>
+      <div class="pageHdrTitle">Reunião do Mês</div>
+      <div class="pageHdrSub">Entrega · capacidade · demanda · mix — tudo em uma tela</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+      <span id="reu-per-lbl" style="font-family:var(--mono);font-size:1rem;font-weight:800;letter-spacing:.06em;
+        color:#F5A623;background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.45);
+        border-radius:8px;padding:7px 16px;white-space:nowrap">—</span>
+      <button onclick="reuImprimir()" title="Uma página com estes indicadores, para circular antes da reunião"
+        style="display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border:1px solid #F5A623;
+        border-radius:6px;background:rgba(245,166,35,.08);color:#F5A623;font-size:.76rem;font-weight:700;
+        text-transform:uppercase;letter-spacing:.05em;cursor:pointer;white-space:nowrap">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"></path></svg>
+        Relatório
+      </button>
+    </div>
+  </div>
+  <div id="reu-corpo"></div>
+</div>
+<!-- ══ FIM PÁGINA: REUNIÃO DO MÊS ══ -->
 <!-- ══ PÁGINA: PRODUÇÃO POR PRODUTO ══ -->
 <div class="page" id="page-prodcod">
   <div class="pageHdr">
@@ -8848,6 +8893,21 @@ function cfInicializar() {
     '.tv-mode #rex-semaforo-list span { font-size: .95rem !important; }',
     '.tv-mode #rex-insights-list > div { padding: 10px 14px; }',
 
+    /* Reunião do Mês — a tela projetada; números maiores e respiro menor,
+       para os cinco blocos caberem sem rolagem no telão */
+    '.tv-mode #page-reuniao .reu-val { font-size: 1.9rem !important; }',
+    '.tv-mode #page-reuniao .reu-big .reu-val { font-size: 2.5rem !important; }',
+    '.tv-mode #page-reuniao .reu-lbl { font-size: .74rem !important; }',
+    '.tv-mode #page-reuniao .reu-sub { font-size: .8rem !important; }',
+    '.tv-mode #page-reuniao .reu-sec { font-size: .7rem !important; margin: 10px 0 6px !important; }',
+    '.tv-mode #page-reuniao .reu-manchete { font-size: 1.8rem !important; }',
+    '.tv-mode #page-reuniao .reu-frase { font-size: 1rem !important; }',
+    '.tv-mode #page-reuniao .reu-grid { gap: 10px !important; }',
+    '.tv-mode #reu-per-lbl { font-size: 1.2rem !important; padding: 8px 18px !important; }',
+    /* na projeção, o subtítulo da página não conta história nenhuma */
+    '.tv-mode #page-reuniao .pageHdrSub { display: none !important; }',
+    '.tv-mode #page-reuniao .pageHdr { margin-bottom: 8px !important; padding-bottom: 8px !important; }',
+
     /* Botão ativo */
     '.tv-mode #btnTV { border-color: var(--cyan) !important; color: var(--cyan) !important; background: rgba(245,166,35,.1) !important; }',
 
@@ -8864,6 +8924,18 @@ function cfInicializar() {
     _tvActive = !_tvActive;
     document.body.classList.toggle('tv-mode', _tvActive);
     localStorage.setItem(TV_KEY, _tvActive ? '1' : '0');
+    /* Tela cheia de verdade: em reunião, a barra do navegador rouba as duas
+       linhas que faltam para o último bloco caber. Falha em silêncio quando o
+       navegador exige gesto — a escala tipográfica continua valendo. */
+    try {
+      if (_tvActive && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+        var p = document.documentElement.requestFullscreen();
+        if (p && p.catch) p.catch(function () {});
+      } else if (!_tvActive && document.fullscreenElement && document.exitFullscreen) {
+        var q = document.exitFullscreen();
+        if (q && q.catch) q.catch(function () {});
+      }
+    } catch (e) {}
     /* Redesenha todos os canvas (tamanho muda com a classe) */
     setTimeout(function () {
       if (typeof drawAll === 'function') drawAll(typeof getDados === 'function' ? getDados(load()) : []);
@@ -11910,6 +11982,13 @@ function cfInicializar() {
      1. DEFINIÇÃO DOS GRUPOS
   ════════════════════════════════════════ */
   var GRUPOS = {
+    'reuniao': {
+      label: 'Reunião',
+      cor:   '#F5A623',
+      pages: [
+        { id: 'reuniao', label: 'Reunião do Mês', icon: '📣' }
+      ]
+    },
     'geral': {
       label: 'Visão Geral',
       cor:   DS.C.destaque,
@@ -12046,6 +12125,7 @@ function cfInicializar() {
       '  border-color: rgba(var(--sub-cor, 245,166,35),.3);',
       '}',
       /* cor por grupo */
+      '#sub-nav-bar[data-group="reuniao"]      .subTab.on { color:#F5A623; border-color:rgba(245,166,35,.3); background:rgba(245,166,35,.1); }',
       '#sub-nav-bar[data-group="geral"]        .subTab.on { color:#F5A623; border-color:rgba(245,166,35,.3); background:rgba(245,166,35,.1); }',
       '#sub-nav-bar[data-group="ppcp-cap"]     .subTab.on { color:#FF9800; border-color:rgba(255,152,0,.3); background:rgba(255,152,0,.1); }',
       '#sub-nav-bar[data-group="producao-grp"] .subTab.on { color:#4CAF50; border-color:rgba(76,175,80,.3); background:rgba(76,175,80,.1); }',
@@ -17528,6 +17608,10 @@ function printAtiva(){
     return {f:f,w:w,o:o,a:a};
   }
 
+  /* Apurado do plano, para quem precisar sem recalcular — é o que a tela de
+     Reunião consome. Devolve null enquanto a aba não tiver renderizado. */
+  window.pmApurado = function(){ return _ult; };
+
   window.pmImprimir = function(){
     if(!_ult){ if(typeof toast==='function') toast('Abra a aba e aguarde os dados carregarem.','wn'); return; }
     var u=_ult, sw=swot(u), hoje=new Date().toLocaleDateString('pt-BR');
@@ -18493,6 +18577,43 @@ function printAtiva(){
     setTimeout(function(){ w.focus(); w.print(); }, 700);
   };
 
+  /* Apurado de mix/volumes para quem precisar sem recalcular — é o que a tela
+     de Reunião consome. Não depende de a aba ter sido aberta: recebe o
+     período por parâmetro e usa as mesmas regras da tela. */
+  window.pcApurado=function(ano,mes){
+    var its=itens().filter(function(r){ return r[1]===ano&&(!mes||r[0]===mes); });
+    if(!its.length) return null;
+    var todos=(typeof load==='function')?load():[];
+    var agg={}, prod=0;
+    its.forEach(function(r){
+      if(RE_VOL.test(r[3])) return;
+      if(!agg[r[2]]) agg[r[2]]={cod:r[2],desc:r[3],q:0};
+      agg[r[2]].q+=r[4]; prod+=r[4];
+    });
+    if(!prod) return null;
+    var lista=Object.keys(agg).map(function(k){ return agg[k]; }).sort(function(a,b){ return b.q-a.q; });
+    var vol=0,kg=0;
+    todos.forEach(function(r){
+      if(r.ano!==ano||(mes&&r.mes!==mes)) return;
+      vol+=(r.volumesProduzidos||r.volumes||r.qtdeVolumes||0);
+      kg+=(r.quilosProduzidos||r.quilos||r.kg||0);
+    });
+    var fam={};
+    lista.forEach(function(p){
+      var f=familiaDe(p.desc);
+      if(!fam[f]) fam[f]={nome:f,q:0};
+      fam[f].q+=p.q;
+    });
+    var famLista=Object.keys(fam).map(function(k){ return fam[k]; }).sort(function(a,b){ return b.q-a.q; });
+    var acum=0,n80=0;
+    for(var i=0;i<lista.length;i++){ acum+=lista[i].q; if(!n80&&acum>=prod*0.8) n80=i+1; }
+    return { ano:ano, mes:mes||'', prod:prod, vol:vol, kg:kg,
+             fator:vol>0?vol/prod:0, kgPc:kg>0?kg/prod:0,
+             distintos:lista.length, n80:n80,
+             top:lista.slice(0,5), familias:famLista.slice(0,5),
+             famLider:famLista[0]||null };
+  };
+
   function ligar(){
     render();
     if(window.DashBus&&window.DashBus.on){
@@ -18503,6 +18624,233 @@ function printAtiva(){
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(ligar,600); });
   else setTimeout(ligar,600);
+})();
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REUNIÃO DO MÊS — a tela que substitui a navegação
+   ─────────────────────────────────────────────────────────────────────────
+   Em reunião de diretoria, trocar de aba custa o fio da conversa. Esta tela
+   junta, na ordem em que a reunião acontece: o veredito do plano, o que foi
+   entregue, a que custo, se o plano cobre a demanda e o que explica o desvio
+   (mix e volumes). Cada bloco vem de módulo que já apura — pmApurado() para
+   o plano e pcApurado() para mix/volumes —, então nenhum número aqui pode
+   divergir das abas de origem: não há segunda conta.
+
+   Período: último mês FECHADO do ano ativo como manchete, acumulado do ano
+   ao lado. Um único mês marcado na sidebar troca a manchete (mão única, como
+   nas outras abas). */
+(function(){
+  var ORDEM_M=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  function fi(n){ return isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—'; }
+  function fd(n,d){ return isFinite(n)?n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'; }
+  function pct(n){ return (n>=0?'+':'')+fd(n,1)+'%'; }
+
+  function corMeta(v,meta,inverso){
+    if(!isFinite(v)) return 'var(--t2)';
+    var ok=inverso?v<=meta:v>=meta;
+    var quase=inverso?v<=meta*1.15:v>=meta*0.95;
+    return ok?'#4CAF50':(quase?'#FF9800':'#F44336');
+  }
+  /* Compacto de propósito: os cinco blocos têm de caber em 1080p sem
+     rolagem, com sidebar aberta. Cada folga aqui vira rolagem no telão. */
+  function card(lbl,val,sub,cor,grande){
+    return '<div class="reu-card'+(grande?' reu-big':'')+'" style="background:var(--panel);border:1px solid var(--b);border-top:3px solid '+cor+';'
+      +'border-radius:var(--r);padding:'+(grande?'11px 15px':'9px 13px')+'">'
+      +'<div class="reu-lbl" style="font-size:.57rem;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">'+lbl+'</div>'
+      +'<div class="reu-val" style="font-family:var(--mono);font-size:'+(grande?'1.85rem':'1.3rem')+';font-weight:800;line-height:1.05;color:'+cor+'">'+val+'</div>'
+      +'<div class="reu-sub" style="font-size:.64rem;color:var(--t3);margin-top:3px;line-height:1.35">'+sub+'</div></div>';
+  }
+  function faixa(titulo,cards,extra){
+    return '<div class="reu-sec" style="font-size:.55rem;letter-spacing:.13em;text-transform:uppercase;color:var(--t3);margin:11px 0 6px;padding-left:2px">▸ '+titulo+'</div>'
+      +'<div class="reu-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:8px">'+cards+'</div>'
+      +(extra||'');
+  }
+
+  /* Agregados operacionais do período — mesma base do Resumo Executivo. */
+  function agregado(regs){
+    var o={n:0,prod:0,meta:0,hn:0,he:0,ht:0,carga:0,ef:0,abs:0,tkt:0,nTkt:0,dias:0};
+    regs.forEach(function(r){
+      if(!(r.producaoReal>0)) return;
+      o.n++; o.prod+=r.producaoReal; o.meta+=(r.meta||0);
+      o.hn+=(r.horasNormais||0); o.he+=(r.totalExtras||0); o.ht+=(r.horasTotais||0);
+      o.carga+=(r.horasCarga||0); o.ef+=(r.eficiencia||0); o.abs+=(r.absenteismo||0);
+      o.dias+=(r.diasTrabalhados||0);
+      if(r.ticketMedio>0){ o.tkt+=r.ticketMedio; o.nTkt++; }
+    });
+    o.efMed=o.n?o.ef/o.n:0; o.absMed=o.n?o.abs/o.n:0;
+    o.tktMed=o.nTkt?o.tkt/o.nTkt:0; o.pctHE=o.ht>0?(o.he/o.ht)*100:0;
+    return o;
+  }
+
+  function render(){
+    var corpo=document.getElementById('reu-corpo'); if(!corpo) return;
+    var todos=(typeof load==='function')?load():[];
+    var ano=(typeof anoAtivo!=='undefined'&&anoAtivo)?anoAtivo:null;
+    if(!ano){
+      var anos=todos.filter(function(r){ return (r.producaoReal||0)>0; }).map(function(r){ return r.ano; });
+      ano=anos.length?Math.max.apply(null,anos):new Date().getFullYear();
+    }
+    var doAno=todos.filter(function(r){ return r.ano===ano; })
+      .sort(function(a,b){ return ORDEM_M.indexOf(a.mes)-ORDEM_M.indexOf(b.mes); });
+    var fechados=doAno.filter(function(r){ return (r.producaoReal||0)>0; });
+    if(!fechados.length){
+      corpo.innerHTML='<div style="background:var(--panel);border:1px solid var(--b);border-left:4px solid #FF9800;'
+        +'border-radius:var(--r);padding:16px 20px;font-size:.85rem;color:var(--t1)">Nenhum mês fechado em '+ano+'.</div>';
+      var l0=document.getElementById('reu-per-lbl'); if(l0) l0.textContent=String(ano);
+      return;
+    }
+    /* manchete: mês da sidebar se houver exatamente um; senão o último fechado */
+    var g=(typeof mesesAtivos!=='undefined'&&mesesAtivos&&mesesAtivos.length===1)?mesesAtivos[0]:'';
+    var rMes=(g&&fechados.filter(function(r){ return r.mes===g; })[0])||fechados[fechados.length-1];
+    var mes=rMes.mes;
+    var ateAqui=fechados.filter(function(r){ return ORDEM_M.indexOf(r.mes)<=ORDEM_M.indexOf(mes); });
+    var lbl=document.getElementById('reu-per-lbl');
+    if(lbl) lbl.textContent=mes+'/'+String(ano).slice(2);
+
+    var A=agregado([rMes]), Y=agregado(ateAqui);
+    var pm=(typeof window.pmApurado==='function')?window.pmApurado():null;
+    var pcM=(typeof window.pcApurado==='function')?window.pcApurado(ano,mes):null;
+    var pcY=(typeof window.pcApurado==='function')?window.pcApurado(ano,''):null;
+
+    /* ── 1 · manchete ── */
+    var planoMes=rMes.previsaoProducao||0;
+    var atMes=planoMes>0?(rMes.producaoReal/planoMes)*100:null;
+    var manchete='';
+    if(pm&&pm.ano===ano&&pm.titulo){
+      manchete='<div style="background:linear-gradient(135deg,var(--panel),rgba(255,255,255,.02));border:1px solid var(--b);'
+        +'border-left:5px solid '+pm.cor+';border-radius:var(--r);padding:11px 18px">'
+        +'<div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:4px">'
+          +'<span class="reu-manchete" style="font-size:1.45rem;font-weight:800;color:'+pm.cor+'">'+pm.titulo+'</span>'
+          +'<span style="font-family:var(--mono);font-size:1rem;font-weight:700;color:'+pm.cor+'">'+pct(pm.pctFolga)+'</span>'
+          +'<span style="font-size:.68rem;color:var(--t3)">ritmo demonstrado vs exigido pelo plano</span>'
+        +'</div>'
+        +'<div class="reu-frase" style="font-size:.84rem;color:var(--t2);line-height:1.5;max-width:1100px">'+pm.acao+'</div>'
+        +'</div>';
+    }
+
+    /* ── 2 · entrega ── */
+    var b2=card('Produção de '+mes, fi(rMes.producaoReal)+' pç',
+                planoMes>0?(fd(atMes,1)+'% do plano do mês'):'sem plano no mês',
+                planoMes>0?corMeta(atMes,100):'#F5A623', true)
+      +card('Acumulado do ano', fi(Y.prod)+' pç',
+            pm&&pm.planoAno>0?(fd((Y.prod/pm.planoAno)*100,1)+'% do plano do ano'):(Y.n+' meses fechados'),
+            '#F5A623', true)
+      +(pm?card('Ritmo demonstrado', fi(pm.ritmoDem)+' pç/dia',
+              'exigido '+fi(pm.ritmoExig)+' pç/dia', pm.pctFolga>=0?'#4CAF50':'#F44336', true):'')
+      +(pm&&pm.planoAberto>0?card('Falta produzir', fi(pm.planoAberto)+' pç',
+              pm.diasAbertos+' dias úteis · '+fi(pm.ritmoNecR)+' pç/dia', '#FF9800', true):'');
+
+    /* ── 3 · capacidade e custo ── */
+    var META_EF_=(typeof META_EF!=='undefined')?META_EF:90;
+    var b3=card('Eficiência', fd(A.efMed,1)+'%', 'ano '+fd(Y.efMed,1)+'% · meta '+META_EF_+'%', corMeta(A.efMed,META_EF_))
+      +card('Absenteísmo', fd(A.absMed,1)+'%', 'ano '+fd(Y.absMed,1)+'%', corMeta(A.absMed,5,true))
+      +card('Hora extra', fi(A.he)+' h', fd(A.pctHE,1)+'% das horas · ano '+fi(Y.he)+' h', A.pctHE<=15?'#4CAF50':'#FF9800')
+      +(pm&&pm.heP>0?card('Só saiu com HE', fi(pm.heP)+' pç', 'peças que dependeram de hora extra no ano', '#FF9800'):'')
+      +(A.tktMed>0?card('Ticket médio', 'R$ '+fd(A.tktMed,2), 'ano R$ '+fd(Y.tktMed,2), '#00E5FF'):'');
+
+    /* ── 4 · demanda × capacidade ── */
+    var b4='';
+    if(pm&&pm.planoFech>0&&(pm.fatFech>0||pm.venFech>0)){
+      var backlog=pm.venFech-pm.fatFech;
+      var pv=pm.venFech>0?((pm.planoFech/pm.venFech)-1)*100:null;
+      b4=card('Plano do período', fi(pm.planoFech)+' pç', 'meses já fechados', '#00E5FF')
+        +card('Faturado', fi(pm.fatFech)+' pç', 'no mesmo período', '#F5A623')
+        +card('Vendido (carteira)', fi(pm.venFech)+' pç',
+              pv!==null?('plano '+pct(pv)+' vs vendido'):'', pv!==null&&pv<0?'#F44336':'#4CAF50')
+        +card('Carteira a faturar', (backlog>=0?'+':'')+fi(backlog)+' pç',
+              backlog>0?'fila que a fábrica ainda deve':'consumiu carteira anterior',
+              backlog>0?'#FF9800':'#4CAF50');
+    }
+
+    /* ── 5 · mix e volumes ── */
+    var b5='';
+    if(pcM){
+      var pnt=pm&&pm.ponte?pm.ponte:null;
+      b5=card('Volumes de '+mes, fi(pcM.vol), 'caixas embaladas no mês', '#00E5FF')
+        +card('Fator de embalagem', fd(pcM.fator,2)+' vol/pç', 'ano '+(pcY?fd(pcY.fator,2):'—')+' vol/pç', '#00E5FF')
+        +(pcM.kgPc>0?card('Peso por produto', fd(pcM.kgPc,1)+' kg',
+              pnt&&pnt.temKg?('contra '+fd(pnt.kgPc_a,1)+' kg em '+pnt.anoAnt):'produção física do mês','#4CAF50'):'')
+        +(pcM.famLider?card('Família líder', pcM.famLider.nome,
+              fd((pcM.famLider.q/pcM.prod)*100,1)+'% da produção do mês','#F5A623'):'')
+        +(pnt?card('Peças por hora vs '+pnt.anoAnt, pct(pnt.pctPcH),
+              pnt.temKg?('em quilos '+pct(pnt.pctKgH)+' — mix explica a diferença'):'sem quilos para separar mix',
+              pnt.pctPcH>=0?'#4CAF50':'#F44336'):'');
+    }
+
+    corpo.innerHTML=manchete
+      +faixa('Entrega', b2)
+      +faixa('Capacidade e custo', b3)
+      +(b4?faixa('O plano cobre a demanda?', b4):'')
+      +(b5?faixa('Mix e volumes — o que explica o desvio', b5):'');
+  }
+
+  /* Relatório de uma página, para circular antes da reunião. */
+  window.reuImprimir=function(){
+    var corpo=document.getElementById('reu-corpo');
+    if(!corpo||!corpo.innerHTML){ if(typeof toast==='function') toast('Abra a aba Reunião e aguarde os dados.','wn'); return; }
+    var per=(document.getElementById('reu-per-lbl')||{}).textContent||'';
+    var hoje=new Date().toLocaleDateString('pt-BR');
+    /* Reaproveita o HTML da tela: os blocos já estão montados e conferidos;
+       o CSS do print troca o tema escuro por papel. */
+    var w=window.open('','_blank','width=1000,height=900');
+    w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>'
+      +'<title>Reunião do Mês — '+per+'</title><style>'
+      +'@page{size:A4 portrait;margin:10mm 12mm;}'
+      +'*{box-sizing:border-box;margin:0;padding:0}'
+      +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:9pt;color:#1a1a2e;background:#fff;'
+        +'-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      +'.hd{background:linear-gradient(135deg,#1a1a2e,#16213e 60%,#0f3460);color:#fff;padding:13px 22px}'
+      +'.hd .hdrow{display:flex;align-items:center;gap:16px}'
+      +'.hd .lb{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#F5A623;font-weight:700}'
+      +'.hd h1{font-size:16px;margin:3px 0 2px}.hd .sb{font-size:9px;color:#a0aec0}'
+      +'.bd{padding:12px 22px}'
+      +'.reu-sec{font-size:8px!important;letter-spacing:1.6px;text-transform:uppercase;color:#c05621!important;'
+        +'font-weight:700;margin:12px 0 6px!important;padding:0 0 3px!important;border-bottom:1.5px solid #edf2f7}'
+      +'.reu-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:7px!important}'
+      +'.reu-card{background:#f8fafc!important;border:none!important;border-left:3px solid #cbd5e0!important;'
+        +'border-radius:5px!important;padding:8px 10px!important}'
+      +'.reu-lbl{font-size:7.5px!important;color:#718096!important;font-weight:600}'
+      +'.reu-val{font-size:13pt!important;font-weight:800}'
+      +'.reu-sub{font-size:7pt!important;color:#a0aec0!important}'
+      +'.reu-manchete{font-size:14pt!important}'
+      +'.reu-frase{color:#2d3748!important;font-size:9pt!important}'
+      +'.ft{display:flex;justify-content:space-between;font-size:7pt;color:#a0aec0;'
+        +'padding:8px 22px;border-top:1px solid #edf2f7;margin-top:10px}'
+      +'</style></head><body>'
+      +'<div class="hd"><div class="hdrow">'+(typeof logoImprimir==='function'?logoImprimir(30):'')+'<div>'
+      +'<div class="lb">PPCP · Capacidade &amp; Eficiência — Patrimar Móveis</div>'
+      +'<h1>Reunião do Mês — '+per+'</h1>'
+      +'<div class="sb">Entrega · capacidade · demanda · mix</div></div></div></div>'
+      +'<div class="bd">'+corpo.innerHTML+'</div>'
+      +'<div class="ft"><span>Dashboard PPCP — Capacidade &amp; Eficiência</span><span>Gerado em: '+hoje+'</span></div>'
+      +'</body></html>');
+    w.document.close();
+    w.addEventListener('afterprint', function(){ w.close(); });
+    setTimeout(function(){ w.focus(); w.print(); }, 700);
+  };
+
+  /* A classe no body liga o CSS que faz a barra lateral rolar por dentro —
+     só nesta tela, para não mexer no comportamento das outras. */
+  function marcarPagina(id){
+    document.body.classList.toggle('pg-reuniao', id==='reuniao');
+  }
+
+  function ligar(){
+    render();
+    if(typeof paginaAtiva!=='undefined') marcarPagina(paginaAtiva);
+    if(window.DashBus&&window.DashBus.on){
+      window.DashBus.on('dados:salvos',render);
+      window.DashBus.on('render:feito',render);
+      window.DashBus.on('pagina:mudou',function(p){
+        if(!p) return;
+        marcarPagina(p.id);
+        if(p.id==='reuniao') setTimeout(render,60);
+      });
+    }
+  }
+  /* Depois dos módulos de origem (600 ms), para pmApurado/pcApurado existirem. */
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(ligar,800); });
+  else setTimeout(ligar,800);
 })();
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -18563,9 +18911,15 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b56';
+var APP_VERSAO = 'b57';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b57', data:'10/08/2026', itens:[
+    'Aba Reuniao do Mes: uma tela so com o que a diretoria discute — veredito do plano, entrega, capacidade e custo, demanda e mix.',
+    'Nao recalcula nada: consome o apurado do Planejamento Mestre e da Producao por Produto, entao nenhum numero diverge das abas de origem.',
+    'Ultimo mes fechado como manchete e acumulado do ano ao lado; um mes marcado na barra lateral troca a manchete.',
+    'Modo TV agora entra em tela cheia de verdade, e a aba tem relatorio de uma pagina para circular antes da reuniao.'
+  ]},
   { v:'b56', data:'10/08/2026', itens:[
     'Correcao de contagem: a linha VOL abrevia a descricao (PENT CAMARIM, CONJ 2 MESAS), o casamento por nome falhava e o produto contava 1 caixa ALEM das linhas VOL dele — 5% de volume a mais.',
     'Volumes passam a ser quantidade produzida x n de caixas do produto: imune a caixa apontada em mes diferente, fator sempre >= 1.',
