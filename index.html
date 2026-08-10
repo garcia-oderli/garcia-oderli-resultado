@@ -17598,9 +17598,10 @@ function printAtiva(){
         /* família = primeira palavra da descrição; nomes compostos (MESA
            CABECEIRA, KIT 2 MESAS...) levam a segunda junto para não virar
            tudo "MESA". */
-        var DUPLA={MESA:1,MESAS:1,KIT:1,CONJUNTO:1,CANTINHO:1,PAINEL:1,HOME:1,GUARDA:1,PORTA:1,MODULO:1};
+        var DUPLA={MESA:1,MESAS:1,CONJUNTO:1,CANTINHO:1,PAINEL:1,HOME:1,GUARDA:1,PORTA:1,MODULO:1};
+        /* KIT é embalagem, não família — ver nota no módulo da aba. */
         function familiaDe(desc){
-          var p=String(desc).trim().toUpperCase().split(/\s+/);
+          var p=String(desc).trim().toUpperCase().replace(/^KIT\s*\d*\s+/i,'').split(/\s+/);
           return DUPLA[p[0]]&&p[1]?p[0]+' '+p[1]:p[0];
         }
         itensPV.forEach(function(r){
@@ -17824,12 +17825,17 @@ function printAtiva(){
 (function(){
   var ORDEM_M=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
   var RE_VOL=/^VOL\.?\s*\d+\s*\/\s*\d+\s+/i;
-  var DUPLA={MESA:1,MESAS:1,KIT:1,CONJUNTO:1,CANTINHO:1,PAINEL:1,HOME:1,GUARDA:1,PORTA:1,MODULO:1};
+  var DUPLA={MESA:1,MESAS:1,CONJUNTO:1,CANTINHO:1,PAINEL:1,HOME:1,GUARDA:1,PORTA:1,MODULO:1};
+  /* "KIT 2 MESA CABECEIRA …" é embalagem, não família: são duas mesas de
+     cabeceira numa caixa só. Sem tirar o prefixo, KIT vira família própria e
+     a MESA CABECEIRA aparece menor do que é — foi o que fez o mix parecer
+     ter mudado 6 p.p. entre 2025 e 2026, quando o KIT saiu de linha. */
+  var RE_KIT=/^KIT\s*\d*\s+/i;
   function fi(n){ return isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—'; }
   function fd(n,d){ return isFinite(n)?n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'; }
   function itens(){ try{ return JSON.parse(localStorage.getItem('dash_prod_itens_v1'))||[] }catch(e){ return [] } }
   function familiaDe(desc){
-    var p=String(desc).trim().toUpperCase().split(/\s+/);
+    var p=String(desc).trim().toUpperCase().replace(RE_KIT,'').split(/\s+/);
     return DUPLA[p[0]]&&p[1]?p[0]+' '+p[1]:p[0];
   }
 
@@ -18487,9 +18493,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b52';
+var APP_VERSAO = 'b53';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b53', data:'10/08/2026', itens:[
+    'KIT deixa de ser familia propria: KIT 2 MESA CABECEIRA sao duas mesas numa caixa so, entao entra em MESA CABECEIRA.',
+    'Corrige o mix: a familia caiu 3,8 p.p. de 2025 para 2026 (23,8% para 20,0%) — antes o painel mostrava alta de 0,6 p.p.'
+  ]},
   { v:'b52', data:'10/08/2026', itens:[
     'Pareto sem o codigo na barra: com ele, nome e codigo cortavam os dois. O codigo fica no tooltip e na listagem completa.'
   ]},
