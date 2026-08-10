@@ -2469,6 +2469,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
     <span class="cap-tlabel">▸ Meses</span>
     <div class="cap-mes-wrap" id="cf-mes-wrap"><button class="cap-mes-btn">JAN</button><button class="cap-mes-btn">FEV</button><button class="cap-mes-btn">MAR</button><button class="cap-mes-btn">ABR</button><button class="cap-mes-btn">MAI</button><button class="cap-mes-btn">JUN</button><button class="cap-mes-btn">JUL</button><button class="cap-mes-btn">AGO</button><button class="cap-mes-btn">SET</button><button class="cap-mes-btn">OUT</button><button class="cap-mes-btn">NOV</button><button class="cap-mes-btn">DEZ</button></div>
     <button class="cap-btn-todos" onclick="cfTodos()">Todos</button>
+    <span style="font-size:.62rem;color:var(--t3);margin-left:auto">o filtro lateral de mês define a seleção inicial — nesta aba, manda esta barra</span>
   </div>
 
   <!-- Parâmetros configuráveis -->
@@ -17833,6 +17834,10 @@ function printAtiva(){
   }
 
   var _mes='', _tipo='P', _busca='', _ano=null;
+  /* Sincronia em mão única com o filtro lateral: UM mês marcado na sidebar
+     define o mês desta aba; os chips daqui continuam mandando depois disso.
+     Sentinela null = primeira leitura adota o estado atual da sidebar. */
+  var _ultGlobal=null;
   window._pcMes=function(m){ _mes=m; render(); };
   window._pcTipo=function(t){ _tipo=t; renderLista(); };
   window._pcBusca=function(v){ _busca=v||''; renderLista(); };
@@ -17895,6 +17900,8 @@ function printAtiva(){
 
   function render(){
     var corpo=document.getElementById('pc-corpo'); if(!corpo) return;
+    var g=(typeof mesesAtivos!=='undefined'&&mesesAtivos&&mesesAtivos.length===1)?mesesAtivos[0]:'';
+    if(g!==_ultGlobal){ _ultGlobal=g; _mes=g; }
     var todos=(typeof load==='function')?load():[];
     var its=itens();
     var ano=(typeof anoAtivo!=='undefined'&&anoAtivo)?anoAtivo:null;
@@ -17961,9 +17968,11 @@ function printAtiva(){
       if(v>0&&porMes[r.mes]) porMes[r.mes].vol=v;
     });
 
-    var chips='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+    var chips='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px">'
       +chip('ANO',_mes==='',"_pcMes('')")
       +meses.map(function(m){ return chip(m,_mes===m,"_pcMes('"+m+"')"); }).join('')
+      +'<span style="font-size:.62rem;color:var(--t3);margin-left:auto">'
+      +'o filtro lateral de mês define o mês inicial — nesta aba, mandam os chips</span>'
       +'</div>';
 
     var kpis='<div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">'
@@ -18259,6 +18268,46 @@ function printAtiva(){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(ligar,600); });
   else setTimeout(ligar,600);
 })();
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SINCRONIA DO FILTRO LATERAL COM O CAP × FATURAMENTO
+   ─────────────────────────────────────────────────────────────────────────
+   Um único mês marcado na sidebar passa a ser a seleção inicial da aba
+   Cap × Faturamento (que tem barra própria de meses). Mão única: a barra da
+   aba continua mandando depois — mudar lá não mexe no filtro global. Ao
+   abrir a aba, o padrão "último mês com dado" dá lugar ao mês da sidebar. */
+(function(){
+  var _ult=null;
+  function aplicar(){
+    var g=(typeof mesesAtivos!=='undefined'&&mesesAtivos&&mesesAtivos.length===1)?mesesAtivos[0]:null;
+    if(g===_ult) return;
+    _ult=g;
+    if(!g) return;   /* limpar o filtro global não mexe na aba */
+    try{
+      var wrap=document.getElementById('cf-mes-wrap');
+      if(!wrap||typeof cfRenderizarFiltro!=='function') return;
+      var alvo=null;
+      wrap.querySelectorAll('.cap-mes-btn').forEach(function(b){
+        if(b.textContent.trim()===g&&!b.disabled) alvo=b;
+      });
+      if(!alvo) return;   /* mês sem dado no ano escolhido da aba: deixa como está */
+      cfMesesSel=[g];
+      wrap.querySelectorAll('.cap-mes-btn').forEach(function(b){ b.classList.toggle('on',b===alvo); });
+      cfRenderizarFiltro();
+    }catch(e){}
+  }
+  function ligar(){
+    if(!window.DashBus||!window.DashBus.on) return;
+    window.DashBus.on('render:feito',aplicar);
+    /* Ao abrir a aba, o módulo dela repopula os meses e volta ao padrão;
+       zera a sentinela para o mês da sidebar valer de novo, depois dele. */
+    window.DashBus.on('pagina:mudou',function(p){
+      if(p&&p.id==='capfat'){ _ult=null; setTimeout(aplicar,120); }
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(ligar,700); });
+  else setTimeout(ligar,700);
+})();
 </script>
 <style id="status-pulse">
 /* Veredito de status pulsa na própria cor — puxa o olho para a conclusão */
@@ -18278,9 +18327,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b49';
+var APP_VERSAO = 'b50';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b50', data:'10/08/2026', itens:[
+    'Filtro lateral de mes sincroniza (mao unica) com as abas de filtro proprio: um mes marcado na sidebar vira o mes inicial da Producao por Produto e do Cap x Faturamento.',
+    'Aviso discreto nas duas abas explicando quem manda no periodo.'
+  ]},
   { v:'b49', data:'10/08/2026', itens:[
     'Relatorio de Producao por Produto ganha a logomarca Patrimar no cabecalho.',
     'Listagem por MODELO (cores e acabamentos somados): 329 codigos viram ~1 pagina em vez de 8. O detalhe por codigo segue na tela, com busca.'
