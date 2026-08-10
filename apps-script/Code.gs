@@ -32,6 +32,10 @@ var LINHA_TOTAL = 'TOTAL GERAL';
    um produto vira um ou mais volumes). Sem ela, nada muda — o dashboard
    segue convertendo por fator realizado. */
 var LINHA_VOLUMES = 'TOTAL VOLUMES';
+/* Aba com as linhas do reporte mensal do ERP (mes, ano, codigo, descricao,
+   quantidade) — alimentada pelo ReporteVolumes.gs. O dashboard usa para a
+   listagem de produtos produzidos por código. */
+var ABA_REPORTE = 'REPORTE_VOLUMES';
 
 var MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
@@ -53,7 +57,9 @@ function doGet() {
     var plano = lerPlanoMestre(ss);
     aplicarPlano(dados, plano);
     saida = { ok: true, dados: dados, plano: plano.produtos,
-              planoVolumes: plano.volumes, geradoEm: new Date().toISOString() };
+              planoVolumes: plano.volumes,
+              producaoItens: lerReporteVolumes(ss),
+              geradoEm: new Date().toISOString() };
   } catch (e) {
     saida = { ok: false, erro: String(e && e.message || e) };
   }
@@ -284,6 +290,24 @@ function lerPlanoMestre(ss) {
   lerLinha(iTotal, plano.produtos);
   lerLinha(iVol, plano.volumes);
   return plano;
+}
+
+/* ══ REPORTE (produtos produzidos por código) ══
+   Linhas cruas da REPORTE_VOLUMES, compactadas em arrays [mes, ano, codigo,
+   descricao, qtd] para o payload não inchar. Aba ausente ou vazia → []. */
+function lerReporteVolumes(ss) {
+  var aba = ss.getSheetByName(ABA_REPORTE);
+  if (!aba || aba.getLastRow() < 2) return [];
+  var v = aba.getRange(2, 1, aba.getLastRow() - 1, 5).getValues();
+  var out = [];
+  v.forEach(function (l) {
+    var mes = String(l[0] || '').trim().toUpperCase().slice(0, 3);
+    var ano = num(l[1]);
+    var qtd = num(l[4]);
+    if (MESES.indexOf(mes) < 0 || !ano || !qtd) return;
+    out.push([mes, ano, String(l[2] || '').trim(), String(l[3] || '').trim(), qtd]);
+  });
+  return out;
 }
 
 /* Copia a previsão do plano para os registros do histórico. O plano manda:

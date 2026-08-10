@@ -4237,6 +4237,7 @@ Fórmula: Faltas + Atrasos
     </table>
   </div>
   <div class="cEmpty" id="pm-empty" style="display:none">Sem previsão de produção informada para este ano.</div>
+  <div id="pm-itens"></div>
 </div>
 <!-- ══ FIM PÁGINA: PLANEJAMENTO MESTRE ══ -->
 </div><!-- /main -->
@@ -4681,6 +4682,11 @@ function _carregarDoSheetsAoAbrir(){
       });
       localStorage.setItem(SK, JSON.stringify(dados));
       _idbSave(dados);
+      /* Itens do reporte mensal (produtos produzidos por código) — guardados
+         à parte: alimentam a listagem da aba Planejamento Mestre. */
+      if (json.producaoItens && json.producaoItens.length) {
+        try { localStorage.setItem('dash_prod_itens_v1', JSON.stringify(json.producaoItens)); } catch (e) {}
+      }
       if (typeof render === 'function') render();
       if (window.DashBus) window.DashBus.emit('dados:salvos', dados);
       console.info('Dados carregados do Google Sheets: ' + dados.length + ' registros.');
@@ -16745,6 +16751,7 @@ function printAtiva(){
       if(tabela) tabela.style.display='none';
       document.getElementById('pm-kpis').innerHTML='';
       document.getElementById('pm-veredito').style.display='none';
+      renderItens(ano);   /* a listagem de produção não depende de haver plano */
       return;
     }
     if(vazio) vazio.style.display='none';
@@ -16921,6 +16928,8 @@ function printAtiva(){
       +blocoVolumes(todos,ano,planoAno,planoAberto)
       +graficoRitmo(mesesTab,ritmoPlano)
       +blocoPonte(todos,ano);
+
+    renderItens(ano);
 
     /* Guarda o apurado para a impressão executiva montar o relatório sem
        recalcular nem depender do HTML escuro da tela. */
@@ -17190,6 +17199,84 @@ function printAtiva(){
       +'</div>'
       +'<div style="font-size:.82rem;line-height:1.55;color:var(--t1);max-width:960px">'+msg+'</div>'
       +aviso
+      +'</div>';
+  }
+
+  /* ── Produtos produzidos por código ──
+     As linhas do reporte mensal do ERP (REPORTE_VOLUMES) chegam pelo Web App
+     e respondem "o que a fábrica produziu no mês, código a código". Filtro
+     por mês, busca por código/descrição e separação produto × volume — a
+     linha "VOL x/y" é a caixa, não o produto, e por padrão fica de fora
+     para a lista não contar a mesma coisa duas vezes. */
+  var _itMes='', _itTipo='P', _itBusca='', _itAno=null;
+  var RE_IT_VOL=/^VOL\.?\s*\d+\s*\/\s*\d+\s+/i;
+  function loadItens(){ try{ return JSON.parse(localStorage.getItem('dash_prod_itens_v1'))||[] }catch(e){ return [] } }
+
+  window._pmItMes=function(m){ _itMes=m; renderItens(_itAno); };
+  window._pmItTipo=function(t){ _itTipo=t; renderItens(_itAno); };
+  window._pmItBusca=function(v){ _itBusca=v||''; renderItens(_itAno); };
+
+  function renderItens(ano){
+    var el=document.getElementById('pm-itens'); if(!el) return;
+    _itAno=ano;
+    var itens=loadItens().filter(function(r){ return r[1]===ano; });
+    if(!itens.length){ el.innerHTML=''; return; }   /* Web App antigo ou aba vazia: seção some */
+
+    var meses=ORDEM_M.filter(function(m){ return itens.some(function(r){ return r[0]===m; }); });
+    if(meses.indexOf(_itMes)<0) _itMes=meses[meses.length-1];
+    var doMes=itens.filter(function(r){ return r[0]===_itMes; });
+
+    var lista=doMes.filter(function(r){
+      var ehVol=RE_IT_VOL.test(r[3]);
+      return _itTipo==='T' ? true : (_itTipo==='V' ? ehVol : !ehVol);
+    });
+    var busca=_itBusca.trim().toUpperCase();
+    if(busca) lista=lista.filter(function(r){
+      return String(r[2]).indexOf(busca)>=0 || String(r[3]).toUpperCase().indexOf(busca)>=0;
+    });
+    lista=lista.slice().sort(function(a,b){ return b[4]-a[4]; });
+    var total=lista.reduce(function(s,r){ return s+r[4]; },0);
+
+    function chip(rot,ativo,onclick){
+      return '<button onclick="'+onclick+'" style="padding:5px 11px;border-radius:14px;font-size:.68rem;cursor:pointer;'
+        +'border:1px solid '+(ativo?'var(--cyan)':'var(--b)')+';'
+        +'background:'+(ativo?'rgba(0,229,255,.12)':'transparent')+';'
+        +'color:'+(ativo?'var(--cyan)':'var(--t2)')+';font-weight:'+(ativo?'700':'400')+'">'+rot+'</button>';
+    }
+    var chipsMes=meses.map(function(m){ return chip(m,_itMes===m,"_pmItMes('"+m+"')"); }).join('');
+    var tipos=[['P','Produtos'],['V','Volumes'],['T','Tudo']];
+    var chipsTipo=tipos.map(function(t){ return chip(t[1],_itTipo===t[0],"_pmItTipo('"+t[0]+"')"); }).join('');
+
+    var linhas=lista.map(function(r){
+      var pct=total>0?(r[4]/total)*100:0;
+      return '<tr><td style="font-family:var(--mono);white-space:nowrap">'+r[2]+'</td>'
+        +'<td>'+r[3]+'</td>'
+        +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+fi(r[4])+'</td>'
+        +'<td style="text-align:right;color:var(--t3);font-size:.72rem">'+fd(pct,1)+'%</td></tr>';
+    }).join('');
+
+    el.innerHTML=
+      '<div style="font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:24px 0 10px;padding-left:2px">'
+        +'▸ Produtos produzidos por código — '+_itMes+'/'+ano+'</div>'
+      +'<div style="background:var(--panel);border:1px solid var(--b);border-radius:var(--r);padding:14px 18px">'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
+        +chipsMes
+        +'<span style="width:1px;height:18px;background:var(--b);margin:0 4px"></span>'
+        +chipsTipo
+        +'<input placeholder="buscar código ou descrição…" value="'+_itBusca.replace(/"/g,'&quot;')+'" '
+          +'oninput="_pmItBusca(this.value)" style="margin-left:auto;min-width:210px;padding:6px 11px;'
+          +'border:1px solid var(--b);border-radius:6px;background:rgba(255,255,255,.03);color:var(--t1);font-size:.74rem">'
+      +'</div>'
+      +'<div style="font-size:.7rem;color:var(--t3);margin-bottom:8px">'
+        +lista.length+' '+(_itTipo==='V'?'volumes':(_itTipo==='T'?'itens':'produtos'))+' · total <b style="color:var(--t1)">'+fi(total)+'</b>'
+        +(_itTipo==='P'?' — linhas "VOL x/y" (caixas) fora da conta; use o filtro Volumes para vê-las':'')
+      +'</div>'
+      +'<div style="max-height:430px;overflow:auto;border:1px solid var(--b);border-radius:6px">'
+        +'<table class="prod-table" style="margin:0">'
+        +'<thead><tr><th>Código</th><th>Descrição</th><th style="text-align:right">Qtd</th><th style="text-align:right">%</th></tr></thead>'
+        +'<tbody>'+(linhas||'<tr><td colspan="4" style="color:var(--t3)">Nada encontrado com esse filtro.</td></tr>')+'</tbody>'
+        +'</table>'
+      +'</div>'
       +'</div>';
   }
 
@@ -17654,9 +17741,14 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b42';
+var APP_VERSAO = 'b43';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b43', data:'10/08/2026', itens:[
+    'Produtos produzidos por codigo na aba Planejamento Mestre: as linhas do reporte mensal do ERP, mes a mes.',
+    'Filtro por mes, busca por codigo/descricao e separacao produto x volume (linha VOL x/y e caixa, nao produto).',
+    'Apps Script passa a enviar os itens da REPORTE_VOLUMES — reimplante o Web App para a listagem aparecer.'
+  ]},
   { v:'b42', data:'10/08/2026', itens:[
     'Plano mestre por volumes: linha TOTAL VOLUMES na PLANO MESTRE vira o plano oficial em volumes.',
     'Quando ela existe, o bloco Plano em volumes usa o numero oficial e mostra ritmo em vol/dia — a capacidade da embalagem.',
