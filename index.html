@@ -4258,7 +4258,9 @@ Fórmula: Faltas + Atrasos
       <div class="pageHdrSub">O que a fábrica fabricou, código a código — produtos, volumes, famílias e Pareto</div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
-      <span id="pc-ano-lbl" style="font-family:var(--mono);font-size:.75rem;color:var(--t3)">—</span>
+      <span id="pc-ano-lbl" style="font-family:var(--mono);font-size:1rem;font-weight:800;letter-spacing:.06em;
+        color:#FF9800;background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.45);
+        border-radius:8px;padding:7px 16px;white-space:nowrap">—</span>
       <button onclick="pcImprimir()" title="Relatório de produção por produto e volumes em PDF"
         style="display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border:1px solid #FF9800;
         border-radius:6px;background:rgba(255,152,0,.08);color:#FF9800;font-size:.76rem;font-weight:700;
@@ -17916,7 +17918,10 @@ function printAtiva(){
       ano=anos.length?Math.max.apply(null,anos):new Date().getFullYear();
     }
     _ano=ano;
-    var lbl=document.getElementById('pc-ano-lbl'); if(lbl) lbl.textContent='Produção '+ano;
+    /* O ano é a pergunta mais frequente de quem chega na tela ("isso é de
+       que ano?"), então ele fica em destaque, não em cinza no canto. */
+    var lbl=document.getElementById('pc-ano-lbl');
+    if(lbl) lbl.textContent=_mes?(_mes+'/'+ano):String(ano);
 
     var doAno=its.filter(function(r){ return r[1]===ano; });
     if(!doAno.length){
@@ -18164,6 +18169,25 @@ function printAtiva(){
 
     var tipos=[['P','Produtos'],['V','Volumes'],['T','Tudo']];
     var chipsTipo=tipos.map(function(t){ return chip(t[1],_tipo===t[0],"_pcTipo('"+t[0]+"')"); }).join('');
+    /* No filtro Volumes, a lista mostra só quem tem SKU de volume próprio
+       ("VOL x/y"). Produto de caixa única sem esse SKU não aparece aqui, mas
+       conta 1 volume no total do período — sem dizer isso, a listagem parece
+       contradizer o card de volumes (e em 2025 a diferença é enorme, porque
+       o cadastro só ganhou os VOL 1/1 no meio do ano). */
+    var infoVol='';
+    if(_tipo==='V'&&!_busca.trim()){
+      var todosR=(typeof load==='function')?load():[];
+      var volTot=0;
+      todosR.forEach(function(r){
+        if(r.ano!==_ano||(_mes&&r.mes!==_mes)) return;
+        volTot+=(r.volumesProduzidos||r.volumes||r.qtdeVolumes||0);
+      });
+      var implicito=volTot-total;
+      if(volTot>0&&implicito>0){
+        infoVol=' — os outros <b style="color:var(--t1)">'+fi(implicito)+'</b> volumes do período são '
+          +'produtos de caixa única sem SKU de volume; total de <b style="color:var(--t1)">'+fi(volTot)+'</b> volumes';
+      }
+    }
     el.innerHTML=
       '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
         +chipsTipo
@@ -18171,10 +18195,11 @@ function printAtiva(){
           +'oninput="_pcBusca(this.value)" style="margin-left:auto;min-width:210px;padding:6px 11px;'
           +'border:1px solid var(--b);border-radius:6px;background:rgba(255,255,255,.03);color:var(--t1);font-size:.74rem">'
       +'</div>'
-      +'<div style="font-size:.7rem;color:var(--t3);margin-bottom:8px">'
-        +linhas.length+' '+(_tipo==='V'?'volumes (caixas)':(_tipo==='T'?'itens':'produtos'))
+      +'<div style="font-size:.7rem;color:var(--t3);margin-bottom:8px;line-height:1.5">'
+        +linhas.length+' '+(_tipo==='V'?'itens com SKU de volume':(_tipo==='T'?'itens':'produtos'))
         +' · total <b style="color:var(--t1)">'+fi(total)+'</b>'
         +(_tipo==='P'?' — linhas "VOL x/y" (caixas) fora da conta':'')
+        +infoVol
       +'</div>'
       +'<div style="max-height:430px;overflow:auto;border:1px solid var(--b);border-radius:6px">'
         +'<table class="prod-table" style="margin:0">'
@@ -18493,9 +18518,13 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b53';
+var APP_VERSAO = 'b54';
 var APP_DATA   = '10/08/2026';
 var APP_HISTORICO = [
+  { v:'b54', data:'10/08/2026', itens:[
+    'Ano em destaque no cabecalho da aba Producao por Produto (mostra MES/ANO quando ha mes filtrado).',
+    'Filtro Volumes da listagem explica a diferenca: ele lista so quem tem SKU de volume proprio; produto de caixa unica sem SKU conta 1 volume no total do periodo.'
+  ]},
   { v:'b53', data:'10/08/2026', itens:[
     'KIT deixa de ser familia propria: KIT 2 MESA CABECEIRA sao duas mesas numa caixa so, entao entra em MESA CABECEIRA.',
     'Corrige o mix: a familia caiu 3,8 p.p. de 2025 para 2026 (23,8% para 20,0%) — antes o painel mostrava alta de 0,6 p.p.'
