@@ -244,6 +244,7 @@ function onOpen() {
     .addItem('Lançar na HISTORICO', 'lancarVolumesNaHistorico')
     .addSeparator()
     .addItem('Autorizar conversão de PDF (1ª vez)', 'autorizarConversaoPdf')
+    .addItem('Conferir permissões concedidas', 'conferirPermissoes')
     .addItem('Instalar processamento diário', 'instalarProcessamentoDiario')
     .addItem('Criar linha TOTAL VOLUMES no plano mestre', 'criarLinhaTotalVolumes')
     .addToUi();
@@ -332,7 +333,38 @@ function autorizarConversaoPdf() {
       + texto.length + ' caracteres. Pode rodar "Processar PDFs da pasta do Drive".');
   } catch (e) {
     rvErro('A conversão de teste com "' + pdf.getName() + '" falhou: ' + ((e && e.message) || e)
-      + '\n\n' + RV_AJUDA_AUTORIZACAO);
+      + '\n\n' + rvDiagnosticoEscopos() + '\n\n' + RV_AJUDA_AUTORIZACAO);
+  }
+}
+
+/* O que o script REALMENTE recebeu de permissão. O manifesto diz o que ele
+   pede; o token diz o que foi concedido — e a diferença entre os dois é o
+   erro inteiro. Sem isso, "insufficientPermissions" não diz qual escopo
+   está faltando. */
+var RV_ESCOPO_DRIVE = 'https://www.googleapis.com/auth/drive';
+
+function rvDiagnosticoEscopos() {
+  var concedidos = rvEscoposConcedidos();
+  if (!concedidos) return 'Não consegui ler os escopos concedidos para comparar.';
+  var temDrive = concedidos.indexOf(RV_ESCOPO_DRIVE) >= 0;
+  return 'Escopos concedidos hoje: ' + concedidos.join(', ')
+    + '\n' + (temDrive
+      ? 'O acesso completo ao Drive ESTÁ concedido — então a recusa vem de outro lugar (Drive API desligada no projeto do Cloud, ou o arquivo bloqueado para cópia).'
+      : 'FALTA ' + RV_ESCOPO_DRIVE + ' — é esse que a cópia exige. Só ler o Drive não basta: converter cria um arquivo novo, e isso é escrita.');
+}
+
+function conferirPermissoes() {
+  rvAvisar(rvDiagnosticoEscopos());
+}
+
+function rvEscoposConcedidos() {
+  try {
+    var resp = UrlFetchApp.fetch('https://www.googleapis.com/oauth2/v3/tokeninfo?access_token='
+      + encodeURIComponent(ScriptApp.getOAuthToken()), { muteHttpExceptions: true });
+    if (resp.getResponseCode() >= 300) return null;
+    return String(JSON.parse(resp.getContentText()).scope || '').split(/\s+/).filter(String);
+  } catch (e) {
+    return null;
   }
 }
 
