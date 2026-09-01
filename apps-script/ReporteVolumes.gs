@@ -544,8 +544,12 @@ var RV_PM_TOTAL  = 'TOTAL GERAL';
 var RV_PM_LINHA  = 'TOTAL VOLUMES';
 /* Colunas da matriz: A = rótulo, B..M = jan..dez, N = TOTAL ANO, O = fator. */
 var RV_PM_COL_JAN = 2, RV_PM_COL_DEZ = 13, RV_PM_COL_TOTAL = 14, RV_PM_COL_FATOR = 15;
-/* Fator inicial: realizado JAN–JUL/26 (254.821 volumes ÷ 210.961 produtos). */
-var RV_PM_FATOR_INICIAL = 1.208;
+/* Fator inicial: realizado JAN–JUL/26 (262.929 volumes ÷ 210.961 produtos =
+   1,246). O 1,208 anterior vinha de uma contagem de volumes feita antes da
+   correção da abreviação da linha VOL — os produtos batiam, os volumes não.
+   Base maior, se quiser trocar: 2025 fechado dá 1,220 (484.543 ÷ 397.254) e
+   os 19 meses juntos dão 1,229. */
+var RV_PM_FATOR_INICIAL = 1.246;
 
 function criarLinhaTotalVolumes() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
