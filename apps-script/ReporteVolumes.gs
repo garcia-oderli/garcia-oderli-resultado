@@ -27,6 +27,10 @@
  *      a pasta é varrida todo dia de manhã; PDF processado vai para a
  *      subpasta PROCESSADOS. Também dá para disparar na hora pelo menu
  *      "📦 Volumes" que aparece na planilha.
+ *      1ª vez: menu 📦 Volumes → "Autorizar conversão de PDF" e aceite o
+ *      consentimento (UrlFetch + Drive) — sem ele todo PDF falha com "Você
+ *      não tem permissão para chamar UrlFetchApp.fetch" e fica na pasta.
+ *      Os escopos ficam declarados em apps-script/appsscript.json.
  *
  * MODO MANUAL (continua valendo, e é o plano B se o PDF mudar de cara):
  *   1. criarAbaReporteVolumes() — uma vez; monta a aba REPORTE_VOLUMES;
@@ -239,6 +243,7 @@ function onOpen() {
     .addItem('Recalcular resumo (dados colados)', 'calcularVolumesMes')
     .addItem('Lançar na HISTORICO', 'lancarVolumesNaHistorico')
     .addSeparator()
+    .addItem('Autorizar conversão de PDF (1ª vez)', 'autorizarConversaoPdf')
     .addItem('Instalar processamento diário', 'instalarProcessamentoDiario')
     .addItem('Criar linha TOTAL VOLUMES no plano mestre', 'criarLinhaTotalVolumes')
     .addToUi();
@@ -257,6 +262,8 @@ function processarReportesDrive() {
     var pdf = arquivos.next();
     try {
       var texto = rvPdfParaTexto(pdf.getId());
+      var errado = rvRelatorioErrado(texto);
+      if (errado) throw new Error(errado);
       var mesAno = rvPeriodoDoTexto(texto);
       if (!mesAno) throw new Error('não achei "Período: dd/mm/aa" no PDF');
       var linhas = rvLinhasDoTexto(texto, mesAno);
@@ -265,7 +272,18 @@ function processarReportesDrive() {
       rvMoverParaProcessados(pasta, pdf);
       feitos.push(pdf.getName() + ' → ' + mesAno.mes + '/' + mesAno.ano + ' (' + linhas.length + ' linhas)');
     } catch (e) {
-      falhas.push(pdf.getName() + ': ' + (e && e.message || e));
+      var msg = (e && e.message) || String(e);
+      /* Sem consentimento o erro é o mesmo para todos os arquivos e o try
+         ainda engole o pedido de autorização — insistir só repete "Você não
+         tem permissão" oito vezes. Para tudo e aponta o caminho. */
+      if (/UrlFetchApp|external_request|PERMISSION|permiss|autoriza/i.test(msg)) {
+        return rvErro('Parei em "' + pdf.getName() + '": o script está sem autorização para converter PDF ('
+          + msg + ').\n\nCaminho: menu 📦 Volumes → "Autorizar conversão de PDF (1ª vez)" e aceite as '
+          + 'permissões. Se o pedido nem abrir, confira em Configurações do projeto → "Mostrar arquivo de '
+          + 'manifesto" se o appsscript.json tem o oauthScopes do repositório (apps-script/appsscript.json). '
+          + 'Os PDFs continuam na pasta; depois rode "Processar PDFs" de novo.');
+      }
+      falhas.push(pdf.getName() + ': ' + msg);
     }
   }
 
@@ -287,6 +305,23 @@ function instalarProcessamentoDiario() {
     + 'É só salvar o PDF do mês lá dentro; o resultado aparece na HISTORICO e o dashboard pega no sync.');
 }
 
+/* Roda a mesma chamada da conversão, mas fora do try — na primeira execução
+   o Apps Script abre o pedido de consentimento (é ele que faltava quando
+   todo PDF falhava com "Você não tem permissão para chamar
+   UrlFetchApp.fetch"). Aceitou uma vez, nunca mais aparece. */
+function autorizarConversaoPdf() {
+  var resp = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
+  if (resp.getResponseCode() < 300) {
+    rvAvisar('Autorizado — a conversão de PDF está liberada. Agora rode "Processar PDFs da pasta do Drive".');
+  } else {
+    rvErro('A chamada de teste falhou (HTTP ' + resp.getResponseCode() + '). Confira se o appsscript.json do '
+      + 'projeto tem o bloco oauthScopes do repositório (apps-script/appsscript.json) e rode de novo.');
+  }
+}
+
 /* Copia o PDF como Documento Google (o Drive extrai o texto), lê e apaga a
    cópia. Não mexe no PDF original. */
 function rvPdfParaTexto(fileId) {
@@ -298,7 +333,9 @@ function rvPdfParaTexto(fileId) {
     muteHttpExceptions: true
   });
   if (resp.getResponseCode() >= 300) {
-    throw new Error('conversão do PDF falhou (HTTP ' + resp.getResponseCode() + ')');
+    throw new Error('conversão do PDF falhou (HTTP ' + resp.getResponseCode() + ')'
+      + (resp.getResponseCode() === 401 || resp.getResponseCode() === 403
+        ? ' — provável falta de autorização do Drive' : ''));
   }
   var docId = JSON.parse(resp.getContentText()).id;
   try {
@@ -309,25 +346,51 @@ function rvPdfParaTexto(fileId) {
 }
 
 function rvPeriodoDoTexto(texto) {
-  var m = texto.match(/Per[íi]odo:\s*\d{2}\/(\d{2})\/(\d{2,4})/);
+  var m = texto.match(/Per[íi]odo\s*:\s*\d{2}\/(\d{2})\/(\d{2,4})/);
   if (!m) return null;
   var ano = parseInt(m[2], 10);
   if (ano < 100) ano += 2000;
   return { mes: RV_MESES[parseInt(m[1], 10) - 1], ano: ano };
 }
 
-/* Mesma régua do PDF: código 000.000.000, descrição, três números no fim
-   (quantidade, peso, custo). Linha de cabeçalho/rodapé não casa e é
-   ignorada de graça. */
+/* O Lógica exporta relatórios de cara parecida e dois já chegaram por
+   engano; nenhum serve para volumes, e processar calado sairia errado —
+   melhor recusar com nome e sobrenome:
+   - "CURVA ABC DE PRODUTOS" é venda, não reporte de produção;
+   - "Tipo: P - PRODUTOS ACABADOS" só tem produto, sem as linhas VOL. */
+function rvRelatorioErrado(texto) {
+  if (/C\s*U\s*R\s*V\s*A\s+ABC/i.test(texto)) {
+    return 'é a CURVA ABC (vendas), não o reporte de produção — exporte o '
+      + '"Mensal por Transação", Transação 3 - REPORTE, Tipo: Todos';
+  }
+  if (/PRODUTOS\s+ACABADOS/i.test(texto) && !/\bVOL\.?\s*0?\d+\s*\//i.test(texto)) {
+    return 'é o 3 - REPORTE com Tipo: P (só produtos acabados, sem linhas VOL) '
+      + '— exporte com Tipo: Todos para os volumes virem juntos';
+  }
+  return null;
+}
+
+/* Mesma régua do PDF: código 000.000.000, descrição e três números com
+   decimal de vírgula (quantidade, peso, custo). A conversão do Drive às
+   vezes emenda vários registros na mesma linha do Doc, então a varredura é
+   no texto inteiro em vez de exigir um registro por linha; exigir a vírgula
+   decimal impede que o código do registro seguinte seja engolido como
+   número. Cabeçalho, rodapé e linha de grupo não casam e são ignorados de
+   graça. */
+var RV_RE_ITEM = new RegExp(
+  '(\\d{3}\\.\\d{3}\\.\\d{3})[ \\t]+'            /* código                */
+  + '((?:(?!\\d{3}\\.\\d{3}\\.\\d{3})[^\\n])+?)'  /* descrição, mesma linha */
+  + '[ \\t]+(\\d{1,3}(?:\\.\\d{3})*,\\d+)'          /* quantidade            */
+  + '\\s+(?:\\d{1,3}(?:\\.\\d{3})*,\\d+)'           /* peso                  */
+  + '\\s+(?:\\d{1,3}(?:\\.\\d{3})*,\\d+)(?![\\d,])', 'g');
+
 function rvLinhasDoTexto(texto, mesAno) {
-  var out = [];
-  texto.split('\n').forEach(function (ln) {
-    var m = ln.trim().match(/^(\d{3}\.\d{3}\.\d{3})\s+(.+?)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)$/);
-    if (!m) return;
+  var out = [], m;
+  RV_RE_ITEM.lastIndex = 0;
+  while ((m = RV_RE_ITEM.exec(texto)) !== null) {
     var qtd = rvNum(m[3]);
-    if (!qtd) return;
-    out.push([mesAno.mes, mesAno.ano, m[1], m[2].trim(), qtd]);
-  });
+    if (qtd) out.push([mesAno.mes, mesAno.ano, m[1], m[2].trim(), qtd]);
+  }
   return out;
 }
 
