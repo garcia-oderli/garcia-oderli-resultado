@@ -276,12 +276,10 @@ function processarReportesDrive() {
       /* Sem consentimento o erro é o mesmo para todos os arquivos e o try
          ainda engole o pedido de autorização — insistir só repete "Você não
          tem permissão" oito vezes. Para tudo e aponta o caminho. */
-      if (/UrlFetchApp|external_request|PERMISSION|permiss|autoriza/i.test(msg)) {
-        return rvErro('Parei em "' + pdf.getName() + '": o script está sem autorização para converter PDF ('
-          + msg + ').\n\nCaminho: menu 📦 Volumes → "Autorizar conversão de PDF (1ª vez)" e aceite as '
-          + 'permissões. Se o pedido nem abrir, confira em Configurações do projeto → "Mostrar arquivo de '
-          + 'manifesto" se o appsscript.json tem o oauthScopes do repositório (apps-script/appsscript.json). '
-          + 'Os PDFs continuam na pasta; depois rode "Processar PDFs" de novo.');
+      if (/UrlFetchApp|external_request|permiss|autoriza|conversão do PDF falhou|Drive API|espaço/i.test(msg)) {
+        return rvErro('Parei em "' + pdf.getName() + '": ' + msg
+          + '\n\n' + RV_AJUDA_AUTORIZACAO
+          + '\n\nOs PDFs continuam na pasta; resolvido isso, rode "Processar PDFs" de novo.');
       }
       falhas.push(pdf.getName() + ': ' + msg);
     }
@@ -305,44 +303,127 @@ function instalarProcessamentoDiario() {
     + 'É só salvar o PDF do mês lá dentro; o resultado aparece na HISTORICO e o dashboard pega no sync.');
 }
 
-/* Roda a mesma chamada da conversão, mas fora do try — na primeira execução
-   o Apps Script abre o pedido de consentimento (é ele que faltava quando
-   todo PDF falhava com "Você não tem permissão para chamar
-   UrlFetchApp.fetch"). Aceitou uma vez, nunca mais aparece. */
+var RV_AJUDA_AUTORIZACAO =
+  'Se o motivo fala em autorização ou permissão, o consentimento que o script tem hoje é mais estreito do que a '
+  + 'cópia exige (dá para ler a conta do Drive e mesmo assim não poder copiar o arquivo). Conserto: abra '
+  + 'myaccount.google.com/permissions, remova o acesso deste projeto do Apps Script e rode "Autorizar conversão '
+  + 'de PDF" de novo — a tela de consentimento volta pedindo o acesso completo ao Drive, e aí é só aceitar. '
+  + 'Se o motivo fala em Drive API desligada, ligue a Drive API no projeto do Cloud (Configurações do projeto → '
+  + 'Google Cloud Platform). Terceira saída, se as duas falharem: no editor, Serviços + → Drive API → Adicionar; '
+  + 'o script passa a usar o serviço avançado sozinho.';
+
+/* Converte um PDF de verdade da pasta em vez de só cutucar a API: a leitura
+   da conta (drive/v3/about) passa com qualquer escopo do Drive e dizia
+   "autorizado" enquanto a cópia continuava recusada com 403. Testar a
+   operação real é a única resposta que vale. */
 function autorizarConversaoPdf() {
-  var resp = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
-  });
-  if (resp.getResponseCode() < 300) {
-    rvAvisar('Autorizado — a conversão de PDF está liberada. Agora rode "Processar PDFs da pasta do Drive".');
-  } else {
-    rvErro('A chamada de teste falhou (HTTP ' + resp.getResponseCode() + '). Confira se o appsscript.json do '
-      + 'projeto tem o bloco oauthScopes do repositório (apps-script/appsscript.json) e rode de novo.');
+  var pdf = null, pastas = DriveApp.getFoldersByName(RV_PASTA);
+  if (pastas.hasNext()) {
+    var arquivos = pastas.next().getFilesByType(MimeType.PDF);
+    if (arquivos.hasNext()) pdf = arquivos.next();
+  }
+  if (!pdf) {
+    return rvAvisar('Autorização concedida, mas não há PDF na pasta "' + RV_PASTA + '" para testar a conversão de '
+      + 'verdade — solte o PDF do mês lá dentro e rode este item de novo.');
+  }
+  try {
+    var texto = rvPdfParaTexto(pdf.getId());
+    rvAvisar('Autorizado e testado de verdade: "' + pdf.getName() + '" converteu e devolveu '
+      + texto.length + ' caracteres. Pode rodar "Processar PDFs da pasta do Drive".');
+  } catch (e) {
+    rvErro('A conversão de teste com "' + pdf.getName() + '" falhou: ' + ((e && e.message) || e)
+      + '\n\n' + RV_AJUDA_AUTORIZACAO);
   }
 }
 
 /* Copia o PDF como Documento Google (o Drive extrai o texto), lê e apaga a
    cópia. Não mexe no PDF original. */
+var RV_TMP_DOC = 'tmp_reporte_volumes';
+
 function rvPdfParaTexto(fileId) {
-  var resp = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '/copy', {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify({ name: 'tmp_reporte_volumes', mimeType: 'application/vnd.google-apps.document' }),
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
-  });
-  if (resp.getResponseCode() >= 300) {
-    throw new Error('conversão do PDF falhou (HTTP ' + resp.getResponseCode() + ')'
-      + (resp.getResponseCode() === 401 || resp.getResponseCode() === 403
-        ? ' — provável falta de autorização do Drive' : ''));
-  }
-  var docId = JSON.parse(resp.getContentText()).id;
+  var docId = rvPdfParaDoc(fileId);
   try {
     return DocumentApp.openById(docId).getBody().getText();
   } finally {
     try { DriveApp.getFileById(docId).setTrashed(true); } catch (ignore) {}
   }
+}
+
+/* Três caminhos para a mesma conversão, porque cada um falha por um motivo
+   diferente: a v3 recusa quando o consentimento do script é mais estreito
+   que a cópia exige, a v2 (convert=true) ainda aceita conversão que a v3
+   às vezes nega, e o serviço avançado só existe se estiver ligado no
+   editor. O primeiro que responder resolve; se todos falharem, o erro leva
+   o motivo de cada um em vez de só o código HTTP. */
+function rvPdfParaDoc(fileId) {
+  var motivos = [];
+  var caminhos = [
+    function () {
+      return rvCopiaRest('https://www.googleapis.com/drive/v3/files/' + fileId + '/copy',
+                         { name: RV_TMP_DOC, mimeType: MimeType.GOOGLE_DOCS });
+    },
+    function () {
+      return rvCopiaRest('https://www.googleapis.com/drive/v2/files/' + fileId + '/copy?convert=true',
+                         { title: RV_TMP_DOC, mimeType: MimeType.GOOGLE_DOCS });
+    },
+    function () { return rvCopiaServicoAvancado(fileId); }
+  ];
+  for (var i = 0; i < caminhos.length; i++) {
+    try {
+      var id = caminhos[i]();
+      if (id) return id;
+    } catch (e) {
+      motivos.push((e && e.message) || String(e));
+    }
+  }
+  throw new Error('conversão do PDF falhou — ' + motivos.join(' | '));
+}
+
+function rvCopiaRest(url, corpo) {
+  var resp = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(corpo),
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
+  var codigo = resp.getResponseCode();
+  if (codigo < 300) return JSON.parse(resp.getContentText()).id;
+  throw new Error('HTTP ' + codigo + ' ' + rvMotivoDrive(resp.getContentText()));
+}
+
+/* Só existe se o Serviço avançado do Drive estiver ligado (editor →
+   Serviços + → Drive API). Desligado, devolve nada e a vez passa. */
+function rvCopiaServicoAvancado(fileId) {
+  if (typeof Drive === 'undefined' || !Drive.Files) return null;
+  var blob = DriveApp.getFileById(fileId).getBlob();
+  if (Drive.Files.insert) {   /* Drive API v2 */
+    return Drive.Files.insert({ title: RV_TMP_DOC, mimeType: MimeType.GOOGLE_DOCS }, blob,
+                              { ocr: true, ocrLanguage: 'pt' }).id;
+  }
+  return Drive.Files.create({ name: RV_TMP_DOC, mimeType: MimeType.GOOGLE_DOCS }, blob).id;   /* v3 */
+}
+
+/* A API do Drive diz em texto por que recusou; sem isso um 403 não ensina
+   nada e a conversa vira adivinhação. */
+function rvMotivoDrive(corpo) {
+  var razao = '', msg = '';
+  try {
+    var e = JSON.parse(corpo).error || {};
+    msg = e.message || '';
+    razao = (e.errors && e.errors[0] && e.errors[0].reason) || e.status || '';
+  } catch (ignore) {
+    msg = String(corpo || '').slice(0, 200);
+  }
+  var dicas = {
+    appNotAuthorizedToFile: 'a autorização do script não alcança arquivo que ele não criou — reautorize com acesso completo ao Drive',
+    insufficientFilePermissions: 'a autorização atual não dá acesso a esse arquivo — reautorize',
+    insufficientPermissions: 'a autorização atual é estreita demais — reautorize',
+    accessNotConfigured: 'a Drive API está desligada no projeto do Cloud ligado ao script',
+    storageQuotaExceeded: 'o Drive está sem espaço',
+    cannotCopyFile: 'o arquivo está bloqueado para cópia'
+  };
+  return '(' + (razao || 'sem motivo') + ') ' + msg + (dicas[razao] ? ' → ' + dicas[razao] : '');
 }
 
 function rvPeriodoDoTexto(texto) {
