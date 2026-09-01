@@ -269,6 +269,8 @@ function processarReportesDrive() {
       if (!mesAno) throw new Error('não achei "Período: dd/mm/aa" no PDF');
       var linhas = rvLinhasDoTexto(texto, mesAno);
       if (!linhas.length) throw new Error('nenhuma linha de produto/volume reconhecida');
+      var incompleto = rvFamiliasIncompletas(linhas);
+      if (incompleto) throw new Error(incompleto);
       rvSubstituirMes(mesAno, linhas);
       rvMoverParaProcessados(pasta, pdf);
       feitos.push(pdf.getName() + ' → ' + mesAno.mes + '/' + mesAno.ano + ' (' + linhas.length + ' linhas)');
@@ -479,6 +481,33 @@ function rvRelatorioErrado(texto) {
   if (/PRODUTOS\s+ACABADOS/i.test(texto) && !/\bVOL\.?\s*0?\d+\s*\//i.test(texto)) {
     return 'é o 3 - REPORTE com Tipo: P (só produtos acabados, sem linhas VOL) '
       + '— exporte com Tipo: Todos para os volumes virem juntos';
+  }
+  return null;
+}
+
+/* O mês só fecha com as DUAS famílias no mesmo arquivo: a linha do produto
+   diz quanto saiu, a linha VOL diz em quantas caixas aquilo sai. Com uma só,
+   a conta ainda produz um número — e é aí que mora o perigo, porque ele sai
+   por um método diferente do usado nos outros meses e ninguém percebe:
+   só VOL vira soma das caixas apontadas (que defasa quando a caixa é
+   apontada em mês diferente do produto), e só produto vira 1 caixa por
+   unidade. Comparar esse mês com os demais seria comparar réguas
+   diferentes, então melhor recusar e pedir o relatório certo. A checagem é
+   pela estrutura do que foi lido, não pelo cabeçalho, porque o Lógica
+   escreve o Tipo de um jeito em cada variante. */
+function rvFamiliasIncompletas(linhas) {
+  var vol = 0, prod = 0;
+  linhas.forEach(function (l) {
+    if (RV_RE_VOL.test(String(l[3] || ''))) vol++; else prod++;
+  });
+  if (!prod) {
+    return 'só tem linha VOL (' + vol + ' delas) e nenhum produto acabado — esse é o relatório com '
+      + '"Tipo: L - VOLUMES". Exporte com Tipo: Todos, que traz as duas famílias no mesmo arquivo; '
+      + 'é assim que os outros 19 meses foram calculados';
+  }
+  if (!vol) {
+    return 'só tem produto acabado (' + prod + ' linhas) e nenhuma linha VOL — esse é o relatório com '
+      + '"Tipo: P". Exporte com Tipo: Todos';
   }
   return null;
 }
