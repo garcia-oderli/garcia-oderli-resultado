@@ -1,0 +1,458 @@
+<title>Fechamento de Volumes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:   #F5F2ED;
+    --panel:    #FFFFFF;
+    --sunk:     #EDE8E0;
+    --line:     #E0D9CD;
+    --line-firm:#C9C0B0;
+    --ink:      #1B1917;
+    --dim:      #6E6558;
+    --amber:    #B4761A;
+    --amber-ink:#8A5A11;
+    --amber-wash:#FBF1DE;
+    --green:    #2E7D32;
+    --green-wash:#E8F2E9;
+    --red:      #C0392B;
+    --red-wash: #FAEAE7;
+    --slate:    #55707F;
+
+    --step: 1.5rem;
+    --measure: 66ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #121110;
+      --panel:    #1A1918;
+      --sunk:     #201E1B;
+      --line:     #2C2A26;
+      --line-firm:#3D3933;
+      --ink:      #EDE8DF;
+      --dim:      #9A9184;
+      --amber:    #F5A623;
+      --amber-ink:#F2BC5B;
+      --amber-wash:#2A2115;
+      --green:    #6FBF73;
+      --green-wash:#18251A;
+      --red:      #E8705F;
+      --red-wash: #2A1817;
+      --slate:    #90A9B6;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:   #121110;
+    --panel:    #1A1918;
+    --sunk:     #201E1B;
+    --line:     #2C2A26;
+    --line-firm:#3D3933;
+    --ink:      #EDE8DF;
+    --dim:      #9A9184;
+    --amber:    #F5A623;
+    --amber-ink:#F2BC5B;
+    --amber-wash:#2A2115;
+    --green:    #6FBF73;
+    --green-wash:#18251A;
+    --red:      #E8705F;
+    --red-wash: #2A1817;
+    --slate:    #90A9B6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  /* ── cabeçalho ── */
+  .head {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    padding-bottom: 1.75rem;
+    border-bottom: 2px solid var(--line-firm);
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .72rem;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  h1 {
+    font-family: 'Barlow Condensed', 'Segoe UI', sans-serif;
+    font-size: clamp(2.6rem, 7vw, 4rem);
+    font-weight: 700;
+    line-height: .95;
+    letter-spacing: -.005em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .lede {
+    max-width: var(--measure);
+    color: var(--dim);
+    margin: 0;
+  }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  /* ── seções ── */
+  section { display: flex; flex-direction: column; gap: 1.25rem; }
+  h2 {
+    font-family: 'Barlow Condensed', 'Segoe UI', sans-serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    margin: 0;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    gap: .7rem;
+  }
+  h2 .qual {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .7rem;
+    font-weight: 400;
+    letter-spacing: .08em;
+    text-transform: none;
+    color: var(--dim);
+    margin-left: auto;
+  }
+  p { max-width: var(--measure); margin: 0; }
+  .muted { color: var(--dim); }
+
+  code, .val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .87em;
+    font-weight: 500;
+  }
+  code {
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: .08em .32em;
+    color: var(--ink);
+  }
+
+  /* ── passos numerados: é sequência de verdade ── */
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.5rem; }
+  .steps > li {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 0 1.1rem;
+    align-items: start;
+  }
+  .num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--amber-ink);
+    border-top: 3px solid var(--amber);
+    text-align: center;
+  }
+  .steps h3 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 0 0 .3rem;
+    line-height: 1.35;
+  }
+  .steps .body { display: flex; flex-direction: column; gap: .8rem; }
+
+  /* ── bloco de parâmetros do ERP ── */
+  .spec {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--amber);
+    border-radius: 4px;
+    padding: 1rem 1.15rem;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .5rem 1.5rem;
+    align-items: baseline;
+  }
+  .spec dt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .spec dd {
+    margin: 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .92rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .spec dd.key { color: var(--amber-ink); font-weight: 600; }
+  .spec dd .note { font-family: 'IBM Plex Sans', sans-serif; font-size: .8rem; font-weight: 400; color: var(--dim); }
+
+  /* ── caixas de destaque ── */
+  .box {
+    border-radius: 4px;
+    padding: .9rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    max-width: var(--measure);
+  }
+  .box p { max-width: none; }
+  .box .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .box.ok   { background: var(--green-wash); border: 1px solid color-mix(in srgb, var(--green) 30%, transparent); }
+  .box.ok .tag { color: var(--green); }
+  .box.warn { background: var(--red-wash); border: 1px solid color-mix(in srgb, var(--red) 30%, transparent); }
+  .box.warn .tag { color: var(--red); }
+  .box.note { background: var(--amber-wash); border: 1px solid color-mix(in srgb, var(--amber) 32%, transparent); }
+  .box.note .tag { color: var(--amber-ink); }
+
+  /* ── conferência ── */
+  .check { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem; max-width: var(--measure); }
+  .check li { display: grid; grid-template-columns: 1.15rem 1fr; gap: .7rem; align-items: start; }
+  .check li::before {
+    content: "";
+    width: .85rem; height: .85rem;
+    margin-top: .38rem;
+    border: 1.5px solid var(--line-firm);
+    border-radius: 2px;
+  }
+  .check .figure { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--amber-ink); }
+
+  /* ── tabela de recusas ── */
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; min-width: 46rem; }
+  th, td { text-align: left; padding: .7rem .9rem; vertical-align: top; border-bottom: 1px solid var(--line); }
+  thead th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    background: var(--sunk);
+    border-bottom: 1px solid var(--line-firm);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.msg { font-family: 'IBM Plex Mono', monospace; font-size: .8rem; line-height: 1.5; color: var(--ink); width: 34%; }
+  td.cause { color: var(--dim); font-size: .92rem; width: 26%; }
+  td.fix { font-size: .92rem; }
+
+  /* ── rodapé ── */
+  .foot {
+    border-top: 1px solid var(--line);
+    padding-top: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem 2rem;
+    font-size: .84rem;
+    color: var(--dim);
+  }
+  .foot span strong { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 640px) {
+    .spec { grid-template-columns: 1fr; gap: .15rem; }
+    .spec dt { margin-top: .5rem; }
+    .steps > li { grid-template-columns: 1.9rem 1fr; gap: 0 .8rem; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="head">
+    <div class="eyebrow">Patrimar Móveis · PPCP · rotina mensal</div>
+    <h1>Fechamento de Volumes</h1>
+    <p class="lede">Todo início de mês, um PDF do Lógica vira a coluna de volumes da <code>HISTORICO</code> e chega ao painel. O passo que decide tudo é um campo só na exportação: <strong>Tipo: Todos</strong>. Errado ali, o script grava um número plausível e incomparável — ou recusa o arquivo, que é o que ele passou a fazer.</p>
+  </header>
+
+  <section>
+    <h2>A rotina <span class="qual">4 passos · ~5 minutos</span></h2>
+
+    <ol class="steps">
+
+      <li>
+        <div class="num">1</div>
+        <div class="body">
+          <h3>Exportar o relatório no Lógica</h3>
+          <p class="muted">Módulo Gerencial → Relatório Mensal por Transação. São cinco campos, e três deles são onde o erro mora.</p>
+          <dl class="spec">
+            <dt>Relatório</dt>
+            <dd>Mensal por Transação — Custo Reposição</dd>
+            <dt>Transação</dt>
+            <dd class="key">3 - REPORTE</dd>
+            <dt>Tipo</dt>
+            <dd class="key">Todos <span class="note">← nunca "P - Produtos Acabados" nem "L - Volumes"</span></dd>
+            <dt>Período</dt>
+            <dd>01/MM/AA até o último dia do mês</dd>
+            <dt>Depósito</dt>
+            <dd>em branco <span class="note">foi assim nos 19 meses que fecharam</span></dd>
+          </dl>
+          <p class="muted">O relatório lista a produção duas vezes: uma linha por produto acabado e uma linha por caixa (<code>VOL 1/2 …</code>). O script precisa das duas famílias no mesmo arquivo — é cruzando elas que ele descobre em quantas caixas cada produto sai.</p>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">2</div>
+        <div class="body">
+          <h3>Salvar o PDF na pasta do Drive</h3>
+          <p>Solte o arquivo em <code>Meu Drive / REPORTES DE VOLUMES</code>. O nome não importa — o script lê o período de dentro do PDF. Não deixe na raiz do Meu Drive: só a pasta é varrida.</p>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">3</div>
+        <div class="body">
+          <h3>Rodar pelo menu da planilha</h3>
+          <p>Na <strong>DASHABOARD MES A MES</strong>: menu <code>📦 Volumes</code> → <code>Processar PDFs da pasta do Drive</code>.</p>
+          <p class="muted">Rode pela planilha, não pelo editor do Apps Script — os avisos aparecem em janela e você lê o resultado na hora. Reprocessar o mesmo mês substitui, nunca soma, então PDF corrigido pode ser reprocessado à vontade.</p>
+          <div class="box note">
+            <span class="tag">Opcional, uma vez só</span>
+            <p><code>Instalar processamento diário</code> faz a pasta ser varrida todo dia por volta das 6h. Com isso ligado, o passo 3 desaparece: basta soltar o PDF na pasta.</p>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">4</div>
+        <div class="body">
+          <h3>Conferir antes de confiar</h3>
+          <p>O aviso final lista cada arquivo com o mês reconhecido e quantas linhas leu. Depois disso, olhe o resumo na <code>REPORTE_VOLUMES</code>, colunas G a L:</p>
+          <ul class="check">
+            <li><span>Volumes e produtos preenchidos — <strong>produtos em zero significa relatório incompleto</strong></span></li>
+            <li><span>Fator entre <span class="figure">1,09</span> e <span class="figure">1,38</span> — foi essa a faixa dos 19 meses já fechados</span></li>
+            <li><span>Volume do mês na casa de <span class="figure">32 mil</span> a <span class="figure">49 mil</span></span></li>
+            <li><span>Nenhum mês na lista de "SEM linha na HISTORICO"</span></li>
+          </ul>
+          <div class="box warn">
+            <span class="tag">Fator abaixo de 1 é impossível</span>
+            <p>Nenhum produto sai da fábrica em menos de uma caixa. Fator abaixo de 1, ou em branco, quer dizer que o arquivo veio incompleto — volte ao passo 1 e confira o campo Tipo.</p>
+          </div>
+        </div>
+      </li>
+
+    </ol>
+  </section>
+
+  <section>
+    <h2>Quando o script recusa <span class="qual">mensagem → o que fazer</span></h2>
+    <p class="muted">O script prefere recusar a gravar número torto. Cada recusa diz o motivo; a tabela traduz.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>O que aparece</th><th>Causa</th><th>O que fazer</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="msg">só tem linha VOL (N delas) e nenhum produto acabado</td>
+            <td class="cause">Exportou com <span class="val">Tipo: L - VOLUMES</span></td>
+            <td class="fix">Reexportar com <strong>Tipo: Todos</strong>. Só as caixas não dá para calcular — falta saber quanto de produto saiu.</td>
+          </tr>
+          <tr>
+            <td class="msg">só tem produto acabado (N linhas) e nenhuma linha VOL</td>
+            <td class="cause">Exportou com <span class="val">Tipo: P</span></td>
+            <td class="fix">Reexportar com <strong>Tipo: Todos</strong>. Sem as linhas VOL todo produto viraria uma caixa só.</td>
+          </tr>
+          <tr>
+            <td class="msg">é a CURVA ABC (vendas), não o reporte de produção</td>
+            <td class="cause">Relatório errado na pasta</td>
+            <td class="fix">A Curva ABC é venda, não produção. Tire da pasta e exporte o Mensal por Transação.</td>
+          </tr>
+          <tr>
+            <td class="msg">não achei "Período: dd/mm/aa" no PDF</td>
+            <td class="cause">Não é o relatório esperado</td>
+            <td class="fix">Confira se o PDF é mesmo o Mensal por Transação e se abre normalmente.</td>
+          </tr>
+          <tr>
+            <td class="msg">nenhuma linha de produto/volume reconhecida</td>
+            <td class="cause">Layout do relatório mudou</td>
+            <td class="fix">O Lógica mudou a cara do relatório. Aí é ajuste no script — guarde o PDF como amostra.</td>
+          </tr>
+          <tr>
+            <td class="msg">Nenhum PDF novo na pasta.</td>
+            <td class="cause">Arquivo no lugar errado</td>
+            <td class="fix">O PDF não está em <span class="val">REPORTES DE VOLUMES</span>. Costuma ficar na raiz do Meu Drive.</td>
+          </tr>
+          <tr>
+            <td class="msg">conversão do PDF falhou — HTTP 403 (insufficientPermissions)</td>
+            <td class="cause">Autorização estreita demais</td>
+            <td class="fix">O script lê o Drive mas não pode escrever. Veja o quadro abaixo.</td>
+          </tr>
+          <tr>
+            <td class="msg">SEM linha na HISTORICO (mês ainda não existe lá)</td>
+            <td class="cause">O mês não existe na aba</td>
+            <td class="fix">Crie a linha do mês na <span class="val">HISTORICO</span> e rode <span class="val">Lançar na HISTORICO</span>. O script não cria linha sozinho.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="box warn">
+      <span class="tag">Autorização — a armadilha</span>
+      <p>Quando os escopos do projeto mudam, execução pelo <strong>menu da planilha não pede reautorização</strong>: roda com o consentimento velho e falha com 403. Só a execução <strong>pelo editor</strong> abre a tela de permissões.</p>
+      <p>Caminho: editor do Apps Script → selecione <code>autorizarConversaoPdf</code> → Executar → aceite, confirmando a linha "ver, editar, criar e excluir todos os seus arquivos do Drive". Para conferir o que foi concedido sem processar nada, use <code>📦 Volumes → Conferir permissões concedidas</code>.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Por que Tipo: Todos <span class="qual">o erro que não aparece na tela</span></h2>
+    <p>O volume de cada mês é calculado como <strong>quantidade do produto × número de caixas dele</strong>, e o número de caixas o script aprende lendo a estrutura <code>VOL x/de</code> do próprio arquivo.</p>
+    <p>Somar direto as linhas VOL parece equivalente, mas não é: a caixa às vezes é apontada em mês diferente do produto — em janeiro/26 isso acontecia em 39 de 138 produtos. Por esse caminho o fator chega a ficar abaixo de 1, o que é impossível.</p>
+    <div class="box ok">
+      <span class="tag">O caso que motivou a trava</span>
+      <p>Agosto/26 entrou uma vez com <span class="val">Tipo: L</span>: 225 linhas VOL, zero produtos, e gravou <span class="val">36.875</span> volumes na HISTORICO. O número cai no meio da faixa dos outros meses — junho deu 38.499, julho 41.666 — então ninguém olhando o painel perceberia. Só que estava medido em régua diferente, e sem <code>produtosReportados</code> o fator de agosto ficava sem base. Desde então o script recusa esse arquivo.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Curva ABC <span class="qual">outra planilha, outro script</span></h2>
+    <p>A curva ABC do Lógica sai um mês por aba, cada uma ordenada pela venda do próprio mês — o mesmo produto muda de linha a cada aba. O casamento é feito por código.</p>
+    <ol class="steps">
+      <li>
+        <div class="num">1</div>
+        <div class="body">
+          <h3>Colar o mês novo em uma aba própria</h3>
+          <p>Na planilha <strong>CURVA ABC</strong>, crie a aba com nome de mês (<code>SET-26</code>, <code>SET 26</code>) e cabeçalho começando em <code>Cod.Prod.</code>, como as existentes.</p>
+        </div>
+      </li>
+      <li>
+        <div class="num">2</div>
+        <div class="body">
+          <h3>Rodar o casamento</h3>
+          <p>Menu <code>📈 Curva ABC</code> → <code>Casar meses (gerar CONSOLIDADO)</code>. A aba <code>CONSOLIDADO</code> é regravada inteira com um produto por linha, os meses lado a lado, classe ABC no corte 70/20/10 e a flag da aba <code>EXC</code>.</p>
+          <p class="muted">Ele também confere cada aba contra a linha "Valores Totais" do relatório e avisa quando o colar perdeu linha — hoje o <code>MAI-26</code> está assim, com R$ 114,34 e uma unidade a menos.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <footer class="foot">
+    <span><strong>Código:</strong> p09728655-maker/garcia-oderli-resultado · <code>apps-script/</code></span>
+    <span><strong>Planilhas:</strong> DASHABOARD MES A MES · CURVA ABC</span>
+    <span><strong>Pasta:</strong> Meu Drive / REPORTES DE VOLUMES / PROCESSADOS</span>
+  </footer>
+
+</div>
