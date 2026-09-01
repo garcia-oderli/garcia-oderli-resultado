@@ -627,8 +627,14 @@ function rvNormaliza(v) {
     .trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-function rvErro(msg) { Logger.log('ERRO: ' + msg); rvAvisar(msg); }
+function rvErro(msg) { rvAvisar('ERRO: ' + msg); }
 
+/* Registra SEMPRE e só depois tenta a janelinha. Rodando pelo editor não
+   existe UI: o alert falhava, o catch registrava, e quando o painel de log
+   não mostrava a linha a execução terminava "concluída" sem dizer nada —
+   nem sucesso nem erro. O console.log vem primeiro justamente para que a
+   resposta exista mesmo quando a janela não pode aparecer. */
 function rvAvisar(msg) {
-  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { Logger.log(msg); }
+  console.log(msg);
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { /* sem planilha aberta */ }
 }
