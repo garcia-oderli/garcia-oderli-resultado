@@ -1770,21 +1770,37 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 <div style="font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--t2);margin-bottom:10px">▸ KPIs ESTRATÉGICOS PRINCIPAIS</div>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:11px;margin-bottom:20px">
 
-  <div class="kCard kc" id="rex-card-prod" style="position: relative; border-top-color: rgb(0, 230, 118); cursor: help;">
-    <div class="kLbl">Produção Total</div>
-    <div id="rex-prod-val" class="kVal" style="color:var(--cyan)">463.851</div>
-    <div class="kSub">peças no período</div>
+  <!-- O card comparava a produção COM hora extra contra `meta`. Mas `meta` não
+       é capacidade: é `producaoReal x (horasNormais / horasCarga)` — conferido
+       nos 18 meses da planilha, erro máximo 0,0022%. Como horasNormais é
+       sempre menor que horasCarga, meta é sempre menor que a produção, e o
+       semáforo era VERDE em 18 de 18 meses por construção algébrica. Nunca
+       pôde ficar vermelho; não carregava informação nenhuma.
+       Trocar a base para `prodSemExtras` só inverteria o defeito (vermelho em
+       17 de 18). Então a comparação com `meta` saiu do card: o que decide a
+       cor agora é a dependência de hora extra, que varia de verdade (3,4% a
+       26,5% no histórico) e é a pergunta que a diretoria precisa responder.
+       Valores iniciais em "—": número no markup é número que mente se o JS
+       falhar, e este arquivo já foi commitado com 463.851 congelado. -->
+  <div class="kCard kc" id="rex-card-prod" style="position: relative; cursor: help;">
+    <div class="kLbl">Produção Entregue</div>
+    <div id="rex-prod-val" class="kVal" style="color:var(--cyan)">—</div>
+    <div class="kSub" id="rex-prod-split">peças no período</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--b)">
-      <span style="font-size:.63rem;color:var(--t2)">Meta</span>
-      <span id="rex-prod-meta" style="font-family:var(--mono);font-size:.72rem;color:var(--t2)">449.280</span>
+      <span style="font-size:.63rem;color:var(--t2)">Veio de hora extra</span>
+      <span id="rex-prod-dep" style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--t2)">—</span>
     </div>
-    <div id="rex-prod-status" style="position: absolute; top: 12px; right: 12px; width: 9px; height: 9px; border-radius: 50%; background: rgb(0, 230, 118); box-shadow: rgb(0, 230, 118) 0px 0px 6px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:5px">
+      <span style="font-size:.63rem;color:var(--t2)">Aderência ao plano</span>
+      <span id="rex-prod-plano" style="font-family:var(--mono);font-size:.72rem;color:var(--t2)">—</span>
+    </div>
+    <div id="rex-prod-status" style="position: absolute; top: 12px; right: 12px; width: 9px; height: 9px; border-radius: 50%;"></div>
   </div>
 
   <div class="kCard kg" id="rex-card-ef" style="position: relative; border-top-color: rgb(255, 23, 68); cursor: help;">
     <div class="kLbl">Eficiência Média</div>
-    <div id="rex-ef-val" class="kVal" style="color:var(--green)">87,2%</div>
-    <div class="kSub">produção ÷ capacidade teórica</div>
+    <div id="rex-ef-val" class="kVal" style="color:var(--green)">—</div>
+    <div class="kSub">produção s/ extras ÷ capacidade</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--b)">
       <span style="font-size:.63rem;color:var(--t2)">Meta: 90%</span>
       <span id="rex-ef-diff" style="font-family: var(--mono); font-size: 0.72rem; color: rgb(255, 23, 68);">-2,8 p.p.</span>
@@ -1794,7 +1810,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 
   <div class="kCard ka" id="rex-card-abs" style="position: relative; border-top-color: rgb(255, 23, 68); cursor: help;">
     <div class="kLbl">Absenteísmo Médio</div>
-    <div id="rex-abs-val" class="kVal" style="color:var(--amber)">12,1%</div>
+    <div id="rex-abs-val" class="kVal" style="color:var(--amber)">—</div>
     <div class="kSub">% de horas perdidas</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--b)">
       <span style="font-size:.63rem;color:var(--t2)">Meta: ≤ 3%</span>
@@ -1816,11 +1832,11 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
 
   <div class="kCard kc" style="cursor: help;">
     <div class="kLbl">Horas Totais</div>
-    <div id="rex-ht-val" class="kVal" style="color:var(--cyan)">252.625 h</div>
+    <div id="rex-ht-val" class="kVal" style="color:var(--cyan)">—</div>
     <div class="kSub">h trabalhadas no período</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--b)">
       <span style="font-size:.63rem;color:var(--t2)">Normal + Extras</span>
-      <span id="rex-ht-ext" style="font-family:var(--mono);font-size:.72rem;color:var(--t2)">32.920 h extras</span>
+      <span id="rex-ht-ext" style="font-family:var(--mono);font-size:.72rem;color:var(--t2)">—</span>
     </div>
   </div>
 
@@ -1833,7 +1849,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
   <div class="kCard" style="cursor: help;">
     <div class="kLbl">⟳ Produtividade / Colaborador</div>
     <div style="display:flex;align-items:baseline;gap:6px">
-      <span id="rex-prodcol-val" class="kVal" style="font-size:1.35rem;color:var(--t1)">4.890</span>
+      <span id="rex-prodcol-val" class="kVal" style="font-size:1.35rem;color:var(--t1)">—</span>
       <span class="kSub">peças / colaborador</span>
     </div>
     <div style="margin-top:10px;background:var(--bg);border-radius:4px;height:4px;overflow:hidden">
@@ -4984,7 +5000,99 @@ window.DashUtils = (function() {
     return s + n.toLocaleString('pt-BR', { minimumFractionDigits:d, maximumFractionDigits:d });
   }
 
-  return { getDias:getDias, getFat:getFat, getProd:getProd, fN:fN, fI:fI, fSign:fSign, DIAS_FB:DIAS_FB };
+  /* ── BASE ÚNICA DE PRODUÇÃO DO PERÍODO ────────────────────────────────────
+     Até aqui cada bloco somava o campo que achava melhor. O Resumo Executivo
+     somava producaoReal (COM hora extra) e comparava contra `meta`, que é
+     capacidade calculada sobre horas NORMAIS. Resultado: 103,2% de
+     atingimento e semáforo verde em TODO recorte do histórico — enquanto o
+     veredito da mesma tela, que somava prodSemExtras, dizia 87,6% e ATENÇÃO.
+     Duas verdades na mesma tela, e a verde era a errada. No período inteiro
+     são 84.386 peças (15,2% do volume) que só existem porque houve hora
+     extra; contá-las contra a capacidade normal esconde justamente a
+     dependência de hora extra que a diretoria precisa enxergar.
+
+     Regra desta função, única para o painel inteiro:
+       • comparar contra meta / capacidade  → SEMPRE base sem extras
+       • volume entregue ao cliente         → base com extras
+       • as duas bases aparecem juntas, nunca uma no lugar da outra
+
+     Percentuais saem de razão de totais, nunca de média de percentuais: num
+     recorte multi-mês a média aritmética dá o mesmo peso a um mês de 15 dias
+     e a um de 23. Aqui isso valia 0,2 a 0,5 p.p. — pequeno, mas é erro de
+     graça e some com a conta certa. */
+  function _div(a, b) { return b > 0 ? a / b : null; }
+  function _pct(a, b) { var v = _div(a, b); return v === null ? null : v * 100; }
+
+  function periodo(regs) {
+    var o = { meses:0, mesesProd:0, semBase:0, plano:0,
+              comExtras:0, semExtras:0, deExtras:0, meta:0,
+              hNormais:0, hExtras:0, hTotais:0, hCarga:0, hPerdidas:0,
+              dias:0, colabMes:0, nColab:0, fatPecas:0, vendida:0, receita:0 };
+
+    (regs || []).forEach(function (r) {
+      /* Mês futuro entra na planilha inteiro zerado — não conta. Mas mês com
+         horas apontadas e produção zero (fábrica parada) É dado: se ficasse de
+         fora, o absenteísmo melhoraria justamente no mês em que a fábrica
+         parou. Mesmo critério do getDados(): horasCarga > 0 OU produção > 0. */
+      if (!r || !((r.horasCarga > 0) || (r.producaoReal > 0))) return;
+      o.meses++;
+      if (r.producaoReal > 0) o.mesesProd++;
+      o.comExtras += (r.producaoReal || 0);
+      /* getProd cai em producaoReal quando prodSemExtras falta (import sem a
+         coluna, ou a migração do init()). Nesses meses a base "sem extras" é
+         na verdade a base COM extras — o bug que esta função existe para
+         evitar, de volta e sem sintoma. Contamos para poder avisar na tela. */
+      if (!(r.prodSemExtras > 0) && (r.totalExtras > 0)) o.semBase++;
+      o.semExtras += getProd(r);
+      o.meta      += (r.meta            || 0);
+      o.hNormais  += (r.horasNormais    || 0);
+      o.hExtras   += (r.totalExtras     || 0);
+      o.hTotais   += (r.horasTotais     || 0);
+      o.hCarga    += (r.horasCarga      || 0);
+      o.hPerdidas += (r.totalFaltaAtraso|| 0);
+      o.dias      += getDias(r);
+      o.plano     += (r.previsaoProducao|| 0);
+      o.fatPecas  += (r.qtdeFaturado    || 0);
+      o.vendida   += (r.qtdeVendida     || 0);
+      o.receita   += (r.ticketMedio > 0 ? r.ticketMedio * (r.qtdeFaturado || 0) : 0);
+      if (r.colaboradores > 0) { o.colabMes += r.colaboradores; o.nColab++; }
+    });
+
+    o.deExtras    = o.comExtras - o.semExtras;
+    o.colabMed    = _div(o.colabMes, o.nColab);
+
+    /* Aderência à capacidade: a conta que decide se cabe mais demanda. */
+    o.aderencia   = _pct(o.semExtras, o.meta);   /* base correta            */
+    o.aderenciaCE = _pct(o.comExtras, o.meta);   /* só para mostrar o delta */
+
+    /* Denominador é horasNormais, não horasCarga. Conferido contra os 18 meses
+       da planilha: /hNormais fecha em 18/18; /hCarga erra em 17/18, de 0,23 a
+       0,74 p.p. por mês. Os tooltips do painel documentam a fórmula errada. */
+    o.absenteismo = _pct(o.hPerdidas, o.hNormais);
+    o.pctExtras   = _pct(o.hExtras,   o.hTotais);
+    o.depExtras   = _pct(o.deExtras,  o.comExtras);  /* quanto do volume veio de HE */
+    o.ticket      = _div(o.receita,   o.fatPecas);
+
+    o.ritmoNormal = _div(o.semExtras, o.hNormais);
+    o.ritmoExtra  = _div(o.deExtras,  o.hExtras);
+    o.prodDia     = _div(o.semExtras, o.dias);
+    o.prodColab   = _div(o.semExtras, o.colabMes);
+
+    /* Demanda = faturado. É proxy, não é demanda real (ver qtdeVendida). */
+    /* Aderência ao plano usa previsaoProducao — o único alvo do dataset que
+       NÃO é derivado do realizado. `meta` é circular (= producaoReal x
+       horasNormais/horasCarga, conferido nos 18 meses), então comparar contra
+       ela nunca pôde reprovar ninguém. */
+    o.aderPlano   = _pct(o.comExtras, o.plano);
+
+    o.demanda     = o.fatPecas;
+    o.gapDemanda  = o.fatPecas - o.semExtras;   /* >0 = capacidade normal não cobre */
+    o.gapPct      = _pct(o.gapDemanda, o.fatPecas);
+    return o;
+  }
+
+  return { getDias:getDias, getFat:getFat, getProd:getProd, periodo:periodo,
+           fN:fN, fI:fI, fSign:fSign, DIAS_FB:DIAS_FB };
 })();
 
 function sortD(d){
@@ -6904,32 +7012,69 @@ function renderResumoExecutivo(dados) {
     return;
   }
 
-  /* ── Acumula totais ── */
-  var tProd=0, tMeta=0, tHT=0, tExt=0, tTkt=0, nTkt=0, tEf=0, tAbs=0, tColabs=0, nColabs=0;
-  dados.forEach(function(r){
-    tProd += (r.producaoReal  || 0);
-    tMeta += (r.meta          || 0);
-    tHT   += (r.horasTotais   || 0);
-    tExt  += (r.totalExtras   || 0);
-    tEf   += (r.eficiencia    || 0);
-    tAbs  += (r.absenteismo   || 0);
-    if (r.ticketMedio  > 0) { tTkt   += r.ticketMedio;   nTkt++;     }
-    if (r.colaboradores> 0) { tColabs+= r.colaboradores; nColabs++;  }
-  });
+  /* ── Acumula totais — base única, DashUtils.periodo ───────────────────────
+     `meta` é capacidade calculada sobre horas NORMAIS. Medir a entrega contra
+     ela somando produção COM hora extra dava 103,2% e semáforo verde em todo
+     recorte do histórico, enquanto o veredito logo acima na mesma tela dizia
+     87,6% e ATENÇÃO. Aqui a comparação com a meta usa sempre a base sem
+     extras; o volume entregue continua aparecendo, ao lado, com o quanto dele
+     veio de hora extra. */
+  var P = DashUtils.periodo(dados);
 
-  var n    = dados.length;
-  var efM  = tEf   / n;
-  var absM = tAbs  / n;
-  var tktM = nTkt  > 0 ? tTkt / nTkt   : 0;
-  var avgC = nColabs> 0 ? tColabs/nColabs : 1;
-  var pPC  = tColabs > 0 ? tProd / tColabs : 0;
-  var pctE = tHT   > 0 ? (tExt / tHT)  * 100 : 0;
-  var rH   = tHT   > 0 ? (tProd * tktM)/ tHT  : 0;
+  if (!P.mesesProd) {   /* período selecionado sem nenhum mês com produção */
+    ['rex-prod-val','rex-ef-val','rex-abs-val','rex-tkt-val','rex-ht-val',
+     'rex-prodcol-val','rex-rechora-val','rex-ext-pct-val'].forEach(function(id){
+      var e2=el(id); if(e2) e2.textContent='--';
+    });
+    var pl=el('rex-periodo-label'); if(pl) pl.textContent='Sem apontamento no período';
+    var mc=el('rex-meses-count');   if(mc) mc.textContent='';
+    return;
+  }
+
+  var tProdCE = P.comExtras;   /* entregue — inclui hora extra          */
+  var tProd   = P.semExtras;   /* base comparável com a meta            */
+  var tHE     = P.deExtras;    /* peças que só existem por causa da HE  */
+  var tMeta   = P.meta;
+  var tHT     = P.hTotais;
+  var tExt    = P.hExtras;
+  /* n = meses que efetivamente produziram. Mês de fábrica parada conta nas
+     horas (acima) mas não divide produção — senão a média mensal despenca. */
+  var n       = P.mesesProd || P.meses;
+
+  /* Percentuais por razão de totais, não por média de percentuais: num
+     recorte multi-mês a média aritmética pesa igual um mês de 15 dias e um
+     de 23. */
+  var efM  = P.aderencia   || 0;   /* = prodSemExtras ÷ meta, ponderado */
+  var absM = P.absenteismo || 0;
+  var tktM = P.ticket      || 0;
+  var nTkt = P.fatPecas > 0 ? 1 : 0;
+  var avgC = P.colabMed    || 1;
+  var tColabs = P.colabMes;        /* pessoas-mês somadas no período   */
+  var pPC  = P.prodColab   || 0;   /* produtividade sobre a base normal */
+  var pctE = P.pctExtras   || 0;
+  /* Receita ÷ hora: volume TOTAL entregue sobre as horas TOTAIS que o
+     produziram — as duas pontas incluem hora extra, então é coerente. */
+  var rH   = tHT > 0 ? (tProdCE * tktM) / tHT : 0;
 
   /* ── KPIs principais ── */
   var e;
-  e=el('rex-prod-val');  if(e) e.textContent = fmt(tProd);
-  e=el('rex-prod-meta'); if(e) e.textContent = fmt(tMeta);
+  /* Manchete = o que saiu pela porta. Logo abaixo, a separação: sem essa
+     linha ninguém sabe quanto do volume dependeu de hora extra. */
+  e=el('rex-prod-val');  if(e) e.textContent = fmt(tProdCE);
+  e=el('rex-prod-split');
+  if(e) e.textContent = tHE > 0
+        ? fmt(tProd)+' normais + '+fmt(tHE)+' em hora extra'
+        : fmt(tProd)+' peças, sem hora extra';
+  /* Dependência de hora extra: varia de 3,4% a 26,5% no histórico, então
+     carrega informação — ao contrário da comparação com `meta`, que era verde
+     em 18 de 18 meses por construção algébrica. */
+  var depHE = P.depExtras || 0;
+  e=el('rex-prod-dep');
+  if(e){ e.textContent = fmtP(depHE).replace(' ','');
+         e.style.color = DS.okRuim(depHE<=8) ; }
+  e=el('rex-prod-plano');
+  if(e) e.textContent = P.aderPlano === null ? '—'
+        : fmtP(P.aderPlano).replace(' ','')+' do previsto';
   e=el('rex-ef-val');    if(e) e.textContent = fmtP(efM).replace(' ','');
   e=el('rex-abs-val');   if(e) e.textContent = fmtP(absM).replace(' ','');
   e=el('rex-tkt-val');   if(e) e.textContent = nTkt>0 ? 'R$ '+tktM.toFixed(0) : '--';
@@ -6942,10 +7087,12 @@ function renderResumoExecutivo(dados) {
   e=el('rex-ext-pct-val'); if(e) e.textContent = fmtP(pctE).replace(' ','');
 
   /* ── Barras de progresso ── */
-  var dadosOrd = dados.slice().sort(function(a,b){
-    return (b.producaoReal/Math.max(b.colaboradores,1)) - (a.producaoReal/Math.max(a.colaboradores,1));
-  });
-  var maxPC = dadosOrd[0] ? dadosOrd[0].producaoReal / Math.max(dadosOrd[0].colaboradores,1) : 1;
+  /* A barra compara com o melhor mês do período — mesma base do valor
+     exibido (sem extras), senão a régua e o número medem coisas diferentes. */
+  var _pc = function(r){ return DashUtils.getProd(r) / Math.max(r.colaboradores,1); };
+  var dadosOrd = dados.filter(function(r){ return r.producaoReal>0; })
+                      .sort(function(a,b){ return _pc(b) - _pc(a); });
+  var maxPC = dadosOrd[0] ? _pc(dadosOrd[0]) : 1;
   e=el('rex-prodcol-bar'); if(e) e.style.width = Math.min(100,(pPC/maxPC)*100)+'%';
   e=el('rex-rechora-bar'); if(e) e.style.width = Math.min(100,(rH/500)*100)+'%';
   e=el('rex-ext-pct-bar');
@@ -6957,7 +7104,11 @@ function renderResumoExecutivo(dados) {
   }
 
   /* ── Semáforo (dot + borda do card) ── */
-  var okP=tProd>=tMeta, okE=efM>=90, okA=absM<=3, okT=tktM>=250;
+  /* okP era `tProd>=tMeta` com produção COM extras: verde em 18 de 18 meses,
+     por construção algébrica, não por desempenho. Trocar a base para sem
+     extras só inverteria (vermelho em 17 de 18). Nenhum dos dois informa.
+     O que informa é quanto do volume dependeu de hora extra. */
+  var okP=depHE<=8, okE=efM>=90, okA=absM<=3, okT=tktM>=250;
   function semDot(dId,cId,ok){
     var cor = DS.okRuim(ok);
     var d=el(dId), c=el(cId);
@@ -6985,7 +7136,7 @@ function renderResumoExecutivo(dados) {
   var sL = el('rex-semaforo-list');
   if(sL){
     var itens = [
-      {l:'Produção Total',   m:'Maior ou igual à meta acumulada', ok:okP},
+      {l:'Dependência de Hora Extra', m:'Até 8% do volume entregue', ok:okP},
       {l:'Eficiência Média', m:'Meta: 90%',                       ok:okE},
       {l:'Absenteísmo',      m:'Meta: até 3%',                    ok:okA},
       {l:'Ticket Médio',     m:'Meta: R$ 250',                    ok:okT},
@@ -7029,12 +7180,29 @@ function renderResumoExecutivo(dados) {
     } else {
       ins.push({t:'good', txt:'Horas extras em <b>'+fmtP(pctE)+'</b> do total — nível saudável.'});
     }
+    /* Este insight é o que a diretoria lê primeiro. Ele tem de dizer, na mesma
+       frase, se a jornada normal cobriu a capacidade E quanto do volume veio
+       de hora extra — separado, os dois números levam a decisões opostas. */
     if(tMeta > 0){
-      var at = (tProd/tMeta)*100;
-      if(at >= 100){
-        ins.push({t:'good', txt:'Produção superou a meta em <b>'+((at-100).toFixed(1).replace('.',','))+'%</b> ('+fmt(tProd-tMeta)+' peças acima).'});
+      if(efM >= 100){
+        ins.push({t:'good', txt:'Jornada normal cobriu a capacidade: <b>'+fmt(tProd)+'</b> peças contra '+fmt(tMeta)+' de capacidade ('+fmtP(efM)+').'});
       } else {
-        ins.push({t:'warn', txt:'Produção atingiu <b>'+at.toFixed(1).replace('.',',')+'%</b> da meta — faltaram <b>'+fmt(tMeta-tProd)+'</b> peças.'});
+        ins.push({t:'warn', txt:'Jornada normal entregou <b>'+fmtP(efM)+'</b> da capacidade — faltaram <b>'+fmt(tMeta-tProd)+'</b> peças para fechar sem hora extra.'});
+      }
+    }
+    if(tHE > 0){
+      var depHE = P.depExtras || 0;
+      var tipoHE = depHE > 15 ? 'crit' : (depHE > 8 ? 'warn' : 'good');
+      ins.push({t:tipoHE, txt:'<b>'+fmt(tHE)+'</b> peças ('+fmtP(depHE)+' do volume entregue) só existiram por causa de hora extra.'
+        + (depHE > 8 ? ' O volume entregue não se sustenta na jornada normal.' : '')});
+    }
+    if(P.demanda > 0){
+      var gap = P.gapDemanda;
+      if(gap > 0){
+        ins.push({t: gap/P.demanda > 0.10 ? 'crit' : 'warn',
+          txt:'Capacidade normal não cobre a demanda faturada: faltam <b>'+fmt(gap)+'</b> peças ('+fmtP(P.gapPct)+' da demanda). Isso é capacidade instalada, não eficiência.'});
+      } else {
+        ins.push({t:'good', txt:'Capacidade normal cobre a demanda faturada com folga de <b>'+fmt(-gap)+'</b> peças.'});
       }
     }
     var bgM={good:'rgba(76,175,80,.06)', warn:'rgba(255,152,0,.06)', crit:'rgba(244,67,54,.06)'};
@@ -7080,13 +7248,20 @@ function renderResumoExecutivo(dados) {
   var prodDiff     = tMeta>0 ? fmt(tProd - tMeta) : '--';
 
   bindRexTooltip('rex-card-prod',
-    '<div class="tip-title">Produção Total</div>'+
-    tipRow('Total real', fmt(tProd)+' peças')+
-    tipRow('Meta acumulada', fmt(tMeta)+' peças')+
-    tipRow('Atingimento', prodAtingPct+'%', okP?'g':'r')+
-    tipRow('Diferença meta', (tProd>=tMeta?'+':'')+prodDiff+' peças', okP?'g':'r')+
-    tipRow('Média mensal', fmt(tProd/n)+' peças/mês')+
-    tipRow('Fórmula', 'Soma da produção real do período')
+    '<div class="tip-title">Produção Entregue</div>'+
+    tipRow('Entregue (c/ hora extra)', fmt(tProdCE)+' peças')+
+    tipRow('Em jornada normal', fmt(tProd)+' peças')+
+    tipRow('Vindo de hora extra', fmt(tHE)+' peças ('+fmtP(P.depExtras||0)+')', (P.depExtras||0)<=8?'g':(P.depExtras||0)<=15?'a':'r')+
+    '<div style="border-top:1px solid var(--b);margin:5px 0"></div>'+
+    tipRow('Capacidade normal', fmt(tMeta)+' peças')+
+    tipRow('Aderência s/ extras', prodAtingPct+'%', okP?'g':'r')+
+    tipRow('Diferença', (tProd>=tMeta?'+':'')+prodDiff+' peças', okP?'g':'r')+
+    tipRow('Média mensal entregue', fmt(tProdCE/n)+' peças/mês')+
+    '<div style="border-top:1px solid var(--b);margin:5px 0"></div>'+
+    tipRow('Fórmula', 'Aderência = Prod. s/ extras ÷ Capacidade')+
+    '<div style="font-size:.62rem;color:var(--t2);margin-top:4px;line-height:1.4">'+
+    'A capacidade é calculada sobre horas normais. Medir a entrega contra ela '+
+    'somando hora extra dá meta batida sempre.</div>'
   );
 
   var efCls = efM>=90?'g':efM>=80?'a':'r';
@@ -7098,7 +7273,7 @@ function renderResumoExecutivo(dados) {
     tipRow('Fórmula', 'Prod. s/ Extras ÷ Cap. Teórica')+
     '<div style="border-top:1px solid var(--b);margin:5px 0"></div>'+
     '<div style="font-size:.62rem;color:var(--t2);margin-bottom:3px">dos '+n+' meses no período:</div>'+
-    tipRow('Meses c/ meta (≥90%)', dados.filter(function(r){return r.eficiencia>=90;}).length+' de '+n, dados.filter(function(r){return r.eficiencia>=90;}).length===n?'g':dados.filter(function(r){return r.eficiencia>=90;}).length===0?'r':'a')
+    tipRow('Meses c/ meta (≥90%)', dados.filter(function(r){return r.producaoReal>0&&r.eficiencia>=90;}).length+' de '+n, dados.filter(function(r){return r.producaoReal>0&&r.eficiencia>=90;}).length===n?'g':dados.filter(function(r){return r.producaoReal>0&&r.eficiencia>=90;}).length===0?'r':'a')
   );
 
   var absCls = absM<=3?'g':absM<=6?'a':'r';
@@ -7113,7 +7288,7 @@ function renderResumoExecutivo(dados) {
     tipRow('Fórmula', '(Faltas + Atrasos) ÷ H. Carga × 100')+
     '<div style="border-top:1px solid var(--b);margin:5px 0"></div>'+
     '<div style="font-size:.62rem;color:var(--t2);margin-bottom:3px">dos '+n+' meses no período:</div>'+
-    tipRow('Meses acima 3% (ruim)', dados.filter(function(r){return r.absenteismo>3;}).length+' de '+n, dados.filter(function(r){return r.absenteismo>3;}).length===0?'g':dados.filter(function(r){return r.absenteismo>3;}).length===n?'r':'a')
+    tipRow('Meses acima 3% (ruim)', dados.filter(function(r){return r.producaoReal>0&&r.absenteismo>3;}).length+' de '+n, dados.filter(function(r){return r.producaoReal>0&&r.absenteismo>3;}).length===0?'g':dados.filter(function(r){return r.producaoReal>0&&r.absenteismo>3;}).length===n?'r':'a')
   );
 
   var tktCls = tktM>=250?'g':tktM>=200?'a':'r';
@@ -7122,10 +7297,10 @@ function renderResumoExecutivo(dados) {
     tipRow('Ticket médio', nTkt>0?'R$ '+tktM.toFixed(2).replace('.',','):'--', tktCls)+
     tipRow('Meta', 'R$ 250,00')+
     tipRow('Diferença', (tkD>=0?'+ R$ ':'- R$ ')+Math.abs(tkD).toFixed(0), tkD>=0?'g':'r')+
-    tipRow('Fórmula', 'Média dos tickets mensais')+
+    tipRow('Fórmula', 'Receita ÷ peças faturadas (ponderado)')+
     '<div style="border-top:1px solid var(--b);margin:5px 0"></div>'+
     '<div style="font-size:.62rem;color:var(--t2);margin-bottom:3px">dos '+n+' meses no período:</div>'+
-    tipRow('Meses c/ meta (≥R$250)', dados.filter(function(r){return r.ticketMedio>=250;}).length+' de '+n, dados.filter(function(r){return r.ticketMedio>=250;}).length===n?'g':dados.filter(function(r){return r.ticketMedio>=250;}).length===0?'r':'a')
+    tipRow('Meses c/ meta (≥R$250)', dados.filter(function(r){return r.producaoReal>0&&r.ticketMedio>=250;}).length+' de '+n, dados.filter(function(r){return r.producaoReal>0&&r.ticketMedio>=250;}).length===n?'g':dados.filter(function(r){return r.producaoReal>0&&r.ticketMedio>=250;}).length===0?'r':'a')
   );
 
   // Card horas totais (não tem id próprio, vamos buscar pelo kLbl)
@@ -7154,7 +7329,7 @@ function renderResumoExecutivo(dados) {
   bindRexTipById('rex-prodcol-val',
     '<div class="tip-title">Produtividade por Colaborador</div>'+
     tipRow('Peças / colaborador', fmt(pPC))+
-    tipRow('Produção total', fmt(tProd)+' peças')+
+    tipRow('Produção s/ extras', fmt(tProd)+' peças')+
     tipRow('Colaboradores (soma período)', fmt(tColabs)+' pessoas-mês')+
     tipRow('Média colaboradores/mês', fmt(avgC)+' pessoas')+
     tipRow('Fórmula', 'Produção Total ÷ Σ Colaboradores no período')+
@@ -7164,7 +7339,7 @@ function renderResumoExecutivo(dados) {
   bindRexTipById('rex-rechora-val',
     '<div class="tip-title">Receita por Hora Trabalhada</div>'+
     tipRow('Receita / hora', rH>0?'R$ '+rH.toFixed(2).replace('.',','):'--')+
-    tipRow('Produção total', fmt(tProd)+' peças')+
+    tipRow('Produção s/ extras', fmt(tProd)+' peças')+
     tipRow('Ticket médio', nTkt>0?'R$ '+tktM.toFixed(2).replace('.',','):'--')+
     tipRow('H. totais', fmt(tHT)+' h')+
     tipRow('Fórmula', 'Prod. × Ticket ÷ H. Totais')+
