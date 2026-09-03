@@ -1798,9 +1798,15 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
   </div>
 
   <div class="kCard kg" id="rex-card-ef" style="position: relative; border-top-color: rgb(255, 23, 68); cursor: help;">
-    <div class="kLbl">Eficiência Média</div>
+    <!-- Era "Eficiência Média". A conta (prodSemExtras / meta) tem r = -0,993
+         com o percentual de horas extras e r = -0,33, NEGATIVO, com o ritmo
+         real de produção: ela mede o quanto a fábrica não usou hora extra,
+         não produtividade. MAR/26 marcou 101,12%, o melhor número do painel,
+         com o segundo pior ritmo real do histórico. O valor exibido é o
+         mesmo de sempre — só o rótulo passou a dizer o que ele mede. -->
+    <div class="kLbl">Independência de Hora Extra</div>
     <div id="rex-ef-val" class="kVal" style="color:var(--green)">—</div>
-    <div class="kSub">produção s/ extras ÷ capacidade</div>
+    <div class="kSub">quanto do volume saiu sem hora extra</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--b)">
       <span style="font-size:.63rem;color:var(--t2)">Meta: 90%</span>
       <span id="rex-ef-diff" style="font-family: var(--mono); font-size: 0.72rem; color: rgb(255, 23, 68);">-2,8 p.p.</span>
@@ -1822,7 +1828,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
   <div class="kCard kp" id="rex-card-tkt" style="position: relative; border-top-color: rgb(255, 23, 68); cursor: help;">
     <div class="kLbl">Ticket Médio</div>
     <div id="rex-tkt-val" class="kVal" style="color:var(--purple)">R$ 246</div>
-    <div class="kSub">R$ por peça produzida</div>
+    <div class="kSub">R$ por peça faturada</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--b)">
       <span style="font-size:.63rem;color:var(--t2)">Meta: R$ 250</span>
       <span id="rex-tkt-diff" style="font-family: var(--mono); font-size: 0.72rem; color: rgb(255, 23, 68);">- R$ 4</span>
@@ -1850,12 +1856,12 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
     <div class="kLbl">⟳ Produtividade / Colaborador</div>
     <div style="display:flex;align-items:baseline;gap:6px">
       <span id="rex-prodcol-val" class="kVal" style="font-size:1.35rem;color:var(--t1)">—</span>
-      <span class="kSub">peças / colaborador</span>
+      <span class="kSub">peças s/ extras por colaborador</span>
     </div>
     <div style="margin-top:10px;background:var(--bg);border-radius:4px;height:4px;overflow:hidden">
       <div id="rex-prodcol-bar" style="height: 100%; background: linear-gradient(90deg,var(--cyan),var(--cyan2)); border-radius: 4px; width: 100%; transition: width 0.6s;"></div>
     </div>
-    <div class="kSub" style="margin-top:4px">relativo ao maior mês do período</div>
+    <div class="kSub" style="margin-top:4px">base jornada normal · não pondera dias úteis do mês</div>
   </div>
 
   <div class="kCard" style="cursor: help;">
@@ -1867,7 +1873,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
     <div style="margin-top:10px;background:var(--bg);border-radius:4px;height:4px;overflow:hidden">
       <div id="rex-rechora-bar" style="height: 100%; background: linear-gradient(90deg,var(--purple),#7c4dff); border-radius: 4px; width: 90.1964%; transition: width 0.6s;"></div>
     </div>
-    <div class="kSub" style="margin-top:4px">ticket médio × prod ÷ h totais</div>
+    <div class="kSub" style="margin-top:4px">receita faturada ÷ horas trabalhadas</div>
   </div>
 
   <div class="kCard" style="cursor: help;">
@@ -4298,6 +4304,10 @@ body.pg-reuniao aside.sidebar::-webkit-scrollbar-thumb { background: var(--b); b
       <div class="pageHdrSub">Nível 1 da pirâmide — diretoria, mensal · clique num indicador para descer ao detalhe</div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+      <!-- Filtro próprio da aba. Antes o período vinha só da barra lateral,
+           que fica escondida no modo TV e em tela de reunião — trocar de mês
+           no meio da apresentação exigia sair da tela. -->
+      <div id="reu-filtro" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end"></div>
       <span id="reu-per-lbl" style="font-family:var(--mono);font-size:1rem;font-weight:800;letter-spacing:.06em;
         color:#F5A623;background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.45);
         border-radius:8px;padding:7px 16px;white-space:nowrap">—</span>
@@ -4463,6 +4473,18 @@ body.pg-reuniao aside.sidebar::-webkit-scrollbar-thumb { background: var(--b); b
 /* ── CONSTANTES ── */
 var SK      = 'dash_v3';
 var META_EF = 90;
+/* Limiar único de absenteísmo. Antes cada aba tinha o seu — Resumo 3%,
+   Reunião 5%, Briefing 10% e 13% — e o painel se contradizia por escrito: o
+   Briefing imprimia "absenteísmo controlado" para o mesmo mês que o Resumo
+   marcava em vermelho.
+   Registro para decisão do PPCP: 3% não foi atingido em nenhum dos 18 meses
+   do histórico (a fábrica roda 9% a 17%), e o benchmark de 3% vem de
+   absenteísmo-doença de RH, enquanto este campo é falta+atraso sobre horas
+   normais — outra base. Semáforo que nunca muda de cor deixa de informar.
+   Uma meta escalonada (12% → 10% → 8%) mediria progresso de verdade. */
+var META_ABS    = 3;   /* dentro da meta                */
+var ABS_ATENCAO = 6;   /* acima disto, crítico          */
+var META_DEP_HE = 8;   /* % do volume vindo de hora extra */
 var HDÍA    = 8.48; /* horas/dia — 8h48min conforme empresa */
 var DUTEIS  = 22;   /* dias úteis/mês — referência para cap. teórica */
 var ORDEM   = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
@@ -5091,7 +5113,49 @@ window.DashUtils = (function() {
     return o;
   }
 
-  return { getDias:getDias, getFat:getFat, getProd:getProd, periodo:periodo,
+  /* ── CARTEIRA A FATURAR (backlog) ────────────────────────────────────────
+     Carteira é ESTOQUE, não fluxo: não se soma no período filtrado, acumula
+     desde o início da série até o mês de corte. Somar só os meses do filtro
+     daria "carteira do trimestre", que não existe.
+
+     vendida − faturado, mês a mês, acumulado. Vale enquanto as duas colunas
+     contarem a mesma unidade de peça — confirmado com o PPCP. Se a unidade
+     de venda passar a ser item de nota e a de produção componente, este
+     número deixa de fechar e sai do painel. */
+  var _ORDEM_M = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  function carteira(todos, anoCorte, mesCorte) {
+    var serie = (todos || []).filter(function (r) {
+      return r && (r.qtdeVendida > 0 || r.qtdeFaturado > 0);
+    }).sort(function (a, b) {
+      return a.ano !== b.ano ? a.ano - b.ano
+           : _ORDEM_M.indexOf(a.mes) - _ORDEM_M.indexOf(b.mes);
+    });
+    var acum = 0, entrou = 0, saiu = 0, ultimo = null, hist = [];
+    for (var i = 0; i < serie.length; i++) {
+      var r = serie[i];
+      if (anoCorte && (r.ano > anoCorte ||
+          (r.ano === anoCorte && mesCorte &&
+           _ORDEM_M.indexOf(r.mes) > _ORDEM_M.indexOf(mesCorte)))) break;
+      acum += (r.qtdeVendida || 0) - (r.qtdeFaturado || 0);
+      entrou += (r.qtdeVendida || 0);
+      saiu   += (r.qtdeFaturado || 0);
+      ultimo = r;
+      hist.push({ mes: r.mes, ano: r.ano, saldo: acum });
+    }
+    /* Tendência: saldo dos últimos 6 pontos contra os 6 anteriores. Um mês
+       isolado não diz nada — a carteira oscila com entrada de pedido. */
+    var tend = null;
+    if (hist.length >= 4) {
+      var m = Math.min(6, Math.floor(hist.length / 2));
+      var rec = hist[hist.length - 1].saldo, ant = hist[hist.length - 1 - m].saldo;
+      tend = (rec - ant) / m;   /* peças por mês */
+    }
+    return { saldo: acum, entrou: entrou, saiu: saiu, meses: hist.length,
+             tendMes: tend, ultimo: ultimo, hist: hist };
+  }
+
+  return { getDias:getDias, getFat:getFat, getProd:getProd,
+           periodo:periodo, carteira:carteira,
            fN:fN, fI:fI, fSign:fSign, DIAS_FB:DIAS_FB };
 })();
 
@@ -7054,7 +7118,9 @@ function renderResumoExecutivo(dados) {
   var pctE = P.pctExtras   || 0;
   /* Receita ÷ hora: volume TOTAL entregue sobre as horas TOTAIS que o
      produziram — as duas pontas incluem hora extra, então é coerente. */
-  var rH   = tHT > 0 ? (tProdCE * tktM) / tHT : 0;
+  /* ticketMedio é R$ por peça FATURADA, então multiplicar por produção mistura
+     duas bases. P.receita já é a soma de ticket x qtdeFaturado mês a mês. */
+  var rH   = tHT > 0 ? P.receita / tHT : 0;
 
   /* ── KPIs principais ── */
   var e;
@@ -7109,10 +7175,21 @@ function renderResumoExecutivo(dados) {
      extras só inverteria (vermelho em 17 de 18). Nenhum dos dois informa.
      O que informa é quanto do volume dependeu de hora extra. */
   var okP=depHE<=8, okE=efM>=90, okA=absM<=3, okT=tktM>=250;
+  /* A bolinha era 9px de cor pura, sem forma nem texto. Em P&B verde vira
+     cinza 135 e vermelho cinza 118 — 17 níveis em 255, indistinguíveis. E o
+     @media print força .kVal para azul-marinho, matando o resto do semáforo.
+     O painel SEMÁFORO DE METAS logo abaixo já usa ✓/✗; os cards só copiam. */
   function semDot(dId,cId,ok){
     var cor = DS.okRuim(ok);
     var d=el(dId), c=el(cId);
-    if(d){ d.style.background=cor; d.style.boxShadow='0 0 6px '+cor; }
+    if(d){
+      d.style.background=cor; d.style.boxShadow='0 0 6px '+cor;
+      d.textContent = ok ? '✓' : '✗';
+      d.style.width='15px'; d.style.height='15px'; d.style.fontSize='.62rem';
+      d.style.color='#111'; d.style.fontWeight='700'; d.style.lineHeight='15px';
+      d.style.textAlign='center';
+      d.title = ok ? 'Dentro da meta' : 'Fora da meta';
+    }
     if(c) c.style.borderTopColor=cor;
   }
   semDot('rex-prod-status','rex-card-prod',okP);
@@ -12751,6 +12828,19 @@ function cfInicializar() {
   --brd-medium:  rgba(245,166,35,.12);
   --brd-strong:  rgba(245,166,35,.30);
 
+  /* Escala de rótulo — a linha que diz a BASE do cálculo estava escrita e
+     ilegível. Medido: .mes-sf-mlbl 1,37:1 · .mes-card-unit 1,41:1 ·
+     .mes-lvl-label 1,52:1 · .ppcp-form 1,79:1 · .ind-form 1,83:1 ·
+     .ind-lbl e .mes-card-sub 2,63:1 · .kLbl 2,98:1 — oito seletores abaixo
+     do mínimo de 4,5:1 da WCAG AA, num painel projetado em TV com reflexo.
+     O número aparecia em 2,65rem peso 800 e a ressalva em 0,67rem a 1,4:1:
+     o desenho mandava ler o número e escondia a ressalva.
+     Contraste destes tokens sobre os fundos reais do painel (#0f1e32,
+     #112038, #1F1F1F, #1C1C1C, #111111): 10,2:1 / 6,8:1 / 4,8:1. */
+  --lbl-1: #C3CEDB;   /* nome do indicador          */
+  --lbl-2: #9AA9B8;   /* base do cálculo, unidade   */
+  --lbl-3: #7E8D9E;   /* terciário                  */
+
   /* Sombras padronizadas */
   --sh-card:    0 2px 8px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.3);
   --sh-hover:   0 8px 28px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
@@ -16761,6 +16851,16 @@ function printAtiva(){
   var _DIAS_FB = { JAN:20, FEV:20, MAR:21, ABR:19, MAI:21, JUN:19,
                    JUL:23, AGO:21, SET:22, OUT:23, NOV:19, DEZ:15 };
   function _dias(r)  { return r.diasTrabalhados > 0 ? r.diasTrabalhados : (_DIAS_FB[r.mes] || 22); }
+  /* Demanda é o VENDIDO, não o faturado. Faturado é capacidade que já se
+     realizou: em mês de fábrica travada o faturado cai junto, a "demanda"
+     diminui sozinha e o veredito melhora — indicador que anestesia
+     justamente quando deveria alarmar. Pior: em 3 dos 6 meses de 2026
+     qtdeFaturado é idêntico a producaoReal, e ali o veredito comparava a
+     produção com ela mesma e chamava a diferença de déficit de demanda.
+     Vendido e faturado contam a mesma unidade de peça — confirmado com o
+     PPCP. Se isso mudar, esta função muda junto. */
+  function _dem(r)   { return r.qtdeVendida   > 0  ? r.qtdeVendida
+                            : (r.qtdeFaturado > 0  ? r.qtdeFaturado : (r.producaoReal || 0)); }
   function _fat(r)   { return r.qtdeFaturado  > 0  ? r.qtdeFaturado   : (r.producaoReal  || 0); }
   function _prod(r)  { return r.prodSemExtras > 0  ? r.prodSemExtras  : (r.producaoReal  || 0); }
   function fmtInt(n){ return Math.round(n).toLocaleString('pt-BR'); }
@@ -16773,7 +16873,7 @@ function printAtiva(){
 
     var totFat=0, totProd=0, totDias=0, totColabs=0, n=registros.length;
     registros.forEach(function(r){
-      totFat  += _fat(r);
+      totFat  += _dem(r);
       totProd += _prod(r);
       totDias += _dias(r);
       totColabs += (r.colaboradores || 0);
@@ -16811,16 +16911,25 @@ function printAtiva(){
 
     var fraseEl = document.getElementById('ev-frase');
     var acaoEl  = document.getElementById('ev-acao');
+    var totCE = 0; registros.forEach(function(r){ totCE += (r.producaoReal||0); });
     var prodFmt = fmtInt(totProd), demFmt = fmtInt(totFat), gapFmt = fmtInt(Math.abs(gapMes));
+    var ceFmt   = fmtInt(totCE);
+    var ritFmt  = totProd > 0 ? ('+'+(Math.abs(gapMes)/totProd*100).toFixed(1).replace('.',',')+'%') : '—';
 
     if (statusTxt.indexOf('SOBRECARGA') > -1) {
-      fraseEl.innerHTML = 'A fábrica produziu <b>'+prodFmt+'</b> peças contra uma demanda de <b>'+demFmt+'</b> — déficit de <b>'+gapFmt+'</b> peças no período. Isso não se resolve apertando eficiência: é capacidade instalada abaixo da demanda.';
-      acaoEl.innerHTML = '<b style="color:var(--t1)">Ação recomendada:</b> avaliar aumento de capacidade (turno, headcount ou hora extra estrutural) — ou renegociar prazos de entrega com o gap atual.';
+      /* A frase anterior afirmava: "isso não se resolve apertando eficiência,
+         é capacidade instalada". Não se sustenta — o número comparado é a
+         produção realizada, que já embute 12% de absenteísmo. Se o
+         absenteísmo caísse à meta, a MESMA capacidade instalada entregaria
+         mais. A frase afirmava com convicção o contrário do que o dado diz,
+         e empurrava a decisão para contratar. */
+      fraseEl.innerHTML = 'Em jornada normal a fábrica entregou <b>'+prodFmt+'</b> peças contra <b>'+demFmt+'</b> vendidas — déficit de <b>'+gapFmt+'</b> no período. Com hora extra o total chegou a <b>'+ceFmt+'</b>. Fechar o gap só com produtividade exigiria <b>'+ritFmt+'</b> de ritmo.';
+      acaoEl.innerHTML = '<b style="color:var(--t1)">Ação recomendada:</b> a decisão é entre ampliar capacidade (turno ou headcount), atacar as horas perdidas por falta e atraso, ou renegociar prazo. Hora extra recorrente já está no custo e não fechou o gap.';
     } else if (statusTxt.indexOf('ATENÇÃO') > -1) {
-      fraseEl.innerHTML = 'A fábrica produziu <b>'+prodFmt+'</b> peças contra demanda de <b>'+demFmt+'</b> — capacidade próxima do limite, margem estreita para picos de demanda.';
+      fraseEl.innerHTML = 'Em jornada normal a fábrica entregou <b>'+prodFmt+'</b> peças contra <b>'+demFmt+'</b> vendidas — capacidade no limite, sem margem para pico. Com hora extra o total chegou a <b>'+ceFmt+'</b>.';
       acaoEl.innerHTML = '<b style="color:var(--t1)">Ação recomendada:</b> monitorar de perto; não há folga para absorver picos sem hora extra.';
     } else {
-      fraseEl.innerHTML = 'A fábrica produziu <b>'+prodFmt+'</b> peças contra demanda de <b>'+demFmt+'</b> — capacidade atende a demanda do período com folga.';
+      fraseEl.innerHTML = 'Em jornada normal a fábrica entregou <b>'+prodFmt+'</b> peças contra <b>'+demFmt+'</b> vendidas — a jornada normal cobre a demanda sem depender de hora extra.';
       acaoEl.innerHTML = '<b style="color:var(--t1)">Ação recomendada:</b> nenhuma ação urgente de capacidade — priorizar iniciativas de eficiência/custo.';
     }
   }
@@ -18851,26 +18960,87 @@ function printAtiva(){
       +(extra||'');
   }
 
-  /* Agregados operacionais do período — mesma base do Resumo Executivo. */
+  /* Agregados do período — DashUtils.periodo(), a mesma base do Resumo
+     Executivo e do veredito. Esta função somava producaoReal (COM hora
+     extra) contra o.meta, e tirava média aritmética de percentuais entre
+     meses de 15 e de 23 dias. O comentário do módulo afirmava que "nenhum
+     número aqui pode divergir das abas de origem: não há segunda conta" —
+     e era exatamente uma segunda conta. Agora não é mais. */
   function agregado(regs){
-    var o={n:0,prod:0,meta:0,hn:0,he:0,ht:0,carga:0,ef:0,abs:0,tkt:0,nTkt:0,dias:0};
-    regs.forEach(function(r){
-      if(!(r.producaoReal>0)) return;
-      o.n++; o.prod+=r.producaoReal; o.meta+=(r.meta||0);
-      o.hn+=(r.horasNormais||0); o.he+=(r.totalExtras||0); o.ht+=(r.horasTotais||0);
-      o.carga+=(r.horasCarga||0); o.ef+=(r.eficiencia||0); o.abs+=(r.absenteismo||0);
-      o.dias+=(r.diasTrabalhados||0);
-      if(r.ticketMedio>0){ o.tkt+=r.ticketMedio; o.nTkt++; }
+    var P = DashUtils.periodo(regs);
+    return {
+      n:       P.mesesProd,
+      prod:    P.comExtras,      /* entregue, com hora extra */
+      normal:  P.semExtras,      /* jornada normal            */
+      deHE:    P.deExtras,       /* peças que vieram da HE    */
+      depHE:   P.depExtras || 0, /* % do volume vindo de HE   */
+      meta:    P.meta,
+      hn:      P.hNormais, he: P.hExtras, ht: P.hTotais, carga: P.hCarga,
+      dias:    P.dias,
+      efMed:   P.aderencia   || 0,
+      absMed:  P.absenteismo || 0,
+      tktMed:  P.ticket      || 0,
+      pctHE:   P.pctExtras   || 0,
+      ritmo:   P.ritmoNormal || 0,
+      plano:   P.plano,
+      aderPlano: P.aderPlano,
+      _P: P
+    };
+  }
+
+  /* Ritmo de referência do ano anterior, para dizer se a fábrica acelerou ou
+     desacelerou. Sem essa comparação, "1,71 pç/h" não significa nada. */
+  function ritmoAnoAnterior(todos, ano){
+    var ant = (todos||[]).filter(function(r){ return r.ano === ano-1; });
+    if(!ant.length) return null;
+    var P = DashUtils.periodo(ant);
+    return P.ritmoNormal;
+  }
+
+  /* Seleção própria da aba. Null = segue a barra lateral (comportamento
+     anterior). Assim que o usuário clica aqui, esta tela passa a mandar no
+     próprio período e para de depender da sidebar — sem mexer no filtro
+     global, que continua valendo para as outras abas. */
+  var reuAno = null, reuMes = null;
+
+  function pintarFiltro(todos, anoAtual, mesAtual, mesesDoAno){
+    var alvo=document.getElementById('reu-filtro'); if(!alvo) return;
+    var anos=[]; (todos||[]).forEach(function(r){
+      if((r.producaoReal||0)>0 && anos.indexOf(r.ano)<0) anos.push(r.ano); });
+    anos.sort(function(a,b){ return a-b; });
+
+    var bt=function(txt,on,attr,titulo){
+      return '<button type="button" data-reu="'+attr+'" title="'+(titulo||'')+'" style="'
+        +'font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.04em;'
+        +'padding:5px 9px;border-radius:5px;cursor:pointer;white-space:nowrap;'
+        +(on?'background:rgba(245,166,35,.18);border:1px solid #F5A623;color:#F5A623;'
+            :'background:transparent;border:1px solid var(--b);color:var(--lbl-2,#9AA9B8);')
+        +'">'+txt+'</button>';
+    };
+    var h='';
+    anos.forEach(function(a){ h+=bt(String(a), a===anoAtual, 'ano:'+a, 'Ver o ano de '+a); });
+    h+='<span style="width:8px"></span>';
+    h+=bt('Ano todo', !mesAtual, 'mes:', 'Acumulado do ano inteiro');
+    mesesDoAno.forEach(function(m){ h+=bt(m, m===mesAtual, 'mes:'+m, m+'/'+anoAtual); });
+    alvo.innerHTML=h;
+    alvo.querySelectorAll('button[data-reu]').forEach(function(b){
+      b.onclick=function(){
+        var v=b.getAttribute('data-reu');
+        /* null = nada escolhido nesta aba (segue a sidebar).
+           ''   = "Ano todo" escolhido de propósito. São estados diferentes:
+           colapsar '' em null com `|| null` fazia o botão Ano todo não fazer
+           nada. */
+        if(v.indexOf('ano:')===0){ reuAno=parseInt(v.slice(4),10); reuMes=''; }
+        else { reuMes=v.slice(4); }
+        render();
+      };
     });
-    o.efMed=o.n?o.ef/o.n:0; o.absMed=o.n?o.abs/o.n:0;
-    o.tktMed=o.nTkt?o.tkt/o.nTkt:0; o.pctHE=o.ht>0?(o.he/o.ht)*100:0;
-    return o;
   }
 
   function render(){
     var corpo=document.getElementById('reu-corpo'); if(!corpo) return;
     var todos=(typeof load==='function')?load():[];
-    var ano=(typeof anoAtivo!=='undefined'&&anoAtivo)?anoAtivo:null;
+    var ano = reuAno || ((typeof anoAtivo!=='undefined'&&anoAtivo)?anoAtivo:null);
     if(!ano){
       var anos=todos.filter(function(r){ return (r.producaoReal||0)>0; }).map(function(r){ return r.ano; });
       ano=anos.length?Math.max.apply(null,anos):new Date().getFullYear();
@@ -18884,15 +19054,24 @@ function printAtiva(){
       var l0=document.getElementById('reu-per-lbl'); if(l0) l0.textContent=String(ano);
       return;
     }
-    /* manchete: mês da sidebar se houver exatamente um; senão o último fechado */
-    var g=(typeof mesesAtivos!=='undefined'&&mesesAtivos&&mesesAtivos.length===1)?mesesAtivos[0]:'';
+    /* Período: seleção da aba primeiro; senão o mês único da sidebar; senão o
+       último mês fechado. "Ano todo" (reuMes vazio após clique) faz a
+       manchete virar o acumulado, não um mês. */
+    var mesesDoAno=fechados.map(function(r){ return r.mes; });
+    var anoTodo = (reuMes === '' );
+    var g = reuMes || ((typeof mesesAtivos!=='undefined'&&mesesAtivos&&mesesAtivos.length===1)?mesesAtivos[0]:'');
+    if(anoTodo) g='';
     var rMes=(g&&fechados.filter(function(r){ return r.mes===g; })[0])||fechados[fechados.length-1];
     var mes=rMes.mes;
     var ateAqui=fechados.filter(function(r){ return ORDEM_M.indexOf(r.mes)<=ORDEM_M.indexOf(mes); });
     var lbl=document.getElementById('reu-per-lbl');
-    if(lbl) lbl.textContent=mes+'/'+String(ano).slice(2);
+    if(lbl) lbl.textContent = anoTodo ? String(ano) : (mes+'/'+String(ano).slice(2));
+    pintarFiltro(todos, ano, anoTodo?null:mes, mesesDoAno);
 
-    var A=agregado([rMes]), Y=agregado(ateAqui);
+    /* No "Ano todo" a faixa de manchete passa a falar do acumulado — senão a
+       tela mostraria o ano no rótulo e um mês nos cards. */
+    var A = anoTodo ? agregado(fechados) : agregado([rMes]);
+    var Y = agregado(ateAqui);
     var pm=(typeof window.pmApurado==='function')?window.pmApurado():null;
     var pcM=(typeof window.pcApurado==='function')?window.pcApurado(ano,mes):null;
     var pcY=(typeof window.pcApurado==='function')?window.pcApurado(ano,''):null;
@@ -18913,38 +19092,91 @@ function printAtiva(){
         +'</div>';
     }
 
-    /* ── 2 · entrega ── */
-    var b2=card('Produção de '+mes, fi(rMes.producaoReal)+' pç',
-                planoMes>0?(fd(atMes,1)+'% do plano do mês'):'sem plano no mês',
-                planoMes>0?corMeta(atMes,100):'#F5A623', true, 'mestre')
-      +card('Acumulado do ano', fi(Y.prod)+' pç',
-            pm&&pm.planoAno>0?(fd((Y.prod/pm.planoAno)*100,1)+'% do plano do ano'):(Y.n+' meses fechados'),
-            '#F5A623', true, 'mestre')
+    /* ── 2 · entrega (base: COM hora extra — o que saiu pela porta) ──
+       O card de produção mostra a separação normal x hora extra na própria
+       linha de apoio. Sem ela a diretoria lê o volume entregue como se fosse
+       capacidade da fábrica, e decide headcount por um número que só existe
+       porque houve hora extra. */
+    /* No "Ano todo" a manchete JÁ é o acumulado, então o segundo card seria o
+       mesmo número duas vezes com rótulos diferentes. Nesse estado ele vira a
+       aderência ao plano, que é a pergunta seguinte. */
+    var aderAno = (A.plano>0) ? (A.prod/A.plano)*100 : null;
+    var b2=card(anoTodo ? ('Produção de '+ano) : ('Produção de '+mes), fi(A.prod)+' pç',
+                fi(A.normal)+' normais + '+fi(A.deHE)+' em hora extra'
+                + (anoTodo
+                    ? (aderAno!==null?(' · '+fd(aderAno,1)+'% do previsto'):'')
+                    : (planoMes>0?(' · '+fd(atMes,1)+'% do plano do mês'):'')),
+                anoTodo ? (aderAno!==null?corMeta(aderAno,100):'#F5A623')
+                        : (planoMes>0?corMeta(atMes,100):'#F5A623'), true, 'mestre')
+      +(anoTodo
+        ? card('Aderência ao plano', aderAno!==null?(fd(aderAno,1)+'%'):'—',
+               A.plano>0?('previsto '+fi(A.plano)+' pç no período'):'sem previsão lançada',
+               aderAno===null?'#00E5FF':corMeta(aderAno,100), true, 'mestre')
+        : card('Acumulado do ano', fi(Y.prod)+' pç',
+               fi(Y.normal)+' normais + '+fi(Y.deHE)+' em hora extra'
+               + (pm&&pm.planoAno>0?(' · '+fd((Y.prod/pm.planoAno)*100,1)+'% do plano do ANO inteiro'):''),
+               '#F5A623', true, 'mestre'))
       +(pm?card('Ritmo demonstrado', fi(pm.ritmoDem)+' pç/dia',
               'exigido '+fi(pm.ritmoExig)+' pç/dia', pm.pctFolga>=0?'#4CAF50':'#F44336', true, 'mestre'):'')
       +(pm&&pm.planoAberto>0?card('Falta produzir', fi(pm.planoAberto)+' pç',
               pm.diasAbertos+' dias úteis · '+fi(pm.ritmoNecR)+' pç/dia', '#FF9800', true, 'mestre'):'');
 
-    /* ── 3 · capacidade e custo ── */
-    var META_EF_=(typeof META_EF!=='undefined')?META_EF:90;
-    var b3=card('Eficiência', fd(A.efMed,1)+'%', 'ano '+fd(Y.efMed,1)+'% · meta '+META_EF_+'%', corMeta(A.efMed,META_EF_), false, 'eficiencia')
-      +card('Absenteísmo', fd(A.absMed,1)+'%', 'ano '+fd(Y.absMed,1)+'%', corMeta(A.absMed,5,true), false, 'pessoas')
-      +card('Hora extra', fi(A.he)+' h', fd(A.pctHE,1)+'% das horas · ano '+fi(Y.he)+' h', A.pctHE<=15?'#4CAF50':'#FF9800', false, 'eficiencia')
-      +(pm&&pm.heP>0?card('Só saiu com HE', fi(pm.heP)+' pç', 'peças que dependeram de hora extra no ano', '#FF9800', false, 'mestre'):'')
+    /* ── 3 · capacidade (base: HORA NORMAL — o que cabe sem comprar HE) ──
+       "Eficiência" saiu daqui sob esse nome. A conta (prodSemExtras ÷ meta)
+       tem r = -0,993 com o percentual de horas extras e r = -0,33, negativo,
+       com o ritmo real de produção: ela mede o quanto a fábrica NÃO usou hora
+       extra, não produtividade. MAR/26 é o caso-tese — 101,12%, o melhor
+       número do painel, com o segundo pior ritmo real do histórico. O valor
+       exibido é o mesmo de sempre; o rótulo passa a dizer o que ele mede.
+       O ritmo em peças por hora normal é a medida de produtividade que
+       faltava, e é ela que mostra a queda de 6,1% de 2025 para 2026. */
+    var META_EF_ =(typeof META_EF  !=='undefined')?META_EF  :90;
+    var META_ABS_=(typeof META_ABS !=='undefined')?META_ABS :3;
+    var rAnt = ritmoAnoAnterior(todos, ano);
+    var dRitmo = (rAnt && A.ritmo) ? ((A.ritmo/rAnt)-1)*100 : null;
+
+    var b3=card('Ritmo produtivo', fd(A.ritmo,2)+' pç/h',
+              'por hora normal · ano '+fd(Y.ritmo,2)
+              + (dRitmo!==null?(' · '+pct(dRitmo)+' vs '+(ano-1)):''),
+              dRitmo===null?'#00E5FF':(dRitmo>=0?'#4CAF50':'#F44336'), false, 'producao')
+      +card('Independência de HE', fd(A.efMed,1)+'%',
+              'ano '+fd(Y.efMed,1)+'% · quanto saiu sem hora extra', corMeta(A.efMed,META_EF_), false, 'eficiencia')
+      +card('Absenteísmo', fd(A.absMed,1)+'%',
+              'ano '+fd(Y.absMed,1)+'% · faltas+atrasos ÷ h. normais',
+              corMeta(A.absMed,META_ABS_,true), false, 'pessoas')
+      +card('Hora extra', fi(A.he)+' h',
+              fd(A.pctHE,1)+'% das horas · '+fd(A.depHE,1)+'% do volume',
+              A.depHE<=8?'#4CAF50':(A.depHE<=15?'#FF9800':'#F44336'), false, 'eficiencia')
       +(A.tktMed>0?card('Ticket médio', 'R$ '+fd(A.tktMed,2), 'ano R$ '+fd(Y.tktMed,2), '#00E5FF', false, 'producao'):'');
 
-    /* ── 4 · demanda × capacidade ── */
+    /* ── 4 · a carteira cobre? ──
+       Carteira é ESTOQUE: acumula desde o início da série até o mês de corte,
+       não se soma dentro do período filtrado. O bloco anterior usava
+       venFech-fatFech só dos meses fechados do plano, o que dá "carteira do
+       período" — coisa que não existe. Expressa em MESES de produção, porque
+       "47.695 peças" não diz nada a quem decide e "1,8 mês de fábrica" diz. */
+    var CT = DashUtils.carteira(todos, ano, mes);
     var b4='';
-    if(pm&&pm.planoFech>0&&(pm.fatFech>0||pm.venFech>0)){
-      var backlog=pm.venFech-pm.fatFech;
-      var pv=pm.venFech>0?((pm.planoFech/pm.venFech)-1)*100:null;
-      b4=card('Plano do período', fi(pm.planoFech)+' pç', 'meses já fechados', '#00E5FF', false, 'mestre')
-        +card('Faturado', fi(pm.fatFech)+' pç', 'no mesmo período', '#F5A623', false, 'capfat')
-        +card('Vendido (carteira)', fi(pm.venFech)+' pç',
-              pv!==null?('plano '+pct(pv)+' vs vendido'):'', pv!==null&&pv<0?'#F44336':'#4CAF50', false, 'mestre')
-        +card('Carteira a faturar', (backlog>=0?'+':'')+fi(backlog)+' pç',
-              backlog>0?'fila que a fábrica ainda deve':'consumiu carteira anterior',
-              backlog>0?'#FF9800':'#4CAF50', false, 'mestre');
+    if(CT.meses > 0){
+      var ritmoMes  = Y.n > 0 ? Y.normal / Y.n : 0;         /* jornada normal */
+      var mesesCart = ritmoMes > 0 ? CT.saldo / ritmoMes : null;
+      var corCart   = mesesCart===null ? '#00E5FF'
+                    : mesesCart <= 0.5 ? '#4CAF50'
+                    : mesesCart <= 1.5 ? '#FF9800' : '#F44336';
+      b4=card('Carteira a faturar',
+              (CT.saldo>=0?'':'-')+fi(Math.abs(CT.saldo))+' pç',
+              mesesCart!==null
+                ? (fd(Math.abs(mesesCart),1)+' mês de produção em jornada normal')
+                : 'sem ritmo de referência',
+              corCart, true, 'mestre')
+        +card('Tendência da carteira',
+              CT.tendMes===null?'—':((CT.tendMes>=0?'+':'')+fi(CT.tendMes)+' pç/mês'),
+              CT.tendMes===null?'histórico curto'
+                : (CT.tendMes>0?'a fila está crescendo':'a fábrica está consumindo a fila'),
+              CT.tendMes===null?'#00E5FF':(CT.tendMes>0?'#F44336':'#4CAF50'), true, 'mestre')
+        +card('Vendido no ano', fi(Y._P.vendida)+' pç', 'pedidos entrados', '#00E5FF', false, 'mestre')
+        +card('Faturado no ano', fi(Y._P.demanda)+' pç',
+              'entregue ao cliente · produção normal '+fi(Y.normal), '#F5A623', false, 'capfat');
     }
 
     /* ── 5 · mix e volumes ── */
@@ -18962,10 +19194,15 @@ function printAtiva(){
               pnt.pctPcH>=0?'#4CAF50':'#F44336', false, 'mestre'):'');
     }
 
+    /* Ordem = ordem da decisão, não ordem do dado. A pergunta que a diretoria
+       de fato faz é "entregamos o que vendemos?", então a carteira vem antes
+       do volume produzido. E cada faixa declara a base uma vez, no título, em
+       vez de repetir "(c/ extras)" em cada card: mais barato de ler e não
+       sobra card sem ressalva. */
     corpo.innerHTML=manchete
-      +faixa('Entrega', b2)
-      +faixa('Capacidade e custo', b3)
-      +(b4?faixa('O plano cobre a demanda?', b4):'')
+      +(b4?faixa('A carteira cobre? — estoque de pedidos a faturar', b4):'')
+      +faixa('Entrega — base: com hora extra, o que saiu pela porta', b2)
+      +faixa('Capacidade — base: hora normal, o que cabe sem comprar hora extra', b3)
       +(b5?faixa('Mix e volumes — o que explica o desvio', b5):'');
   }
 
@@ -19097,6 +19334,64 @@ function printAtiva(){
 /* Veredito de status pulsa na própria cor — puxa o olho para a conclusão */
 #ev-status-txt,#mes-sf-status{animation:statusPulse 2.6s ease-in-out infinite}
 @keyframes statusPulse{0%,100%{text-shadow:0 0 0 rgba(0,0,0,0)}50%{text-shadow:0 0 24px currentColor}}
+
+/* ══════════════════════════════════════════════════════════════
+   LEGIBILIDADE DOS RÓTULOS — aplica a escala --lbl-*
+   Seletores medidos abaixo de 4,5:1 (WCAG AA) sobre o fundo real de
+   cada um. Só cor: nenhuma regra de layout, tamanho ou espaçamento.
+   ══════════════════════════════════════════════════════════════ */
+.kLbl           { color: var(--lbl-1) !important; }
+.kSub           { color: var(--lbl-2) !important; }
+.mes-card-unit  { color: var(--lbl-2) !important; }
+.mes-card-sub   { color: var(--lbl-2) !important; }
+.mes-sf-mlbl    { color: var(--lbl-2) !important; }
+.mes-lvl-label  { color: var(--lbl-1) !important; }
+.ind-lbl        { color: var(--lbl-1) !important; }
+.ind-unit       { color: var(--lbl-2) !important; }
+.ind-form       { color: var(--lbl-2) !important; }
+.ppcp-lbl       { color: var(--lbl-1) !important; }
+.ppcp-form      { color: var(--lbl-2) !important; }
+.ppcp-sec       { color: var(--lbl-3) !important; }
+.ui-group-label { color: var(--lbl-3) !important; }
+.dNt            { color: var(--lbl-3) !important; }
+.reu-lbl        { color: var(--lbl-1) !important; }
+.reu-sub        { color: var(--lbl-2) !important; }
+.reu-sec        { color: var(--lbl-3) !important; }
+
+/* Hierarquia do Resumo Executivo: cinco KPIs do mesmo tamanho é o mesmo que
+   nenhum em destaque — o olho não tem por onde entrar. Produção Entregue é o
+   único que responde "a fábrica entregou?"; os outros quatro explicam por
+   quê e ficam subordinados. */
+#page-resumo #rex-card-prod       { grid-column: span 2; }
+#page-resumo #rex-card-prod .kVal { font-size: 3rem !important; }
+@media (max-width: 900px){
+  #page-resumo #rex-card-prod { grid-column: span 1; }
+  #page-resumo #rex-card-prod .kVal { font-size: 2.2rem !important; }
+}
+
+/* Modo TV: as regras existentes cobrem só .kCard e tabela. Nos componentes
+   feitos depois, o número crescia 27% e a ressalva ficava do mesmo tamanho —
+   a distância entre o número e a base do número AUMENTAVA justamente no modo
+   usado para projetar em reunião. */
+.tv-mode .mes-card-title { font-size: .95rem !important; }
+.tv-mode .mes-card-unit,
+.tv-mode .mes-card-sub   { font-size: .86rem !important; }
+.tv-mode .ppcp-lbl,
+.tv-mode .ind-lbl        { font-size: .74rem !important; }
+.tv-mode .ppcp-form,
+.tv-mode .ind-form,
+.tv-mode .ind-unit       { font-size: .78rem !important; }
+.tv-mode .reu-val        { font-size: 2.5rem !important; }
+.tv-mode .reu-lbl        { font-size: .74rem !important; }
+.tv-mode .reu-sub        { font-size: .8rem  !important; }
+.tv-mode .reu-manchete   { font-size: 2rem   !important; }
+
+/* O veredito pulsa para puxar o olho na entrada. Em reunião de uma hora com
+   a tela projetada, animação infinita custa atenção o tempo todo. */
+@media (prefers-reduced-motion: reduce){
+  #ev-status-txt, #mes-sf-status { animation: none !important; }
+}
+
 </style>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
