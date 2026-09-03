@@ -4434,7 +4434,13 @@ body.pg-reuniao aside.sidebar::-webkit-scrollbar-thumb { background: var(--b); b
 <div class="overlay" id="modImport">
   <div class="modal" style="max-width:480px">
     <h2><em>▸</em> Resultado da Importação</h2>
-    <div id="importResult" style="font-size:.82rem;line-height:1.8;color:var(--t1)"><p style="margin-top:10px"><span style="color:var(--cyan);font-weight:700">↻ 18 meses atualizados:</span><br><span style="color:var(--t2);font-family:var(--mono);font-size:.75rem">JAN/2026, FEV/2026, MAR/2026, ABR/2026, MAI/2026, JUN/2026, JAN/2025, FEV/2025, MAR/2025, ABR/2025, MAI/2025, JUN/2025, JUL/2025, AGO/2025, SET/2025, OUT/2025, NOV/2025, DEZ/2025</span></p><p style="margin-top:12px;font-size:.73rem;color:var(--t3)">ℹ️ Dados atualizados com os valores mais recentes da planilha.</p></div><div id="valid-painel" class="on"><div class="valid-ttl ok">✅ Validação aprovada</div><ul class="valid-list"><li class="valid-item ok"><span class="valid-item-ico">✓</span>Todos os 24 registros passaram na validação automática.</li></ul></div>
+    <!-- Conteúdo transitório: este bloco vinha commitado com o resultado de uma
+     importação de 2026 congelado ("18 meses atualizados: JAN/2026, ...") e com
+     o painel de validação já aprovado. Efeito do salvarArquivoHTML(), que
+     serializa o DOM vivo e vira o index.html do repositório. Vazio é o estado
+     correto antes de qualquer importação — texto aqui mente sobre um import
+     que não aconteceu nesta sessão. -->
+    <div id="importResult" style="font-size:.82rem;line-height:1.8;color:var(--t1)"></div><div id="valid-painel"></div>
     <div class="mFoot" style="display:flex;gap:8px;justify-content:flex-end;align-items:center">
       <button class="btn" id="btnSalvarAposImport" onclick="salvarArquivoHTML()" style="background: rgb(21, 101, 192); color: rgb(255, 255, 255); border: none; font-weight: 700; display: inline-flex; gap: 6px;" disabled="">⏳ Gerando...</button>
       <button class="btn btn-g" onclick="fecharImport()">Fechar</button>
@@ -4460,7 +4466,12 @@ body.pg-reuniao aside.sidebar::-webkit-scrollbar-thumb { background: var(--b); b
   </div>
 </div>
 
-<div id="tip" class="" style="left: 1606px; top: 180px;"><div class="tip-title">Percentual de Horas Extras</div><div class="tip-row"><span class="tip-lbl">% H. extras</span><span class="tip-val a">13,0 %</span></div><div class="tip-row"><span class="tip-lbl">H. extras</span><span class="tip-val">32.920 h</span></div><div class="tip-row"><span class="tip-lbl">H. totais</span><span class="tip-val">252.625 h</span></div><div class="tip-row"><span class="tip-lbl">Fórmula</span><span class="tip-val">H. Extras ÷ H. Totais × 100</span></div><div class="tip-row"><span class="tip-lbl">Meta sugerida</span><span class="tip-val">≤ 15%</span></div><div style="border-top:1px solid var(--b);margin:5px 0"></div><div style="font-size:.62rem;color:var(--t2);margin-bottom:3px">dos 15 meses no período:</div><div class="tip-row"><span class="tip-lbl">Meses acima 15% (ruim)</span><span class="tip-val r">6 de 15</span></div></div>
+<!-- Contêiner do tooltip. Vinha commitado com o conteúdo de um tooltip
+     congelado ("Percentual de Horas Extras 13,0%") e uma posição fixa em
+     pixels — outro resíduo do salvarArquivoHTML(). O JS preenche em runtime. -->
+<div id="tip" class=""></div>
+
+
 <div id="toast" class="wn"></div>
 
 <script>
@@ -4747,6 +4758,34 @@ var _ALIAS_CAMPOS = (function(){
   var m = {};
   ['mes','ano'].concat(CAMPOS_NUM).forEach(function(c){ m[_normNome(c)] = c; });
   m['meses'] = 'mes';
+  /* Grafias que a planilha ANALISE usa nos cabeçalhos. Sem isto, a
+     importação do .xlsx cai no índice fixo de coluna para tudo. */
+  var pt = {
+    'colabs':'colaboradores', 'colaboradores':'colaboradores', 'funcionarios':'colaboradores',
+    'hcarga':'horasCarga', 'horascarga':'horasCarga', 'horasdecarga':'horasCarga',
+    'faltas':'faltas', 'faltash':'faltas',
+    'atraso':'atraso', 'atrasos':'atraso',
+    'totalfaltaatraso':'totalFaltaAtraso', 'faltasatrasos':'totalFaltaAtraso',
+    'absenteismo':'absenteismo',
+    'hnormais':'horasNormais', 'horasnormais':'horasNormais',
+    'extra50':'extra50', 'he50':'extra50', 'horaextra50':'extra50',
+    'extra100':'extra100', 'he100':'extra100', 'horaextra100':'extra100',
+    'totalextras':'totalExtras', 'totalhe':'totalExtras', 'totaldeextras':'totalExtras',
+    'htotais':'horasTotais', 'horastotais':'horasTotais',
+    'producaoreal':'producaoReal', 'producao':'producaoReal', 'prodreal':'producaoReal',
+    'prodsemextras':'prodSemExtras', 'producaosemextras':'prodSemExtras',
+    'prodsextras':'prodSemExtras', 'producaosextras':'prodSemExtras',
+    'meta':'meta', 'metamensal':'meta', 'capacidadeteorica':'meta',
+    'eficiencia':'eficiencia', 'ef':'eficiencia',
+    'eficienciaadj':'eficienciaAdj', 'eficienciaajustada':'eficienciaAdj',
+    'margem':'margem',
+    'ticketmedio':'ticketMedio', 'ticket':'ticketMedio',
+    'custocap':'custoCap', 'custocapital':'custoCap', 'custodecapital':'custoCap',
+    'qtdefaturado':'qtdeFaturado', 'faturado':'qtdeFaturado', 'qtdfaturado':'qtdeFaturado',
+    'diastrabalhados':'diasTrabalhados', 'dias':'diasTrabalhados', 'diasuteis':'diasTrabalhados',
+    'qtdevendida':'qtdeVendida', 'vendido':'qtdeVendida', 'qtdvendida':'qtdeVendida'
+  };
+  Object.keys(pt).forEach(function(k){ if(!m[k]) m[k] = pt[k]; });
   return m;
 })();
 /* ── NÚMERO EM FORMATO BRASILEIRO ──
@@ -6306,21 +6345,42 @@ function excluirReg(id){
 function exportCSV(){
   var dados=getDados(load());
   if(!dados.length){toast('Sem dados para exportar.','wn');return}
-  var hdr='Mes;Ano;Colaboradores;H.Carga;Faltas(h);Atraso(h);TotalFaltaAtraso;Absenteismo(%);H.Normais;Extra50;Extra100;TotalExtras;H.Totais;ProducaoReal;Meta;Atingimento(%);Eficiencia(%);EficienciaAjustada(%);HFaltaProd(h);TicketMedio(R$);CustoCapNaoAprov(R$)';
+  /* O CSV calculava Atingimento como producaoReal/meta (COM hora extra)
+     enquanto a tela usa prodSemExtras/meta: 17 dos 18 meses saíam do arquivo
+     como "meta batida" com a tela mostrando o contrário, e o acumulado
+     divergia em 15,6 p.p. Quem fechava reunião pelo CSV chegava a outra
+     conclusão. Faltavam também prodSemExtras (impossível reconstruir o número
+     da tela a partir do arquivo) e cinco colunas do schema. */
+  var hdr='Mes;Ano;Colaboradores;H.Carga;Faltas(h);Atraso(h);TotalFaltaAtraso;Absenteismo(%);'
+    +'H.Normais;Extra50;Extra100;TotalExtras;H.Totais;'
+    +'ProducaoEntregue_c_extras;ProducaoNormal_s_extras;PecasDeHoraExtra;'
+    +'Meta;Aderencia_s_extras(%);Aderencia_c_extras(%);Eficiencia(%);EficienciaAjustada(%);'
+    +'HFaltaProd(h);TicketMedio(R$);CustoCapNaoAprov(R$);'
+    +'QtdeFaturado;QtdeVendida;PrevisaoProducao;DiasTrabalhados;HorasFerias';
   var rows=dados.map(function(r){
-    var at=r.meta>0?(r.producaoReal/r.meta)*100:0;
+    var sn = DashUtils.getProd(r);                       /* base sem extras */
+    var at = r.meta>0 ? (sn/r.meta)*100 : 0;             /* mesma conta da tela */
+    var atCE = r.meta>0 ? ((r.producaoReal||0)/r.meta)*100 : 0;
     var h=calcHFP(r);
     return [r.mes,r.ano,r.colaboradores,r.horasCarga,r.faltas,r.atraso,
       r.totalFaltaAtraso,r.absenteismo.toFixed(2),r.horasNormais,
-      r.extra50,r.extra100,r.totalExtras,r.horasTotais,r.producaoReal,
-      r.meta||0,at.toFixed(2),r.eficiencia,r.eficienciaAdj,
-      h!==null?h.toFixed(0):0,r.ticketMedio.toFixed(2),r.custoCap.toFixed(2)
+      r.extra50,r.extra100,r.totalExtras,r.horasTotais,
+      r.producaoReal, sn, Math.max(0,(r.producaoReal||0)-sn),
+      r.meta||0, at.toFixed(2), atCE.toFixed(2), r.eficiencia, r.eficienciaAdj,
+      h!==null?h.toFixed(0):0,r.ticketMedio.toFixed(2),r.custoCap.toFixed(2),
+      r.qtdeFaturado||0, r.qtdeVendida||0, r.previsaoProducao||0,
+      r.diasTrabalhados||0, r.horasFerias||0
     ].join(';')
   });
   var csv='\uFEFF'+hdr+'\n'+rows.join('\n');
   var a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download='capacidade_eficiencia_'+(anoAtivo||'total')+'.csv';
+  /* O init() deixa mesesAtivos = [último mês] por padrão, então o arquivo
+     saía com um mês só e nome de ano inteiro. */
+  var sufixo = (typeof mesesAtivos!=='undefined' && mesesAtivos && mesesAtivos.length)
+             ? (mesesAtivos.join('-')+'_'+(anoAtivo||'todos'))
+             : String(anoAtivo||'todos');
+  a.download='capacidade_eficiencia_'+sufixo+'.csv';
   a.click(); toast('CSV exportado.','ok')
 }
 
@@ -6367,11 +6427,12 @@ window.addEventListener('resize',function(){clearTimeout(rsz);rsz=setTimeout(_re
    Estrutura esperada: abas "ANALISE 2025", "ANALISE 2026", etc.
    Linha 0 = cabeçalhos reais, dados a partir da linha 1.
    Colunas por índice (0-based):
-     0=Mês, 1=Colabs, 2=H.Carga, 3=Faltas, 4=Atraso,
-     5=TotalFaltaAtraso, 6=Absenteísmo, 7=HorasNormais,
-     8=Extra50, 9=Extra100, 10=TotalExtras, 11=HorasTotais,
-     14=ProducaoReal, 20=Eficiencia, 21=EficienciaAdj,
-     22=Margem, 23=TicketMedio, 24=CustoCap
+   A coluna é resolvida pelo NOME do cabeçalho (_campoDoCabecalho). A tabela
+   POS abaixo é só rede para cabeçalho que não casa, e o uso dela vira aviso
+   na tela — se a planilha ganhar uma coluna no meio, o import avisa em vez
+   de gravar tudo deslocado em silêncio.
+   Este comentário já dizia 14=ProducaoReal enquanto o código lia row[15]:
+   documentação de posição fixa envelhece e ninguém percebe.
 ════════════════════════════════════════════════════════════ */
 var MESES_VALIDOS=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
@@ -6387,6 +6448,7 @@ function importarExcel(input){
       var wb=XLSX.read(data,{type:'array'});
 
       var novos=[], atualizados=[], ignorados=[], erros=[];
+      var recsNovos=[];
       var dadosExistentes=load();
 
       wb.SheetNames.forEach(function(sheetName){
@@ -6410,27 +6472,48 @@ function importarExcel(input){
           erros.push('Aba "'+sheetName+'": não encontrou linha de cabeçalho');return
         }
 
-        // Detecta coluna de qtdeVendida pelo cabeçalho (busca específica a partir da col 24)
+        /* ── RESOLUÇÃO DE COLUNA POR CABEÇALHO ────────────────────────────
+           Toda coluna era lida por índice fixo (row[15], row[16], row[18]...).
+           Se alguém inserisse uma coluna no meio da planilha, os dados
+           entrariam deslocados EM SILÊNCIO: eficiencia (94,26) viraria
+           prodSemExtras (94 peças), diasTrabalhados viraria qtdeFaturado
+           (30.451 dias). E o bloco de horas — o único que um humano confere
+           de olho — sairia perfeito, porque o deslocamento começa depois
+           dele. O comentário de documentação deste bloco dizia 14=ProducaoReal
+           enquanto o código lia row[15]: já estavam divergentes.
+           Agora o nome do cabeçalho manda; o índice fixo é só rede. */
         var headerRow = rows[startRow-1] || [];
-        var colVendida = 27; // fallback padrão
-        for(var ci=24; ci<Math.min(headerRow.length, 35); ci++){
-          var h = headerRow[ci];
-          if(!h) continue;
-          var hStr = String(h).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-          if(hStr.indexOf('vendid') >= 0 || hStr === 'qtde vend' || hStr === 'qtd vend' || hStr === 'vend'){
-            colVendida = ci; break;
-          }
-        }
+        var POS = { colaboradores:1, horasCarga:2, faltas:3, atraso:4,
+                    totalFaltaAtraso:5, absenteismo:6, horasNormais:7,
+                    extra50:8, extra100:9, totalExtras:10, horasTotais:11,
+                    producaoReal:15, prodSemExtras:16, meta:18, eficiencia:20,
+                    eficienciaAdj:21, margem:22, ticketMedio:23, custoCap:24,
+                    qtdeFaturado:25, diasTrabalhados:26, qtdeVendida:27 };
 
-        // Previsão de Produção e horas de férias: colunas acrescentadas depois,
-        // em posição que varia de planilha para planilha. Sem achar pelo nome,
-        // a previsão não entra e a aba Previsão × Capacidade fica vazia.
+        var colDe = {}, porNome = [], porPosicao = [];
+        for(var ci=0; ci<headerRow.length; ci++){
+          if(headerRow[ci] === null || headerRow[ci] === undefined || headerRow[ci] === '') continue;
+          var campo = _campoDoCabecalho(headerRow[ci]);
+          if(POS[campo] !== undefined && colDe[campo] === undefined) colDe[campo] = ci;
+        }
+        Object.keys(POS).forEach(function(c){
+          if(colDe[c] === undefined){ colDe[c] = POS[c]; porPosicao.push(c); }
+          else porNome.push(c);
+        });
+        function _col(campo){ return colDe[campo]; }
+
+        /* Previsão e férias variam de posição e não têm fallback confiável. */
         var colPrevisao = -1, colFerias = -1;
         for(var cp=0; cp<headerRow.length; cp++){
           if(!headerRow[cp]) continue;
           var hp = _normNome(headerRow[cp]);
           if(colPrevisao < 0 && hp.indexOf('previsao') === 0) colPrevisao = cp;
           if(colFerias   < 0 && hp.indexOf('ferias')  >= 0)   colFerias   = cp;
+        }
+        if(porPosicao.length){
+          erros.push('Aba "'+sheetName+'": '+porPosicao.length+' coluna(s) não '
+            +'encontrada(s) pelo nome, lidas por posição fixa — '
+            +porPosicao.join(', ')+'. Confira se a planilha mudou de layout.');
         }
 
         for(var ri=startRow;ri<rows.length;ri++){
@@ -6439,33 +6522,38 @@ function importarExcel(input){
           var mesRaw=String(row[0]).trim().toUpperCase().substring(0,3);
           if(MESES_VALIDOS.indexOf(mesRaw)<0)continue;
 
-          var n=function(v){return v!==null&&v!==undefined&&v!==''?parseFloat(v)||0:0};
+          /* _numBR e não parseFloat: célula gravada como texto (colada de PDF
+             ou vinda do ERP) chega como "33.291" e parseFloat devolve 33,291
+             → Math.round → 33 peças. Perda de mil vezes, sem erro nenhum na
+             tela. "11,52" viraria 11. Os dois casos já apareceram aqui. */
+          var n = _numBR;
+          var g = function(campo){ return n(row[_col(campo)]); };
           var rec={
             id: uid(),
             mes: mesRaw,
             ano: ano,
-            colaboradores: Math.round(n(row[1])),
-            horasCarga:    parseFloat(n(row[2]).toFixed(1)),
-            faltas:        parseFloat(n(row[3]).toFixed(1)),
-            atraso:        parseFloat(n(row[4]).toFixed(1)),
-            totalFaltaAtraso: parseFloat(n(row[5]).toFixed(1)),
-            absenteismo:   parseFloat((n(row[6])*100).toFixed(2)),
-            horasNormais:  parseFloat(n(row[7]).toFixed(1)),
-            extra50:       parseFloat(n(row[8]).toFixed(1)),
-            extra100:      parseFloat(n(row[9]).toFixed(1)),
-            totalExtras:   parseFloat(n(row[10]).toFixed(1)),
-            horasTotais:   parseFloat(n(row[11]).toFixed(1)),
-            producaoReal:  Math.round(n(row[15])),
-            prodSemExtras: Math.round(n(row[16])),
-            meta:          Math.round(n(row[18])),
-            eficiencia:    parseFloat((n(row[20])*100).toFixed(2)),
-            eficienciaAdj: parseFloat((n(row[21])*100).toFixed(2)),
-            margem:        parseFloat((n(row[22])*100).toFixed(2)),
-            ticketMedio:   parseFloat(n(row[23]).toFixed(2)),
-            custoCap:      parseFloat(n(row[24]).toFixed(2)),
-            qtdeFaturado:  Math.round(n(row[25])),
-            diasTrabalhados: Math.round(n(row[26])),
-            qtdeVendida:   Math.round(n(row[colVendida])),
+            colaboradores: Math.round(g('colaboradores')),
+            horasCarga:    parseFloat(g('horasCarga').toFixed(1)),
+            faltas:        parseFloat(g('faltas').toFixed(1)),
+            atraso:        parseFloat(g('atraso').toFixed(1)),
+            totalFaltaAtraso: parseFloat(g('totalFaltaAtraso').toFixed(1)),
+            absenteismo:   parseFloat((g('absenteismo')*100).toFixed(2)),
+            horasNormais:  parseFloat(g('horasNormais').toFixed(1)),
+            extra50:       parseFloat(g('extra50').toFixed(1)),
+            extra100:      parseFloat(g('extra100').toFixed(1)),
+            totalExtras:   parseFloat(g('totalExtras').toFixed(1)),
+            horasTotais:   parseFloat(g('horasTotais').toFixed(1)),
+            producaoReal:  Math.round(g('producaoReal')),
+            prodSemExtras: Math.round(g('prodSemExtras')),
+            meta:          Math.round(g('meta')),
+            eficiencia:    parseFloat((g('eficiencia')*100).toFixed(2)),
+            eficienciaAdj: parseFloat((g('eficienciaAdj')*100).toFixed(2)),
+            margem:        parseFloat((g('margem')*100).toFixed(2)),
+            ticketMedio:   parseFloat(g('ticketMedio').toFixed(2)),
+            custoCap:      parseFloat(g('custoCap').toFixed(2)),
+            qtdeFaturado:  Math.round(g('qtdeFaturado')),
+            diasTrabalhados: Math.round(g('diasTrabalhados')),
+            qtdeVendida:   Math.round(g('qtdeVendida')),
             previsaoProducao: colPrevisao>=0 ? Math.round(n(row[colPrevisao])) : 0,
             horasFerias:      colFerias  >=0 ? parseFloat(n(row[colFerias]).toFixed(1)) : 0
           };
@@ -6477,6 +6565,7 @@ function importarExcel(input){
           // Pula meses futuros sem dados (tudo zerado)
           if(rec.colaboradores===0 && rec.horasCarga===0 && rec.producaoReal===0) continue;
 
+          recsNovos.push(rec);
           var idx=dadosExistentes.findIndex(function(x){return x.mes===rec.mes&&x.ano===rec.ano});
           if(idx>=0){
             rec.id=dadosExistentes[idx].id; // preserva o id original
@@ -6488,6 +6577,51 @@ function importarExcel(input){
           }
         }
       });
+
+      /* ── PORTÃO DE SANIDADE ──────────────────────────────────────────────
+         Resolver coluna por nome cobre o caso comum, mas não cobre cabeçalho
+         renomeado, duplicado, ou planilha com layout novo. Estas identidades
+         cobrem: valem em 18 de 18 meses da planilha atual e QUALQUER
+         deslocamento de coluna quebra pelo menos uma delas.
+         Import que reprova não grava nada — meio import é pior que nenhum,
+         porque mistura mês certo com mês deslocado na mesma série e não há
+         como saber depois qual é qual. */
+      var reprovas = [];
+      recsNovos.forEach(function(r){
+        var falhas = [];
+        var ap = function(t){ falhas.push(t); };
+        if (Math.abs((r.horasNormais + r.totalExtras) - r.horasTotais) > 1)
+          ap('h. normais + extras ≠ h. totais');
+        if (Math.abs((r.extra50 + r.extra100) - r.totalExtras) > 1)
+          ap('extra 50 + extra 100 ≠ total de extras');
+        if (Math.abs((r.faltas + r.atraso) - r.totalFaltaAtraso) > 1)
+          ap('faltas + atrasos ≠ total falta/atraso');
+        if (r.prodSemExtras > 0 && r.prodSemExtras > r.producaoReal + 1)
+          ap('produção s/ extras maior que a produção total');
+        if (r.diasTrabalhados < 0 || r.diasTrabalhados > 31)
+          ap('dias trabalhados = ' + r.diasTrabalhados);
+        if (r.absenteismo < 0 || r.absenteismo > 60)
+          ap('absenteísmo = ' + r.absenteismo + '%');
+        if (r.ticketMedio < 0 || r.ticketMedio > 10000)
+          ap('ticket médio = R$ ' + r.ticketMedio);
+        if (r.custoCap < 0) ap('custo de capital negativo');
+        if (falhas.length) reprovas.push(r.mes + '/' + r.ano + ': ' + falhas.join(' · '));
+      });
+
+      if (reprovas.length) {
+        var painel = document.getElementById('importResult');
+        var msg = '<p style="color:var(--red);font-weight:700">✗ Importação cancelada — '
+          + reprovas.length + ' mês(es) com dado incoerente. Nada foi gravado.</p>'
+          + '<p style="margin-top:8px;color:var(--t2);font-size:.78rem;line-height:1.6">'
+          + 'Isto costuma significar que a planilha ganhou ou perdeu uma coluna e os '
+          + 'valores entraram deslocados. Confira o cabeçalho da aba antes de reimportar.</p>'
+          + '<pre style="margin-top:10px;font-family:var(--mono);font-size:.72rem;color:#ff8a9a;'
+          + 'white-space:pre-wrap;line-height:1.55">' + reprovas.slice(0,12).join('\n')
+          + (reprovas.length>12 ? ('\n… e mais ' + (reprovas.length-12)) : '') + '</pre>';
+        if (painel) painel.innerHTML = msg; else alert(msg.replace(/<[^>]+>/g,''));
+        if (typeof toast==='function') toast('Importação cancelada: dado incoerente.','er');
+        return;
+      }
 
       save(sortD(dadosExistentes));
       render();

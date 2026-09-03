@@ -139,5 +139,47 @@ ok('detecta os 18 meses sem base', sc.semBase, 18, 0);
 afirma('e nesse caso semExtras vira comExtras (o risco sinalizado)',
   sc.semExtras === sc.comExtras);
 
+/* ══ PORTÃO DE SANIDADE DA IMPORTAÇÃO ══
+   Reproduz as identidades que o importarExcel usa como gate. O que importa
+   testar é que um DESLOCAMENTO DE COLUNA seja pego — o modo de falha que
+   grava dado errado em silêncio e só aparece na reunião. */
+sec('Portão de sanidade do import');
+function reprova(r){
+  var f=[];
+  if (Math.abs((r.horasNormais + r.totalExtras) - r.horasTotais) > 1) f.push('horas');
+  if (Math.abs((r.extra50 + r.extra100) - r.totalExtras) > 1)        f.push('extras');
+  if (Math.abs((r.faltas + r.atraso) - r.totalFaltaAtraso) > 1)      f.push('faltaAtraso');
+  if (r.prodSemExtras > 0 && r.prodSemExtras > r.producaoReal + 1)   f.push('prodSE>prodCE');
+  if (r.diasTrabalhados < 0 || r.diasTrabalhados > 31)               f.push('dias');
+  if (r.absenteismo < 0 || r.absenteismo > 60)                       f.push('absenteismo');
+  if (r.ticketMedio < 0 || r.ticketMedio > 10000)                    f.push('ticket');
+  if (r.custoCap < 0)                                                f.push('custoCap');
+  return f;
+}
+afirma('planilha atual passa no portão (18/18)',
+  REGS.every(r => reprova(r).length === 0));
+
+/* Simula o cenário real: uma coluna inserida no meio da planilha. Tudo a
+   partir dali roda uma casa. O bloco de horas, que é o único que alguém
+   confere de olho, sai perfeito — por isso a validação tem de ser automática. */
+const CAMPOS = ['colaboradores','horasCarga','faltas','atraso','totalFaltaAtraso',
+  'absenteismo','horasNormais','extra50','extra100','totalExtras','horasTotais',
+  '_x1','_x2','_x3','producaoReal','prodSemExtras','_x4','meta','_x5','eficiencia',
+  'eficienciaAdj','margem','ticketMedio','custoCap','qtdeFaturado','diasTrabalhados'];
+function deslocar(r, aPartirDe){
+  const linha = CAMPOS.map(c => (c.startsWith('_') ? 0 : r[c]));
+  linha.splice(aPartirDe, 0, 999);          /* insere uma coluna */
+  const o = Object.assign({}, r);
+  CAMPOS.forEach((c, i) => { if (!c.startsWith('_')) o[c] = linha[i] === undefined ? 0 : linha[i]; });
+  return o;
+}
+const base = REGS[REGS.length - 1];
+[3, 8, 12, 14, 18, 20].forEach(pos => {
+  const d = deslocar(base, pos);
+  const f = reprova(d);
+  afirma(`coluna inserida na posição ${String(pos).padStart(2)} é detectada  [${f.join(',') || 'NENHUMA'}]`,
+    f.length > 0);
+});
+
 console.log(`\n${total - falhas}/${total} passaram` + (falhas ? ` — ${falhas} FALHA(S)\n` : '\n'));
 process.exit(falhas ? 1 : 0);
