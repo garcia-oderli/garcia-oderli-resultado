@@ -4335,12 +4335,18 @@ Fórmula: Faltas + Atrasos
           <th>Status</th>
           <th style="text-align:right">Plano (pç)</th>
           <th style="text-align:right">Realizado (pç)</th>
-          <th style="text-align:right">Desvio</th>
-          <th style="text-align:right">Atingim. c/ HE</th>
-          <th style="text-align:right">Atingim. s/ HE</th>
+          <!-- Desvio e ritmo usam BASES DIFERENTES e a tabela nao dizia: em
+               AGO/26 a linha mostrava "+1.564" em verde ao lado de "1.414
+               contra 1.467" em vermelho, e os dois estavam certos. O desvio
+               conta o volume entregue (com hora extra); o ritmo mede so a
+               jornada normal, porque a pergunta do plano e se ele cabe SEM
+               comprar hora extra. Sem o rotulo, a linha se contradiz. -->
+          <th style="text-align:right" title="Realizado − Plano, contando a produção com hora extra">Desvio (c/ HE)</th>
+          <th style="text-align:right" title="Produção entregue ÷ Plano — inclui hora extra">Atingim. c/ HE</th>
+          <th style="text-align:right" title="Produção em jornada normal ÷ Plano">Atingim. s/ HE</th>
           <th style="text-align:right">Dias úteis</th>
-          <th style="text-align:right">Ritmo necessário</th>
-          <th style="text-align:right">Ritmo realizado</th>
+          <th style="text-align:right" title="Plano ÷ dias úteis">Ritmo necessário</th>
+          <th style="text-align:right" title="Produção em JORNADA NORMAL ÷ dias úteis. Não conta hora extra: o plano precisa caber na jornada normal, senão a entrega depende de HE todo mês.">Ritmo realizado (s/ HE)</th>
         </tr>
       </thead>
       <tbody id="pm-tbody"></tbody>
@@ -17552,12 +17558,20 @@ function printAtiva(){
         +'<td>'+statusMes(plano,real,normal)+'</td>'
         +'<td style="text-align:right">'+(plano>0?fi(plano):'—')+'</td>'
         +'<td style="text-align:right">'+(fechado?fi(real):'—')+'</td>'
-        +'<td style="text-align:right;color:'+corDesvio+'">'+(desvio===null?'—':(desvio>=0?'+':'')+fi(desvio))+'</td>'
+        +'<td style="text-align:right;color:'+corDesvio+'"'
+          +(desvio===null?'':' title="'+fi(real)+' entregues (com hora extra) − '+fi(plano)+' do plano = '+(desvio>=0?'+':'')+fi(desvio)+' peças"')
+          +'>'+(desvio===null?'—':(desvio>=0?'+':'')+fi(desvio))+'</td>'
         +'<td style="text-align:right;color:'+corAt(atCE)+'">'+(atCE===null?'—':fd(atCE,1)+'%')+'</td>'
         +'<td style="text-align:right;color:'+corAt(atSE)+'">'+(atSE===null?'—':fd(atSE,1)+'%')+'</td>'
         +'<td style="text-align:right">'+dias+'</td>'
         +'<td style="text-align:right">'+(ritmoNec!==null?fi(ritmoNec):'—')+'</td>'
-        +'<td style="text-align:right;color:'+corRitmo+';font-weight:700">'+(ritmoReal!==null?fi(ritmoReal):'—')+'</td>'
+        /* A conta escrita no tooltip, porque esta e a celula que mais gera
+           duvida: da vermelho no mesmo mes em que o desvio da verde. */
+        +'<td style="text-align:right;color:'+corRitmo+';font-weight:700"'
+          +(ritmoReal===null?'':' title="'+fi(normal)+' peças em jornada normal ÷ '+dias+' dias = '+fi(ritmoReal)+' pç/dia'
+            +String.fromCharCode(10)+'O plano pede '+fi(ritmoNec)+' pç/dia.'
+            +String.fromCharCode(10)+'Com hora extra o ritmo foi '+fi(real/dias)+' pç/dia — mas hora extra não é capacidade."')
+          +'>'+(ritmoReal!==null?fi(ritmoReal):'—')+'</td>'
         +'</tr>';
     });
     document.getElementById('pm-tbody').innerHTML=linhas;
@@ -19941,9 +19955,15 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b66';
+var APP_VERSAO = 'b67';
 var APP_DATA   = '04/09/2026';
 var APP_HISTORICO = [
+  { v:'b67', data:'04/09/2026', itens:[
+    'Tabela mes a mes do Plano Mestre: as colunas Desvio e Ritmo usam bases diferentes e a tabela nao dizia. Em AGO/26 a linha mostrava +1.564 em verde ao lado de 1.414 contra 1.467 em vermelho — e os dois estavam certos.',
+    'O DESVIO conta o volume entregue, com hora extra. O RITMO mede so a jornada normal, porque a pergunta do plano e se ele cabe SEM comprar hora extra.',
+    'As colunas passam a declarar a base: "Desvio (c/ HE)" e "Ritmo realizado (s/ HE)". Cada celula ganhou a conta escrita no tooltip, incluindo qual teria sido o ritmo com hora extra.',
+    'FEV/26 e o caso extremo: +4.654 pecas acima do plano, e ainda assim 1.382 pc/dia contra os 1.395 exigidos.'
+  ]},
   { v:'b66', data:'04/09/2026', itens:[
     'Impressoes refeitas nos cinco caminhos de papel. A regra agora e uma so: o NUMERO E TINTA, a COR E DO VEREDITO.',
     'O botao Imprimir mandava o tema ESCURO para o papel: folha com fundo preto e o numero em azul-marinho sobre card azul-marinho, quase invisivel — e um cartucho por relatorio. Agora sai grafite sobre branco.',
