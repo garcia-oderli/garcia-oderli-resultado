@@ -3498,27 +3498,36 @@ Fórmula: Faltas + Atrasos
   function gerarAchados(a,ant,anoAnt) {
     var out=[];
 
-    /* 1 · Produção × Meta */
+    /* 1 · Entrega × capacidade da jornada normal
+       Comparava producaoReal (COM hora extra) contra `meta` (calculada sobre
+       horas normais). Como meta = producaoReal x horasNormais/horasCarga, o
+       ramo "superou" era verdadeiro em 18 de 18 meses e o outro nunca rodava.
+       Este e o texto que circula por e-mail antes da reuniao. */
     if(a.meta>0){
-      if(a.producaoReal>=a.meta){
-        var acima=a.producaoReal-a.meta, pctA=(acima/a.meta)*100;
-        out.push({status:'ok',titulo:'Produção superou a meta mensal',
-          fato:'Produção real de '+bFmt(a.producaoReal)+' peças contra meta de '+bFmt(a.meta)+' peças.',
-          analise:'O resultado indica cumprimento positivo da meta operacional do mês.',
-          recomendacao:'Manter a rotina que permitiu superar a meta e registrar as práticas que contribuíram para o resultado.',
+      var _pn = (a.prodSemExtras>0?a.prodSemExtras:(a.producaoReal||0));
+      var _he = Math.max(0,(a.producaoReal||0)-_pn);
+      if(_pn>=a.meta){
+        var acima=_pn-a.meta, pctA=(acima/a.meta)*100;
+        out.push({status:'ok',titulo:'Capacidade cumprida na jornada normal',
+          fato:'Saíram '+bFmt(_pn)+' peças em jornada normal contra capacidade de '+bFmt(a.meta)+' peças. '
+            +'Total entregue no mês: '+bFmt(a.producaoReal)+' peças.',
+          analise:'A entrega do mês não dependeu de hora extra para cobrir a capacidade.',
+          recomendacao:'Registrar o que sustentou o ritmo e usar este mês como referência de capacidade no próximo plano.',
           calculos:[
-            {label:'Peças acima da meta',formula:bFmt(a.producaoReal)+' − '+bFmt(a.meta),resultado:bFmt(acima)+' peças'},
-            {label:'% acima da meta',formula:bFmt(acima)+' ÷ '+bFmt(a.meta)+' × 100',resultado:bFmtPct(pctA)}
+            {label:'Peças acima da capacidade',formula:bFmt(_pn)+' − '+bFmt(a.meta),resultado:bFmt(acima)+' peças'},
+            {label:'% acima',formula:bFmt(acima)+' ÷ '+bFmt(a.meta)+' × 100',resultado:bFmtPct(pctA)}
           ]});
       } else {
-        var gapM=a.meta-a.producaoReal, pctG=(gapM/a.meta)*100;
-        out.push({status:'warn',titulo:'Produção abaixo da meta mensal',
-          fato:'Produção real de '+bFmt(a.producaoReal)+' peças contra meta de '+bFmt(a.meta)+' peças.',
-          analise:'A meta não foi atingida no mês. Avaliar restrições de capacidade, absenteísmo, mix e paradas de produção.',
-          recomendacao:'Analisar as causas do gap e preparar plano de recuperação para o próximo mês.',
+        var gapM=a.meta-_pn, pctG=(gapM/a.meta)*100;
+        out.push({status:_he>0?'warn':'bad',titulo:'A entrega dependeu de hora extra',
+          fato:'Em jornada normal saíram '+bFmt(_pn)+' peças contra capacidade de '+bFmt(a.meta)+'. '
+            +'As outras '+bFmt(_he)+' peças vieram de '+bFmt(a.totalExtras,1)+'h de hora extra, fechando '+bFmt(a.producaoReal)+'.',
+          analise:'O volume entregue não se sustenta na jornada normal. Avaliar se é pico de demanda ou dependência estrutural.',
+          recomendacao:'Comparar o custo da hora extra recorrente com turno ou headcount, e atacar as horas perdidas por falta e atraso.',
           calculos:[
-            {label:'Gap contra a meta',formula:bFmt(a.meta)+' − '+bFmt(a.producaoReal),resultado:bFmt(gapM)+' peças'},
-            {label:'% abaixo da meta',formula:bFmt(gapM)+' ÷ '+bFmt(a.meta)+' × 100',resultado:bFmtPct(pctG)}
+            {label:'Gap na jornada normal',formula:bFmt(a.meta)+' − '+bFmt(_pn),resultado:bFmt(gapM)+' peças'},
+            {label:'% abaixo da capacidade',formula:bFmt(gapM)+' ÷ '+bFmt(a.meta)+' × 100',resultado:bFmtPct(pctG)},
+            {label:'Peças vindas de hora extra',formula:bFmt(a.producaoReal)+' − '+bFmt(_pn),resultado:bFmt(_he)+' peças'}
           ]});
       }
     }
@@ -3547,7 +3556,7 @@ Fórmula: Faltas + Atrasos
     var faltaPP = META_EF - a.eficiencia;
     if(a.margem>0){
       out.push({status: a.margem>5?'bad':'warn', titulo:'Eficiência abaixo da meta de '+META_EF+'%',
-        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' contra meta de '+META_EF+'% — margem de melhoria de '
+        fato:'Independência de hora extra de '+bFmtPct(a.eficiencia)+' contra meta de '+META_EF+'% — margem de melhoria de '
           +bFmtPct(a.margem)+' ('+bFmt(faltaPP,2)+' pp).',
         analise:'A margem de melhoria mede a distância até a meta de eficiência, não resultado financeiro. '
           +'Fechar essa distância significa produzir o mesmo com menos hora disponível, ou mais com a mesma hora.',
@@ -3557,8 +3566,8 @@ Fórmula: Faltas + Atrasos
           {label:'Distância em pontos',formula:META_EF+' − '+bFmt(a.eficiencia,2),resultado:bFmt(faltaPP,2)+' pp'}
         ]});
     } else {
-      out.push({status:'ok',titulo:'Eficiência acima da meta de '+META_EF+'%',
-        fato:'Eficiência de '+bFmtPct(a.eficiencia)+' contra meta de '+META_EF+'% — margem de melhoria de '
+      out.push({status:'ok',titulo:'Independência de hora extra acima da meta de '+META_EF+'%',
+        fato:'Independência de hora extra de '+bFmtPct(a.eficiencia)+' contra meta de '+META_EF+'% — margem de melhoria de '
           +bFmtPct(a.margem)+', ou seja, meta superada em '+bFmt(Math.abs(faltaPP),2)+' pp.',
         analise:'Margem de melhoria negativa quer dizer meta batida: não há distância a fechar neste indicador. '
           +'Vale checar se a meta de '+META_EF+'% ainda representa desafio para a operação.',
@@ -3569,10 +3578,11 @@ Fórmula: Faltas + Atrasos
     }
 
     /* 4 · Absenteísmo */
-    if(a.absenteismo>10){
+    /* Usava 10 e 13 cravados enquanto o resto do painel usa META_ABS. */
+    if(a.absenteismo>META_ABS){
       var comp=ant?' Variação de '+(a.absenteismo-ant.absenteismo>=0?'+':'')+bFmt(a.absenteismo-ant.absenteismo,2)+' pp vs '+ant.mes+'/'+String(ant.ano).slice(2)+'.':'';
-      out.push({status:a.absenteismo>13?'bad':'warn',titulo:'Absenteísmo acima do limite gerencial',
-        fato:'Absenteísmo de '+bFmtPct(a.absenteismo)+', acima do limite de 10%.'+comp,
+      out.push({status:a.absenteismo>ABS_ATENCAO?'bad':'warn',titulo:'Absenteísmo acima da meta',
+        fato:'Absenteísmo de '+bFmtPct(a.absenteismo)+', acima da meta de '+META_ABS+'%.'+comp,
         analise:'Faltas afetam ritmo, balanceamento, qualidade e estabilidade de setores críticos, como coladeira, pintura, CNC, embalagem e expedição.',
         recomendacao:'RH, Produção e CQP devem acompanhar absenteísmo por setor, turno e impacto em qualidade.',
         calculos:[]});
@@ -4084,16 +4094,16 @@ Fórmula: Faltas + Atrasos
     if (!src) return;
     var w = window.open('', '_blank', 'width=1250,height=900');
     w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><title>Briefing PPCP</title><style>' +
-      '@page{size:A4 landscape;margin:8mm 12mm 10mm 12mm;}' +
+      '@page{size:A4 landscape;margin:8mm 12mm 10mm 12mm;}' + printBase() +
       '*{box-sizing:border-box;margin:0;padding:0;}' +
       'html,body{width:100%;height:100%;}' +
       'body{font-family:"Segoe UI",Arial,sans-serif;font-size:8.5pt;color:#1a1a2e;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
       /* wrapper — pagina naturalmente (Achados/SWOT podem exceder 1 folha) */
       '.brfg-page{display:block;}' +
       /* header */
-      '.brfg-header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;padding:10px 20px 8px;flex-shrink:0;}' +
+      '.brfg-header{background:#1F2933;color:#fff;padding:10px 20px 8px;flex-shrink:0;}' +
       '.brfg-hd-logo{display:flex;align-items:center;gap:16px;}' +
-      '.brfg-label{font-size:7.5px;letter-spacing:2px;text-transform:uppercase;color:#e94560;font-weight:700;margin-bottom:4px;}' +
+      '.brfg-label{font-size:7.5px;letter-spacing:2px;text-transform:uppercase;color:#C8CED6;font-weight:700;margin-bottom:4px;}' +
       '.brfg-header h2{font-size:15px;font-weight:700;margin-bottom:2px;}' +
       '.brfg-header .brfg-sub{font-size:8.5px;color:#a0aec0;}' +
       '.brfg-meta-row{display:flex;gap:6px;margin-top:7px;}' +
@@ -4102,7 +4112,7 @@ Fórmula: Faltas + Atrasos
       /* body */
       '.brfg-body{padding:8px 20px 6px;}' +
       '.brfg-section{margin-bottom:7px;}' +
-      '.brfg-section-title{font-size:7.5px;letter-spacing:1.8px;text-transform:uppercase;color:#e94560;font-weight:700;margin-bottom:6px;padding-bottom:4px;border-bottom:1.5px solid #f0f2f5;}' +
+      '.brfg-section-title{font-size:7.5px;letter-spacing:1.8px;text-transform:uppercase;color:#3E4C59;font-weight:700;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #D3D8DE;}' +
       /* KPI grid — auto-fill cobre 9 cards em 1-2 linhas */
       '.brfg-kpi-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;}' +
       /* Previsão x Capacidade — banda compacta de 6 itens numa linha só */
@@ -4116,17 +4126,20 @@ Fórmula: Faltas + Atrasos
       '#brfg-print-mestre .brfg-kpi-value{font-size:10.5px;}' +
       '#brfg-print-mestre .brfg-kpi-delta{font-size:6.8px;}' +
       '#brfg-print-mestre p{font-size:8pt !important;line-height:1.45;color:#2d3748 !important;padding:5px 0 0 !important;}' +
-      '.brfg-kpi-card{background:#f8fafc;border-radius:5px;padding:7px 9px;border-left:3px solid #e2e8f0;}' +
-      '.brfg-kpi-card.ok{border-left-color:#38a169;}.brfg-kpi-card.warn{border-left-color:#d69e2e;}.brfg-kpi-card.bad{border-left-color:#e53e3e;}.brfg-kpi-card.neu{border-left-color:#718096;}' +
+      '.brfg-kpi-card{background:#fff;border:1px solid #D3D8DE;border-radius:4px;padding:7px 9px;}' +
+      /* Eram 9 bordas coloridas numa linha — um arco-iris que nao dizia nada.
+         Quem carrega o status agora e o delta, com seta e sinal. Card com
+         status ruim ganha um fio grafite, que sobrevive ao P&B. */
+      '.brfg-kpi-card.bad{border-left:3px solid #1F2933;}' +
       '.brfg-kpi-label{font-size:7px;letter-spacing:.6px;text-transform:uppercase;color:#718096;font-weight:600;margin-bottom:3px;}' +
       '.brfg-kpi-value{font-size:12px;font-weight:700;color:#1a1a2e;line-height:1.1;}' +
       '.brfg-kpi-delta{font-size:7.5px;margin-top:2px;color:#718096;line-height:1.35;}' +
-      '.brfg-up{color:#38a169;font-weight:600;}.brfg-down{color:#e53e3e;font-weight:600;}' +
+      '.brfg-up{color:#1E6C3A;font-weight:600;}.brfg-down{color:#A32222;font-weight:600;}' +
       /* 2 colunas: tabela (55%) e pauta (45%) */
       '.brfg-2col{display:grid;grid-template-columns:55% 44%;gap:14px;}' +
       /* tabela */
       'table{width:100%;border-collapse:collapse;font-size:8pt;}' +
-      'thead tr{background:#1a1a2e;color:#fff;}' +
+      'thead tr{background:#1F2933;color:#fff;}' +
       'thead th{padding:4px 7px;text-align:left;font-size:7.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:600;color:#fff;}' +
       'thead th:not(:first-child){text-align:right;}' +
       'tbody tr:nth-child(even){background:#f8fafc;}' +
@@ -4139,31 +4152,36 @@ Fórmula: Faltas + Atrasos
       '.brfg-alert-list li{background:#f8fafc;border-radius:5px;padding:7px 8px 7px 30px;font-size:8pt;line-height:1.4;color:#2d3748;position:relative;}' +
       '.brfg-icon{position:absolute;left:8px;top:8px;font-size:13px;}' +
       '.brfg-badge{display:inline-block;font-size:7.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;border-radius:3px;padding:1px 5px;margin-right:4px;}' +
-      '.brfg-badge.red{background:#fed7d7;color:#c53030;}.brfg-badge.green{background:#c6f6d5;color:#276749;}.brfg-badge.yellow{background:#fefcbf;color:#744210;}.brfg-badge.blue{background:#bee3f8;color:#2a69ac;}' +
+      '.brfg-badge{border:1px solid currentColor;background:#fff;}' +
+      '.brfg-badge.red{color:#A32222;}.brfg-badge.green{color:#1E6C3A;}.brfg-badge.yellow{color:#8A5A00;}.brfg-badge.blue{color:#3E4C59;}' +
       /* achados */
       '#brfg-print-achados{break-before:page;}' +
       '.brfg-achado{border:1px solid #e2e8f0;border-left:3px solid #718096;border-radius:5px;padding:8px 10px;margin-bottom:8px;break-inside:avoid;}' +
-      '.brfg-achado.ok{border-left-color:#38a169;}.brfg-achado.warn{border-left-color:#d69e2e;}.brfg-achado.bad{border-left-color:#e53e3e;}.brfg-achado.info{border-left-color:#3182ce;}' +
+      '.brfg-achado{border-left-color:#9AA5B1;}.brfg-achado.bad{border-left-color:#1F2933;}' +
       '.brfg-achado-hd{display:flex;align-items:center;gap:6px;margin-bottom:6px;}' +
       '.brfg-achado-ico{font-size:11px;}' +
       '.brfg-achado-ttl{font-size:9.5px;font-weight:700;color:#1a1a2e;}' +
       '.brfg-achado-box{border-radius:4px;padding:5px 8px;margin-bottom:4px;font-size:8pt;line-height:1.4;color:#2d3748;}' +
-      '.brfg-achado-box.fato{background:#eef4ff;border-left:2px solid #0f3460;}.brfg-achado-box.analise{background:#fff8e1;border-left:2px solid #d69e2e;}.brfg-achado-box.rec{background:#eaf7ea;border-left:2px solid #38a169;}' +
+      /* Eram tres fundos pastel por achado — seis achados davam 18 paineis
+         coloridos numa pagina. O rotulo em caixa alta ja separa FATO de
+         ANALISE e RECOMENDACAO; o fundo nao acrescentava nada. */
+      '.brfg-achado-box{background:#fff;border-left:2px solid #D3D8DE;}' +
+      '.brfg-achado-box.rec{border-left-color:#7B8794;}' +
       '.brfg-achado-lbl{display:block;font-size:6.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#718096;margin-bottom:2px;}' +
       '.brfg-calc-table{width:100%;border-collapse:collapse;margin-top:3px;font-size:7.5pt;}' +
-      '.brfg-calc-table th{padding:3px 6px;text-align:left;font-size:6.5px;text-transform:uppercase;font-weight:600;background:#1a1a2e;color:#fff;}' +
+      '.brfg-calc-table th{padding:3px 6px;text-align:left;font-size:6.5px;text-transform:uppercase;font-weight:600;background:#3E4C59;color:#fff;}' +
       '.brfg-calc-table td{padding:3px 6px;border-bottom:1px solid #edf2f7;color:#2d3748;}' +
       '.brfg-calc-table tbody tr:nth-child(even){background:#f8fafc;}' +
       '.brfg-calc-table td:last-child{text-align:right;font-weight:700;}' +
       /* swot */
       '.brfg-swot-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;break-inside:avoid;}' +
       '.brfg-swot-box{border-radius:5px;padding:8px 10px;border:1px solid #e2e8f0;break-inside:avoid;}' +
-      '.brfg-swot-box.forcas{background:#e8f5e9;}.brfg-swot-box.fraquezas{background:#fff8e1;}.brfg-swot-box.oportunidades{background:#e3f2fd;}.brfg-swot-box.ameacas{background:#ffebee;}' +
-      '.brfg-swot-ttl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;color:#1a1a2e;}' +
+      '.brfg-swot-box{background:#fff;border-color:#D3D8DE;}' +
+      '.brfg-swot-ttl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;color:#1F2933;border-bottom:1px solid #E4E7EB;padding-bottom:3px;}' +
       '.brfg-swot-box ul{margin:0;padding-left:14px;}' +
       '.brfg-swot-box li{font-size:8pt;line-height:1.4;color:#2d3748;margin-bottom:2px;}' +
       /* footer */
-      '.brfg-footer{background:#f8fafc;border-top:1px solid #edf2f7;padding:5px 20px;font-size:7.5px;color:#a0aec0;display:flex;justify-content:space-between;margin-top:10px;break-inside:avoid;}' +
+      '.brfg-footer{background:#fff;border-top:1px solid #D3D8DE;padding:5px 20px;font-size:7.5px;color:#7B8794;display:flex;justify-content:space-between;margin-top:10px;break-inside:avoid;}' +
       '</style></head><body>' +
       '<div class="brfg-page">' +
       (function(){
@@ -4632,6 +4650,86 @@ function logoPatrimar(){
   } catch(e) { _logoCache = ''; }   /* canvas tainted (file://) — segue sem logo */
   return _logoCache;
 }
+/* ══════════════════════════════════════════════════════════════════════════
+   BASE DE IMPRESSÃO — uma régua para os quatro relatórios
+   ─────────────────────────────────────────────────────────────────────────
+   Cada relatório tinha o seu CSS inline, e os quatro divergiram: o mesmo
+   indicador saía verde num papel e cinza no outro. Aqui fica o que é comum,
+   e cada relatório acrescenta só a sua estrutura.
+
+   A REGRA, e ela vale para os quatro:
+
+     O NÚMERO É TINTA. A COR É DO VEREDITO.
+
+   Cor só onde ela decide alguma coisa — o selo de status, que sempre vem
+   acompanhado da PALAVRA, e o sinal de um desvio. Todo o resto é grafite
+   sobre branco. Antes disso o Briefing tinha 9 cards com borda colorida,
+   três fundos pastel por achado (18 painéis coloridos numa página só) e
+   mais quatro pastéis no SWOT; a Reunião saía com 13 números em quatro
+   cores. Quando tudo é colorido, a cor deixa de significar — e o papel fica
+   com cara de infográfico, não de documento de reunião.
+
+   Cor nunca é o único portador: o selo traz a palavra escrita, o desvio traz
+   o sinal. Assim o relatório sobrevive à impressão em preto e branco, que é
+   como ele costuma sair na fábrica.
+══════════════════════════════════════════════════════════════════════════ */
+function printBase(){
+  return ''
+  + '*{box-sizing:border-box;margin:0;padding:0}'
+  + 'body{font-family:"Segoe UI",Arial,sans-serif;color:#1F2933;background:#fff;'
+    + '-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+
+  /* Cabeçalho: chapado, não gradiente. Gradiente imprime com bandeamento e
+     gasta toner sem acrescentar informação. */
+  + '.pb-hd{background:#1F2933;color:#fff;padding:12px 20px}'
+  + '.pb-hd .pb-lb{font-size:7.5px;letter-spacing:2px;text-transform:uppercase;'
+    + 'color:#C8CED6;font-weight:700;margin-bottom:3px}'
+  + '.pb-hd h1{font-size:15px;font-weight:700;margin-bottom:2px}'
+  + '.pb-hd .pb-sb{font-size:8.5px;color:#9AA5B1}'
+
+  /* Título de seção: grafite com fio. Era vermelho em todos os relatórios. */
+  + '.pb-sec{font-size:7.5px;letter-spacing:1.8px;text-transform:uppercase;'
+    + 'color:#3E4C59;font-weight:700;margin:10px 0 6px;padding-bottom:4px;'
+    + 'border-bottom:1px solid #D3D8DE}'
+
+  /* Cartão de indicador: um só desenho, sem borda de status colorida. */
+  + '.pb-card{background:#fff;border:1px solid #D3D8DE;border-radius:4px;padding:7px 9px}'
+  + '.pb-card .pb-l{font-size:7px;letter-spacing:.6px;text-transform:uppercase;'
+    + 'color:#52606D;font-weight:600;margin-bottom:3px}'
+  + '.pb-card .pb-v{font-size:12px;font-weight:700;color:#1F2933;line-height:1.1}'
+  + '.pb-card .pb-s{font-size:7.5px;margin-top:2px;color:#52606D;line-height:1.35}'
+
+  /* Selo: a cor vive aqui, e sempre com a palavra ao lado. Contorno em vez de
+     fundo chapado — mesma leitura, muito menos tinta. */
+  + '.pb-selo{display:inline-block;font-size:7.5px;font-weight:700;letter-spacing:.4px;'
+    + 'text-transform:uppercase;border-radius:3px;padding:1px 6px;margin-right:5px;'
+    + 'border:1px solid currentColor;background:#fff}'
+  + '.pb-selo.ok{color:#1E6C3A}.pb-selo.warn{color:#8A5A00}'
+  + '.pb-selo.bad{color:#A32222}.pb-selo.info{color:#1F2933}'
+
+  /* Sinal do desvio: o outro lugar onde a cor decide. */
+  + '.pb-up{color:#1E6C3A;font-weight:600}.pb-dn{color:#A32222;font-weight:600}'
+
+  /* Tabela: cabeçalho grafite, zebra discreta, número alinhado e tabular. */
+  + 'table{width:100%;border-collapse:collapse;font-size:8pt}'
+  + 'thead tr{background:#1F2933;color:#fff}'
+  + 'thead th{padding:4px 7px;text-align:left;font-size:7.5px;letter-spacing:.6px;'
+    + 'text-transform:uppercase;font-weight:600;color:#fff}'
+  + 'thead th:not(:first-child){text-align:right}'
+  + 'tbody tr:nth-child(even){background:#F5F7FA}'
+  + 'tbody td{padding:3px 7px;color:#1F2933;border-bottom:1px solid #E4E7EB}'
+  + 'tbody td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}'
+  + 'tbody tr td:first-child{font-weight:600}'
+
+  /* Emoji perde a cor: em P&B vira mancha, e a cor dele não carrega nada que
+     a palavra do selo já não diga. A forma continua servindo de marcador. */
+  + '.pb-ico,.brfg-icon,.brfg-achado-ico{filter:grayscale(1);opacity:.75}'
+
+  + '.pb-ft{border-top:1px solid #D3D8DE;padding:6px 20px;font-size:7.5px;'
+    + 'color:#7B8794;display:flex;justify-content:space-between;margin-top:12px}'
+  + '@media print{.pb-noprint{display:none!important}}';
+}
+
 /* Bloco pronto para o cabeçalho escuro das impressões */
 function logoImprimir(altura){
   var d = logoPatrimar();
@@ -18306,28 +18404,28 @@ function printAtiva(){
     var w=window.open('','_blank','width=1250,height=900');
     w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>'
       +'<title>Planejamento Mestre '+u.ano+'</title><style>'
-      +'@page{size:A4 landscape;margin:9mm 12mm;}'
+      +'@page{size:A4 landscape;margin:9mm 12mm;}' + printBase()
       +'*{box-sizing:border-box;margin:0;padding:0}'
       +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:9pt;color:#1a1a2e;background:#fff;'
         +'-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-      +'.hd{background:linear-gradient(135deg,#1a1a2e,#16213e 60%,#0f3460);color:#fff;padding:13px 22px}'
+      +'.hd{background:#1F2933;color:#fff;padding:13px 22px}'
       +'.hd .hdrow{display:flex;align-items:center;gap:16px}'
-      +'.hd .lb{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#F5A623;font-weight:700}'
+      +'.hd .lb{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#C8CED6;font-weight:700}'
       +'.hd h1{font-size:17px;margin:3px 0 2px}.hd .sb{font-size:9px;color:#a0aec0}'
       +'.bd{padding:11px 22px}'
-      +'.st{font-size:8px;letter-spacing:1.8px;text-transform:uppercase;color:#c53030;font-weight:700;'
-        +'margin:11px 0 7px;padding-bottom:3px;border-bottom:1.5px solid #edf2f7}'
+      +'.st{font-size:8px;letter-spacing:1.8px;text-transform:uppercase;color:#3E4C59;font-weight:700;'
+        +'margin:11px 0 7px;padding-bottom:3px;border-bottom:1px solid #D3D8DE}'
       +'.ver{border-left:5px solid '+corV+';background:#f8fafc;border-radius:6px;padding:11px 15px}'
       +'.ver h2{font-size:15px;color:'+corV+';margin-bottom:5px}'
       +'.ver p{font-size:9.5pt;line-height:1.5;color:#2d3748}'
       +'.ver .ac{margin-top:8px;padding:7px 11px;background:#fff;border-radius:5px;font-size:8.5pt;color:#4a5568}'
       +'.kg{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}'
-      +'.k{background:#f8fafc;border-left:3px solid #cbd5e0;border-radius:5px;padding:8px 10px}'
-      +'.kl{font-size:7.5px;letter-spacing:.6px;text-transform:uppercase;color:#718096;font-weight:600}'
+      +'.k{background:#fff;border:1px solid #D3D8DE;border-radius:4px;padding:8px 10px}'
+      +'.kl{font-size:7.5px;letter-spacing:.6px;text-transform:uppercase;color:#52606D;font-weight:600}'
       +'.kv{font-size:14px;font-weight:700;color:#1a1a2e;margin:3px 0 1px}'
-      +'.ks{font-size:7.5px;color:#a0aec0}'
+      +'.ks{font-size:7.5px;color:#52606D}'
       +'table{width:100%;border-collapse:collapse;font-size:8.5pt}'
-      +'thead tr{background:#1a1a2e;color:#fff}'
+      +'thead tr{background:#1F2933;color:#fff}'
       +'thead th{padding:6px 9px;text-align:left;font-size:7.5px;letter-spacing:.6px;text-transform:uppercase}'
       +'thead th:not(:first-child):not(:nth-child(2)){text-align:right}'
       +'tbody td{padding:6px 9px;border-bottom:1px solid #edf2f7}'
@@ -18335,10 +18433,12 @@ function printAtiva(){
       +'td.n{text-align:right;font-variant-numeric:tabular-nums}'
       +'.swg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}'
       +'.sw{border:1px solid #e2e8f0;border-radius:5px;padding:9px 12px;break-inside:avoid}'
-      +'.sw.f{background:#e8f5e9}.sw.w{background:#fff8e1}.sw.o{background:#e3f2fd}.sw.a{background:#ffebee}'
-      +'.swt{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}'
+      /* Eram quatro fundos pastel. O titulo do quadrante ja diz qual e qual. */
+      +'.sw{background:#fff;border-color:#D3D8DE}'
+      +'.swt{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;'
+        +'color:#1F2933;border-bottom:1px solid #E4E7EB;padding-bottom:3px}'
       +'.sw ul{margin:0;padding-left:15px}.sw li{font-size:8.5pt;line-height:1.45;color:#2d3748;margin-bottom:3px}'
-      +'.ft{background:#f8fafc;border-top:1px solid #edf2f7;padding:6px 22px;font-size:7.5px;color:#a0aec0;'
+      +'.ft{background:#fff;border-top:1px solid #D3D8DE;padding:6px 22px;font-size:7.5px;color:#7B8794;'
         +'display:flex;justify-content:space-between;margin-top:11px}'
       +'</style></head><body>'
       +'<div class="hd"><div class="hdrow">'+logoImprimir(30)+'<div>'
@@ -19065,11 +19165,11 @@ function printAtiva(){
     var w=window.open('','_blank','width=1000,height=900');
     w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>'
       +'<title>Produção por Produto — '+rotPer+'</title><style>'
-      +'@page{size:A4 portrait;margin:10mm 12mm;}'
+      +'@page{size:A4 portrait;margin:10mm 12mm;}' + printBase()
       +'*{box-sizing:border-box;margin:0;padding:0}'
       +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:8.5pt;color:#1a1a2e;background:#fff;'
         +'-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-      +'.hd{background:linear-gradient(135deg,#1a1a2e,#16213e 60%,#0f3460);color:#fff;padding:13px 22px}'
+      +'.hd{background:#1F2933;color:#fff;padding:13px 22px}'
       +'.hd .hdrow{display:flex;align-items:center;gap:16px}'
       +'.hd .lb{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#FF9800;font-weight:700}'
       +'.hd h1{font-size:16px;margin:3px 0 2px}.hd .sb{font-size:9px;color:#a0aec0}'
@@ -19464,23 +19564,26 @@ function printAtiva(){
     var w=window.open('','_blank','width=1000,height=900');
     w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>'
       +'<title>Reunião do Mês — '+per+'</title><style>'
-      +'@page{size:A4 portrait;margin:10mm 12mm;}'
+      +'@page{size:A4 portrait;margin:10mm 12mm;}' + printBase()
       +'*{box-sizing:border-box;margin:0;padding:0}'
       +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:9pt;color:#1a1a2e;background:#fff;'
         +'-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-      +'.hd{background:linear-gradient(135deg,#1a1a2e,#16213e 60%,#0f3460);color:#fff;padding:13px 22px}'
+      +'.hd{background:#1F2933;color:#fff;padding:13px 22px}'
       +'.hd .hdrow{display:flex;align-items:center;gap:16px}'
       +'.hd .lb{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#F5A623;font-weight:700}'
       +'.hd h1{font-size:16px;margin:3px 0 2px}.hd .sb{font-size:9px;color:#a0aec0}'
       +'.bd{padding:12px 22px}'
-      +'.reu-sec{font-size:8px!important;letter-spacing:1.6px;text-transform:uppercase;color:#c05621!important;'
+      +'.reu-sec{font-size:8px!important;letter-spacing:1.6px;text-transform:uppercase;color:#3E4C59!important;'
         +'font-weight:700;margin:12px 0 6px!important;padding:0 0 3px!important;border-bottom:1.5px solid #edf2f7}'
       +'.reu-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:7px!important}'
-      +'.reu-card{background:#f8fafc!important;border:none!important;border-left:3px solid #cbd5e0!important;'
+      /* Card chapado e sem fio colorido: quem julga na folha e a manchete. */
+      +'.reu-card{background:#fff!important;border:1px solid #D3D8DE!important;'
         +'border-radius:5px!important;padding:8px 10px!important}'
-      +'.reu-lbl{font-size:7.5px!important;color:#718096!important;font-weight:600}'
-      +'.reu-val{font-size:13pt!important;font-weight:800}'
-      +'.reu-sub{font-size:7pt!important;color:#a0aec0!important}'
+      +'.reu-lbl{font-size:7.5px!important;color:#52606D!important;font-weight:600}'
+      /* Eram 13 numeros em quatro cores na mesma folha. A cor vem de style
+         inline do card(), dai o !important. Numero e tinta. */
+      +'.reu-val{font-size:13pt!important;font-weight:800;color:#1F2933!important}'
+      +'.reu-sub{font-size:7pt!important;color:#52606D!important}'
       +'.reu-manchete{font-size:14pt!important}'
       +'.reu-frase{color:#2d3748!important;font-size:9pt!important}'
       +'.ft{display:flex;justify-content:space-between;font-size:7pt;color:#a0aec0;'
@@ -19718,6 +19821,112 @@ function printAtiva(){
   #ev-status-txt, #mes-sf-status { animation: none !important; }
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IMPRESSÃO DA ABA ATIVA — o painel é escuro, o papel é branco
+   ─────────────────────────────────────────────────────────────────────────
+   O @media print do topo do arquivo foi escrito quando o painel ainda era
+   claro. Vieram o redesign v15/v16 e mais uns vinte módulos, todos escuros,
+   e nenhum é alcançado por aquelas regras — que ficam antes e perdem na
+   cascata.
+
+   O papel saía com fundo preto, cards azul-marinho e o número em #1a2744
+   sobre o próprio azul-marinho: quase invisível. Não era "colorido demais",
+   era ilegível e queimava um cartucho por relatório.
+
+   A estratégia aqui é inverter a ordem do trabalho: em vez de caçar módulo a
+   módulo quem tem fundo escuro — sempre vai escapar um, e escapou —, zera
+   TUDO e devolve a cor só a quem ela serve. Por isso o bloco fica no fim do
+   arquivo e usa o seletor universal dentro de .page.
+
+   Mesma régua dos outros quatro relatórios:
+     O NÚMERO É TINTA. A COR É DO VEREDITO.
+══════════════════════════════════════════════════════════════════════════ */
+@media print {
+
+  /* 1 · Zera fundo, sombra e brilho de tudo que está na página impressa,
+     inclusive pseudo-elementos — é de onde vinham as faixas coloridas no
+     topo dos cards. */
+  .main, .main > *, .page, .page *, .page *::before, .page *::after,
+  header, header * {
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  html, body { background: #fff !important; }
+
+  /* 2 · Texto em grafite. O seletor universal aqui não é preguiça: o painel
+     tem texto claro em b, strong, small, a, h1-h6 e em spans com cor inline,
+     e listar tag a tag já deixou "Ação recomendada:" sair em branco no
+     branco uma vez. */
+  .page, .page * { color: #1F2933 !important; }
+  .kSub, .kLbl, .mes-card-unit, .mes-card-sub, .mes-card-title, .ind-lbl,
+  .ind-unit, .ind-form, .ppcp-lbl, .ppcp-form, .reu-lbl, .reu-sub,
+  .mes-sf-mlbl, .mes-lvl-label, .reu-sec, .ppcp-sec, .kVar {
+    color: #52606D !important;
+  }
+
+  /* 3 · O NÚMERO É TINTA. No painel ele é ciano, âmbar, verde ou vermelho —
+     quatro cores na mesma tela, o que no papel vira decoração. */
+  .kVal, .mes-card-value, .ind-val, .ppcp-val, .reu-val, .reu-manchete,
+  .mes-val-sm, .brfg-kpi-value {
+    color: #1F2933 !important;
+    font-weight: 700 !important;
+  }
+
+  /* 4 · A COR É DO VEREDITO — e só. Estes três trazem a palavra ou o sinal
+     junto, então continuam legíveis numa impressora preto e branco:
+     o veredito do período, o selo de status e a bolinha ✓/✗. */
+  #ev-status-txt, #ev-gap-pct { color: #A32222 !important; font-weight: 800 !important; }
+  #ev-status-txt { animation: none !important; }
+  [id$="-status"][style*="border-radius"] {
+    background-color: #1F2933 !important;
+    color: #fff !important;
+  }
+
+  /* 5 · Superfícies: card branco com fio cinza, um desenho só. */
+  .page, .page * { border-color: #D3D8DE !important; }
+  .kCard, .mes-card, .ind-card, .reu-card, .tWrap, .cBox, .ppcp-card,
+  #exec-veredito {
+    background-color: #fff !important;
+    border: 1px solid #D3D8DE !important;
+  }
+  #exec-veredito { border-left: 3px solid #1F2933 !important; }
+
+  /* 6 · Tabela: cabeçalho grafite chapado e zebra discreta. */
+  thead, thead tr, thead th {
+    background-color: #1F2933 !important;
+    color: #fff !important;
+  }
+  thead th { color: #fff !important; }
+  tbody tr:nth-child(even) { background-color: #F5F7FA !important; }
+  tbody td { border-bottom: 1px solid #E4E7EB !important; }
+
+  /* 7 · Barra de progresso vira um traço grafite. */
+  [id$="-bar"], .pf, .prog { background-color: #52606D !important; }
+
+  /* 8 · Gráfico é canvas: bitmap, o CSS não alcança o desenho. Só garante o
+     fundo branco atrás — as linhas são desenhadas em cor sólida e continuam
+     legíveis. */
+  canvas { background-color: #fff !important; }
+
+  /* 9 · Cromo de interface não é conteúdo. */
+  /* A barra de grupos e a de sub-abas ficam FORA de .page, por isso
+     escapavam do reset de fundo e saíam como duas faixas pretas. São
+     navegação: no papel não servem para nada. */
+  nav, .pageNav, #main-nav, .pTab, .aTab, .sBtn, .modBtn, #reu-voltar,
+  #app-version, #tip, #btnTV, .hR, .filtros, .sidebar, .nav-tabs, .subTabs,
+  #btnCSV, #btnPrint, #btn-pdf, .overlay, #toast { display: none !important; }
+
+  /* 10 · Cabeçalho: faixa chapada, sem gradiente. */
+  header {
+    background-color: #1F2933 !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+  header, header * { color: #fff !important; }
+}
 </style>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
@@ -19732,9 +19941,22 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b64';
+var APP_VERSAO = 'b66';
 var APP_DATA   = '04/09/2026';
 var APP_HISTORICO = [
+  { v:'b66', data:'04/09/2026', itens:[
+    'Impressoes refeitas nos cinco caminhos de papel. A regra agora e uma so: o NUMERO E TINTA, a COR E DO VEREDITO.',
+    'O botao Imprimir mandava o tema ESCURO para o papel: folha com fundo preto e o numero em azul-marinho sobre card azul-marinho, quase invisivel — e um cartucho por relatorio. Agora sai grafite sobre branco.',
+    'Briefing: saiam 9 cards com borda colorida, tres fundos pastel por achado (18 paineis coloridos numa pagina so) e mais quatro pasteis no SWOT. Ficou cartao branco com fio cinza, e o selo carrega o status com a palavra escrita.',
+    'Reuniao: os 13 numeros da folha saiam em quatro cores diferentes. Quando tudo e colorido, a cor deixa de significar.',
+    'Cor sobrou so onde decide: o veredito, o selo de status e o sinal do desvio — os tres com palavra ou sinal junto, entao o relatorio sobrevive a impressora preto e branco.',
+    'printBase(): regua de impressao compartilhada. Cada relatorio tinha o seu CSS e os quatro ja tinham divergido — o mesmo indicador saia verde num papel e cinza no outro.',
+    'Achados do Briefing: "Producao superou a meta" ainda comparava producao COM hora extra contra a meta circular, verde em 18 de 18 meses. Agora diz quanto saiu sem hora extra e quanto veio dela.'
+  ]},
+  { v:'b65', data:'04/09/2026', itens:[
+    'Descer ao detalhe pela Reuniao tinha ida e nao tinha volta: quem clicava num card ficava preso, porque o painel e uma SPA sem historico e nem o botao voltar do navegador servia.',
+    'Tres saidas agora: pilula flutuante "Voltar para a Reuniao", tecla ESC e o botao voltar do navegador.'
+  ]},
   { v:'b64', data:'04/09/2026', itens:[
     'Cabecalho do Briefing separa producao entregue (com hora extra) da que saiu em jornada normal — sao 3.363 pecas de diferenca em JUN/26 que ninguem via ali.',
     'Margem de Melhoria sai do cabecalho: negativo ali significa meta superada, e ao lado do Custo Capital era lida como margem financeira negativa. Continua no corpo, com o rotulo completo.'
