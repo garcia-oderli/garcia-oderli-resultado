@@ -1408,12 +1408,17 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
       <div class="mes-card-unit">faltas + atrasos</div>
     </div>
 
-    <!-- Ef. Ajustada -->
+    <!-- Era "Ef. Ajustada", coluna eficienciaAdj da planilha: não reproduzível
+         por nenhuma fórmula, passa de 100% em 3 dos 18 meses (110,60% em
+         MAR/26 com 13,89% de absenteísmo) e correlaciona -0,42 com o ritmo
+         real, +0,17 com o absenteísmo — sobe quando as horas perdidas sobem,
+         sendo que existia para corrigir por elas. Trocada por peças perdidas:
+         mesma ideia, unidade auditável, não passa de 100%. -->
     <div class="mes-card mes-card-sm">
-      <div class="mes-card-badge mes-badge-amber">EF. AJUSTADA</div>
-      <div class="mes-card-title">Ef. Ajustada</div>
-      <div class="mes-card-value mes-val-amber mes-val-sm" id="mes-oee" style="color: rgb(255, 179, 0);">93,5%</div>
-      <div class="mes-card-unit">considera h. perdidas</div>
+      <div class="mes-card-badge mes-badge-amber">PERDA</div>
+      <div class="mes-card-title">Peças perdidas</div>
+      <div class="mes-card-value mes-val-amber mes-val-sm" id="mes-oee" style="color: rgb(255, 179, 0);">—</div>
+      <div class="mes-card-unit">h. de falta e atraso × ritmo</div>
     </div>
 
   </div><!-- /mes-lvl3-grid -->
@@ -1531,7 +1536,7 @@ td[title]:hover{background:rgba(245,166,35,.04)!important}
   </div>
   <div class="kGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
     <div class="kCard kg"><div class="kLbl">Eficiência Média</div><div class="kVal" id="kv3-ef">87,8%</div><div class="kSub">Prod.s/Extras ÷ Cap.Teórica</div></div>
-    <div class="kCard ka"><div class="kLbl">Ef. Ajustada</div><div class="kVal" id="kv3-oee">93,5%</div><div class="kSub">Considerando h. falta</div></div>
+    <div class="kCard ka"><div class="kLbl">Peças Perdidas</div><div class="kVal" id="kv3-oee">—</div><div class="kSub">h. de falta e atraso × ritmo</div></div>
     <div class="kCard kg"><div class="kLbl">Meses ≥ 90%</div><div class="kVal" id="kv3-acima">8/18</div><div class="kSub">Meta atingida</div></div>
     <div class="kCard kr"><div class="kLbl">Meses &lt; 90%</div><div class="kVal" id="kv3-abaixo">10/18</div><div class="kSub">Abaixo da meta</div></div>
   </div>
@@ -3768,16 +3773,37 @@ Fórmula: Faltas + Atrasos
     document.getElementById('brfg-fonte-label').textContent='Dados: '+mesNome+'/'+a.ano+' · Gerado em '+new Date().toLocaleDateString('pt-BR');
 
     var kpis=[
-      {label:'Produção Real',value:bFmt(a.producaoReal)+' pçs',cls:a.producaoReal>=a.meta?'ok':'warn',
-       delta:a.producaoReal>=a.meta?'<span class="brfg-up">✓ Meta batida</span> · meta '+bFmt(a.meta):'<span class="brfg-down">✗ Abaixo da meta</span> · meta '+bFmt(a.meta)},
-      {label:'Eficiência',value:bFmtPct(a.eficiencia),cls:a.eficiencia>=96?'ok':'warn',
+      /* Comparava producaoReal (COM hora extra) contra `meta` (horas normais).
+         Como meta = producaoReal x horasNormais/horasCarga, isso dava "✓ Meta
+         batida" em 18 de 18 meses por álgebra. O card agora mostra o volume
+         entregue com a separação, que é o que a diretoria precisa ver. */
+      (function(){
+        var _pn = (a.prodSemExtras>0?a.prodSemExtras:(a.producaoReal||0));
+        var _he = Math.max(0,(a.producaoReal||0)-_pn);
+        var _dep = a.producaoReal>0 ? (_he/a.producaoReal)*100 : 0;
+        return {label:'Produção Entregue', value:bFmt(a.producaoReal)+' pçs',
+                cls:_dep<=8?'ok':(_dep<=15?'warn':'bad'),
+                delta:bFmt(_pn)+' em jornada normal + '+bFmt(_he)+' em hora extra ('+bFmt(_dep,1)+'%)'};
+      })(),
+      /* "Eficiência" renomeada: a conta tem r = -0,993 com % de hora extra e
+         r = -0,33, negativa, com o ritmo real. Mesmo número, nome honesto. */
+      {label:'Independência de HE',value:bFmtPct(a.eficiencia),cls:a.eficiencia>=META_EF?'ok':'warn',
        delta:ant?bDeltaPp(a.eficiencia,ant.eficiencia)+colRef1:'—'},
-      {label:'Efic. Ajustada',value:bFmtPct(a.eficienciaAdj),cls:a.eficienciaAdj>=96?'ok':'warn',
-       delta:ant?bDeltaPp(a.eficienciaAdj,ant.eficienciaAdj)+colRef1:'—'},
+      /* Era Efic. Ajustada — coluna opaca da planilha, não reproduzível, passa
+         de 100%. Trocada pelo mesmo conceito em unidade auditável. */
+      (function(){
+        var _pn  = (a.prodSemExtras>0?a.prodSemExtras:(a.producaoReal||0));
+        var _rit = a.horasNormais>0 ? _pn/a.horasNormais : 0;
+        var _pp  = (a.totalFaltaAtraso||0)*_rit;
+        var _pct = _pn>0 ? (_pp/_pn)*100 : 0;
+        return {label:'Peças perdidas', value:bFmt(_pp)+' pçs',
+                cls:_pct<=5?'ok':(_pct<=10?'warn':'bad'),
+                delta:bFmt(a.totalFaltaAtraso,1)+'h de falta/atraso · '+bFmt(_pct,1)+'% da produção normal'};
+      })(),
       /* margem = distância até a meta de eficiência: positivo é o que falta */
       {label:'Margem de Melhoria',value:bFmtPct(a.margem),cls:a.margem<=0?'ok':(a.margem<=5?'warn':'bad'),
        delta:(a.margem<=0?'Meta de '+META_EF+'% superada':'Falta para a meta de '+META_EF+'%')},
-      {label:'Absenteísmo',value:bFmtPct(a.absenteismo),cls:a.absenteismo<=10?'ok':(a.absenteismo<=13?'warn':'bad'),
+      {label:'Absenteísmo',value:bFmtPct(a.absenteismo),cls:a.absenteismo<=META_ABS?'ok':(a.absenteismo<=ABS_ATENCAO?'warn':'bad'),
        delta:ant?bDeltaPp(a.absenteismo,ant.absenteismo,true)+colRef1:'—'},
       {label:'Qtde Vendida',value:bFmt(a.qtdeVendida)+' pçs',cls:'neu',delta:ant?bDelta(a.qtdeVendida,ant.qtdeVendida)+' vs '+colRef1:'—'},
       {label:'Qtde Faturada',value:bFmt(a.qtdeFaturado)+' pçs',cls:'neu',delta:ant?bDelta(a.qtdeFaturado,ant.qtdeFaturado)+' vs '+colRef1:'—'},
@@ -5160,6 +5186,22 @@ window.DashUtils = (function() {
     o.ticket      = _div(o.receita,   o.fatPecas);
 
     o.ritmoNormal = _div(o.semExtras, o.hNormais);
+
+    /* PEÇAS PERDIDAS POR FALTA E ATRASO — substitui a "Eficiência Ajustada".
+       A eficienciaAdj vinha pronta da planilha e não é reproduzível: testei
+       sete famílias de fórmula contra os 18 meses e a melhor erra 2,89 p.p.
+       Pior, ela anda para o lado errado — r = -0,42 com o ritmo real de
+       produção e r = +0,17 com o absenteísmo, ou seja, SOBE quando as horas
+       perdidas sobem, sendo que se propõe a corrigir por elas. E passa de
+       100% em 3 dos 18 meses (110,60% em MAR/26, com 13,89% de absenteísmo).
+       Indicador de diretoria cuja fórmula ninguém consegue refazer é
+       indefensável em reunião.
+       Esta conta mede a mesma ideia — o potencial perdido — numa unidade que
+       se confere na mão: as horas que faltaram, ao ritmo que a fábrica
+       demonstrou no próprio mês. No período todo: 32.000 h = 57.049 peças,
+       12,1% da produção em jornada normal. E não tem como passar de 100%. */
+    o.pecasPerdidas = (o.ritmoNormal === null) ? null : o.hPerdidas * o.ritmoNormal;
+    o.pctPerdidas   = (o.pecasPerdidas === null) ? null : _pct(o.pecasPerdidas, o.semExtras);
     o.ritmoExtra  = _div(o.deExtras,  o.hExtras);
     o.prodDia     = _div(o.semExtras, o.dias);
     o.prodColab   = _div(o.semExtras, o.colabMes);
@@ -5389,10 +5431,15 @@ function render(){
       +'= '+fi(r.prodSemExtras||0)+' ÷ '+fi(r.meta)+' × 100\n'
       +'= '+f(r.eficiencia)+'%\n'
       +'Meta: ≥ 90%';
-    var tipEfAdj = r.mes+'/'+r.ano+' — Ef. Ajustada\n'
-      +'Eficiência corrigida pelo impacto das horas perdidas\n'
-      +'(faltas e atrasos que diminuem a capacidade real)\n'
-      +'= '+f(r.eficienciaAdj)+'%';
+    /* A coluna eficienciaAdj continua na tabela por ser dado da planilha, mas o
+       tooltip parou de afirmar uma fórmula: testei sete famílias contra os 18
+       meses e nenhuma reproduz (melhor erro médio 2,89 p.p.). Ela também passa
+       de 100% em 3 meses e correlaciona -0,42 com o ritmo real. */
+    var tipEfAdj = r.mes+'/'+r.ano+' — Ef. Ajustada: '+f(r.eficienciaAdj)+'%\n'
+      +'Valor vem pronto da planilha (coluna eficienciaAdj).\n'
+      +'A fórmula não é reproduzível a partir dos outros campos, e o indicador\n'
+      +'passa de 100% em alguns meses. Use "Peças perdidas" para medir o\n'
+      +'impacto das horas de falta e atraso.';
     var tipAt = at!==null?(r.mes+'/'+r.ano+' — Atingimento\n'
       +'Fórmula: Prod. s/ Extras ÷ Meta × 100\n'
       +'= '+fi(r.prodSemExtras||0)+' ÷ '+fi(r.meta)+' × 100\n'
@@ -5532,7 +5579,13 @@ function renderKPIs(d){
   s('kv-carga', fi(tCarga)+' h');
   s('kv-hn',  fi(tHN)+' h');
   s('kv-ef',  f(ef)+'%');
-  s('kv-oee', f(efAdj)+'%');
+  /* Era f(efAdj)+'%' — a Eficiência Ajustada, coluna opaca da planilha que
+     não é reproduzível por nenhuma fórmula, passa de 100% em 3 dos 18 meses
+     e correlaciona -0,42 com o ritmo real. Trocada por peças perdidas por
+     falta e atraso: mesma ideia (potencial perdido), unidade auditável. */
+  var _Pperd = DashUtils.periodo(d);
+  s('kv-oee', _Pperd.pecasPerdidas === null ? '--'
+              : Math.round(_Pperd.pecasPerdidas).toLocaleString('pt-BR')+' pç');
   s('kv-prod',fi(tProd));
   s('kv-abs', f(ab)+'%');
   s('kv-tkt', nTkt>0?'R$ '+f(tTkt/nTkt,2):'—');
@@ -5556,7 +5609,12 @@ function renderKPIs(d){
     dlt('kd-cap',u.horasTotais,p.horasTotais,' h');
     dlt('kd-hn', u.horasNormais,p.horasNormais,' h');
     dlt('kd-ef', u.eficiencia,p.eficiencia,'%');
-    dlt('kd-oee',u.eficienciaAdj,p.eficienciaAdj,'%');
+  /* Delta mês a mês na mesma base nova: peças perdidas do mês. */
+    var _pp = function(r){
+      var rit = r.horasNormais>0 ? (DashUtils.getProd(r)/r.horasNormais) : 0;
+      return (r.totalFaltaAtraso||0) * rit;
+    };
+    dlt('kd-oee', _pp(u), _pp(p), ' pç');
     dlt('kd-prod',u.producaoReal,p.producaoReal,'');
     dlt('kd-abs',u.absenteismo,p.absenteismo,'%');
     if(u.ticketMedio>0&&p.ticketMedio>0)dlt('kd-tkt',u.ticketMedio,p.ticketMedio,' R$')
@@ -5621,7 +5679,12 @@ function calcDeltas(dados){
       label: prv.mes+'/'+prv.ano+' → '+cur.mes+'/'+cur.ano,
       mes: cur.mes+'/'+cur.ano,
       dEf:   parseFloat((efCur-efPrv).toFixed(2)),
-      dOEE:  parseFloat((cur.eficienciaAdj-prv.eficienciaAdj).toFixed(2)),
+      /* peças perdidas por falta/atraso, ao ritmo de cada mês */
+      dOEE:  (function(){
+               var pp=function(r){ return r.horasNormais>0
+                 ? (r.totalFaltaAtraso||0)*(DashUtils.getProd(r)/r.horasNormais) : 0; };
+               return Math.round(pp(cur)-pp(prv));
+             })(),
       dAbs:  parseFloat((cur.absenteismo-prv.absenteismo).toFixed(2)),
       dHT:   cur.horasTotais-prv.horasTotais,
       dExt:  cur.totalExtras-prv.totalExtras,
@@ -5711,7 +5774,7 @@ function renderDeltaTable(deltas){
     tr.innerHTML=
       '<td class="dMes">'+d.mes+'</td>'+
       dCell(d.dEf,false,'%')+
-      dCell(d.dOEE,false,'%')+
+      dCell(d.dOEE,true,' pç')+   /* peças perdidas: subir é ruim */
       dCell(d.dAbs,true,'%')+
       dCell(d.dHT,false,' h')+
       dCell(d.dExt,false,' h')+
@@ -6773,13 +6836,18 @@ function bindCardTooltips(dados){
     tipRow('Desvio',(ef>=META_EF?'▲ +':'▼ ')+f(Math.abs(ef-META_EF))+'p.p.',ef>=META_EF?'g':'r')+
     tipRow('Meses ≥ 90%',dados.filter(function(r){return r.eficiencia>=90}).length+'/'+dados.length);
 
-  var oeeAdj=dados.reduce(function(s,r){return s+r.eficienciaAdj},0)/dados.length;
-  var oeeCls=oeeAdj>=90?'g':oeeAdj>=80?'a':'r';
-  var oeeHtml='<div class="tip-title">Ef. Ajustada Média</div>'+
-    tipRow('Média período',f(oeeAdj)+'%',oeeCls)+
-    tipRow('Fórmula','Ef. + impacto h. falta')+
-    tipRow('Melhor mês',f(Math.max.apply(null,dados.map(function(r){return r.eficienciaAdj})))+'%')+
-    tipRow('Pior mês',f(Math.min.apply(null,dados.map(function(r){return r.eficienciaAdj})))+'%');
+  var _Pp = DashUtils.periodo(dados);
+  var oeeHtml='<div class="tip-title">Peças Perdidas por Falta e Atraso</div>'+
+    tipRow('Peças perdidas', _Pp.pecasPerdidas===null?'—':fi(_Pp.pecasPerdidas)+' pç',
+           (_Pp.pctPerdidas||0)<=5?'g':(_Pp.pctPerdidas||0)<=10?'a':'r')+
+    tipRow('% da produção normal', _Pp.pctPerdidas===null?'—':f(_Pp.pctPerdidas)+'%')+
+    tipRow('Horas perdidas', fi(_Pp.hPerdidas)+' h')+
+    tipRow('Ritmo do período', _Pp.ritmoNormal===null?'—':f(_Pp.ritmoNormal)+' pç/h normal')+
+    tipRow('Fórmula','H. perdidas × ritmo em hora normal')+
+    '<div style="border-top:1px solid var(--b);margin:5px 0"></div>'+
+    '<div style="font-size:.62rem;color:var(--t2);line-height:1.4">'+
+    'Substitui a Eficiência Ajustada, que vinha pronta da planilha, não era '+
+    'reproduzível por nenhuma fórmula e passava de 100%.</div>';
 
   var tMeta_tip=0, tSemExtra_tip=0;
   dados.forEach(function(r){if(r.meta>0){tMeta_tip+=r.meta; tSemExtra_tip+=(r.prodSemExtras||0);}});
@@ -6923,7 +6991,12 @@ function renderKPIsExtras(d){
 
   // Eficiência
   s('kv3-ef',     f(ef)+'%');
-  s('kv3-oee',    f(oee)+'%');
+  /* Era a Eficiência Ajustada (média de eficienciaAdj). Ver comentário em
+     DashUtils.periodo: coluna não reproduzível, passa de 100%, e anda para o
+     lado errado em relação ao ritmo e ao absenteísmo. */
+  var _P3 = DashUtils.periodo(d);
+  s('kv3-oee', _P3.pecasPerdidas === null ? '—'
+               : Math.round(_P3.pecasPerdidas).toLocaleString('pt-BR')+' pç');
   s('kv3-acima',  acima90+'/'+d.length);
   s('kv3-abaixo', (d.length-acima90)+'/'+d.length);
 
@@ -15702,7 +15775,7 @@ input:disabled, select:disabled {
           {l:'Efici\u00eancia', v:txt('kv-ef'),  cls:'v'}
         ])
       + kRow([
-          {l:'Ef. Ajustada',   v:txt('kv-oee'),  cls:'v'},
+          {l:'Peças perdidas',v:txt('kv-oee'),  cls:'v'},
           {l:'Produ\u00e7\u00e3o Total', v:txt('kv-prod'), cls:'b'},
           {l:'Absenteísmo',    v:txt('kv-abs'),  cls:'y'},
           {l:'Ticket M\u00e9dio',v:txt('kv-tkt'), cls:'b'}
@@ -15731,7 +15804,7 @@ input:disabled, select:disabled {
       + secHdr('Indicadores de Efici\u00eancia')
       + kRow([
           {l:'Efici\u00eancia M\u00e9dia', v:txt('kv3-ef'),     cls:'v'},
-          {l:'Ef. Ajustada',    v:txt('kv3-oee'),    cls:'v'},
+          {l:'Peças perdidas',  v:txt('kv3-oee'),    cls:'v'},
           {l:'Meses \u2265 90%', v:txt('kv3-acima'),  cls:'v'},
           {l:'Meses < 90%',     v:txt('kv3-abaixo'), cls:'r'}
         ])
