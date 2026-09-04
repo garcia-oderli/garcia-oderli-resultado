@@ -19653,9 +19653,44 @@ function printAtiva(){
    AO PUBLICAR: acrescente uma entrada no topo de HISTORICO e suba a versão em
    sw.js (CACHE_NAME) para o service worker detectar a troca.
 ══════════════════════════════════════════════════════════════════════════ */
-var APP_VERSAO = 'b58';
-var APP_DATA   = '10/08/2026';
+var APP_VERSAO = 'b64';
+var APP_DATA   = '04/09/2026';
 var APP_HISTORICO = [
+  { v:'b64', data:'04/09/2026', itens:[
+    'Cabecalho do Briefing separa producao entregue (com hora extra) da que saiu em jornada normal — sao 3.363 pecas de diferenca em JUN/26 que ninguem via ali.',
+    'Margem de Melhoria sai do cabecalho: negativo ali significa meta superada, e ao lado do Custo Capital era lida como margem financeira negativa. Continua no corpo, com o rotulo completo.'
+  ]},
+  { v:'b63', data:'04/09/2026', itens:[
+    'Eficiencia Ajustada substituida por Pecas Perdidas (horas de falta e atraso x ritmo em hora normal do mes).',
+    'Motivo: a coluna vinha pronta da planilha e nao e reproduzivel — sete familias de formula testadas, a melhor erra 2,89 p.p. Passava de 100% em 3 dos 18 meses (110,60% em MAR/26) e SUBIA quando as horas perdidas subiam (r = +0,17), sendo que existia para corrigir por elas.',
+    'A nova conta mede a mesma ideia em unidade que se confere na mao e nao passa de 100%: no periodo, 32.000 h perdidas = 57.049 pecas, 12,1% da producao normal.',
+    'A coluna original continua na tabela detalhada, com tooltip dizendo que o valor vem pronto e nao e reproduzivel.'
+  ]},
+  { v:'b62', data:'04/09/2026', itens:[
+    'Formula do absenteismo corrigida em 22 pontos: o denominador e H. Normais, nao H. Carga. A conta impressa no tooltip nem fechava — JAN/25 mostrava (1.263 + 162) / 12.820 = 11,5%, mas essa divisao da 11,12%.',
+    'Pauta do Briefing parou de dizer "Meta de producao batida" com hora extra dentro. Agora diz quanto saiu sem hora extra, quanto faltou e quanto veio da hora extra.',
+    'Limite de absenteismo unificado: o Briefing usava 10% e o Resumo 3%, entao o painel imprimia "controlado" para o mesmo mes que marcava em vermelho.'
+  ]},
+  { v:'b61', data:'04/09/2026', itens:[
+    'Importacao da planilha passa a resolver coluna pelo NOME do cabecalho. Lia 23 de 26 campos por posicao fixa: uma coluna inserida no meio deslocava tudo em silencio, e o bloco de horas — o unico que se confere de olho — saia perfeito.',
+    'Portao de sanidade antes de gravar: se as identidades da planilha nao fecharem, o import inteiro e cancelado. Meio import e pior que nenhum.',
+    'Celula gravada como texto deixa de virar numero errado: "33.291" virava 33 pecas, "11,52" virava 11.',
+    'CSV passa a usar a mesma base da tela. Antes 17 dos 18 meses saiam do arquivo como meta batida com a tela mostrando o contrario.'
+  ]},
+  { v:'b60', data:'04/09/2026', itens:[
+    'Aba Reuniao refeita para diretoria: filtro proprio de periodo, faixas na ordem da decisao, e cada faixa declarando a base do calculo no titulo.',
+    'Carteira a faturar em MESES de producao — 47.695 pc nao diz nada a quem decide, 1,8 mes de fabrica diz.',
+    'Ritmo produtivo (pc por hora normal) com comparacao contra o ano anterior: revela a queda de 6,1% de 2025 para 2026 que o painel escondia.',
+    'Eficiencia renomeada para Independencia de Hora Extra, mesmo numero. A conta tem r = -0,993 com o percentual de horas extras e r = -0,33, negativo, com o ritmo real.',
+    'Veredito passa a comparar contra o vendido. O faturado caia junto com a producao em mes travado, entao a demanda diminuia sozinha e o veredito melhorava.',
+    'Rotulos legiveis: oito seletores estavam abaixo de 4,5:1 de contraste, ate 1,37:1 — a linha que diz a base estava escrita e invisivel.'
+  ]},
+  { v:'b59', data:'04/09/2026', itens:[
+    'Card de producao do Resumo Executivo era VERDE em 18 de 18 meses por construcao algebrica, nao por desempenho: comparava producao com hora extra contra a meta, que e calculada sobre horas normais.',
+    'A meta nao e capacidade — e producaoReal x (horasNormais / horasCarga), conferido nos 18 meses com erro maximo de 0,0022%. A comparacao saiu do card.',
+    'O card agora mostra o volume entregue com a separacao normal + hora extra, e o semaforo e a dependencia de hora extra, que varia de 3,4% a 26,5% e responde a pergunta que a diretoria faz.',
+    'Base unica de calculo para o painel inteiro, com 43 testes automaticos.'
+  ]},
   { v:'b58', data:'10/08/2026', itens:[
     'Piramide de KPI explicita: a aba Reuniao e o nivel 1 (diretoria, mensal) e cada indicador desce para a aba que o apura.',
     'Clicar num card leva a aba de detalhe e acende o grupo certo na barra — a reuniao so navega quando alguem pede o detalhe.'
