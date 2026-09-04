@@ -3676,16 +3676,16 @@ Fórmula: Faltas + Atrasos
        financeira. Positivo = falta para a meta; negativo = meta superada. */
     if(a.margem>5){
       itens.push({icon:'🔴',badge:'red',label:'Crítico',
-        texto:'<strong>Eficiência '+bFmtPct(a.margem)+' abaixo da meta</strong> ('+bFmtPct(a.eficiencia)+' contra '+META_EF+'%) — a margem de melhoria exige plano para recuperar hora produtiva.'});
+        texto:'<strong>Independência de hora extra '+bFmtPct(a.margem)+' abaixo da meta</strong> ('+bFmtPct(a.eficiencia)+' contra '+META_EF+'%) — a entrega está apoiada em hora extra.'});
     } else if(a.margem>0){
       itens.push({icon:'🟡',badge:'yellow',label:'Atenção',
-        texto:'<strong>Eficiência a '+bFmtPct(a.margem)+' da meta</strong> ('+bFmtPct(a.eficiencia)+' contra '+META_EF+'%) — margem de melhoria pequena, mas ainda aberta.'});
+        texto:'<strong>Independência de hora extra a '+bFmtPct(a.margem)+' da meta</strong> ('+bFmtPct(a.eficiencia)+' contra '+META_EF+'%).'});
     } else {
       itens.push({icon:'🟢',badge:'green',label:'Positivo',
         /* "margem de melhoria de -1,62%" como ponto POSITIVO confunde: negativo
            aqui significa meta superada. Se precisa de explicação para não ser
            lido ao contrário, não entra na pauta. */
-        texto:'<strong>Meta de eficiência superada</strong> — '+bFmtPct(a.eficiencia)+' contra '+META_EF+'%.'});
+        texto:'<strong>Independência de hora extra acima da meta</strong> — '+bFmtPct(a.eficiencia)+' contra '+META_EF+'%.'});
     }
     /* Usava 10% enquanto o Resumo Executivo usa META_ABS (3%): o Briefing
        imprimia "absenteísmo controlado" para o mesmo mês que o Resumo marcava
@@ -4007,9 +4007,15 @@ Fórmula: Faltas + Atrasos
        +'<div class="brfg-meta-row">'
          +'<div class="brfg-meta-item"><span>'+bFmt(a.colaboradores)+'</span>Colaboradores</div>'
          +'<div class="brfg-meta-item"><span>'+bFmt(a.diasTrabalhados)+'</span>Dias Trabalhados</div>'
-         +'<div class="brfg-meta-item"><span>'+bFmt(a.producaoReal)+' pçs</span>Produção Real</div>'
-         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.eficiencia)+'</span>Eficiência</div>'
-         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.margem)+'</span>Margem Melhoria</div>'
+         /* Cabeçalho do briefing: mesmos rótulos do resto do painel. Antes dizia
+            "Produção Real" (sem indicar que inclui hora extra) e "Eficiência"
+            (que mede o inverso do uso de hora extra). "Margem Melhoria" saiu
+            do cabeçalho: negativo ali significa meta superada, e ao lado de
+            "Custo Capital" na mesma tela é lido como margem financeira. Ela
+            continua no corpo do briefing, com o rótulo completo. */
+         +'<div class="brfg-meta-item"><span>'+bFmt(a.producaoReal)+' pçs</span>Produção entregue (c/ HE)</div>'
+         +'<div class="brfg-meta-item"><span>'+bFmt(a.prodSemExtras>0?a.prodSemExtras:a.producaoReal)+' pçs</span>Em jornada normal</div>'
+         +'<div class="brfg-meta-item"><span>'+bFmtPct(a.eficiencia)+'</span>Independência de HE</div>'
          +'<div class="brfg-meta-item"><span>'+bFmtPct(a.absenteismo)+'</span>Absenteísmo</div>'
        +'</div>'
       +'</div>'
