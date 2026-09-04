@@ -19499,7 +19499,71 @@ function printAtiva(){
   };
 
   /* Descida de nível: leva à aba que apura o número do card. */
+  /* ── VOLTA DA DESCIDA DE NÍVEL ────────────────────────────────────────────
+     Clicar num card levava ao detalhe e não havia caminho de volta: o painel
+     é uma SPA sem histórico, então nem o botão voltar do navegador servia.
+     Em reunião isso custa o fio da conversa — que é justamente o que esta aba
+     existe para evitar.
+
+     Três saídas, porque em reunião quem dirige o mouse pode ser qualquer um:
+     um botão flutuante (o único elemento flutuante da tela, então é achado
+     sem procurar), a tecla ESC, e o botão voltar do navegador. */
+  var _descendo = false;
+
+  function _pilula(){
+    var el = document.getElementById('reu-voltar');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'reu-voltar';
+    el.style.cssText =
+      'position:fixed;left:50%;transform:translateX(-50%);bottom:20px;z-index:9000;'
+      + 'display:none;align-items:center;gap:10px;padding:10px 18px;border-radius:26px;'
+      + 'background:rgba(245,166,35,.16);border:1px solid #F5A623;color:#F5A623;'
+      + 'font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:.04em;'
+      + 'cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.5);white-space:nowrap;'
+      + 'backdrop-filter:blur(6px)';
+    el.innerHTML = '<span style="font-size:1rem;line-height:1">←</span>'
+      + '<span>Voltar para a Reunião</span>'
+      + '<span style="font-size:.64rem;opacity:.7;border:1px solid rgba(245,166,35,.5);'
+      + 'border-radius:4px;padding:1px 5px">ESC</span>';
+    el.title = 'Voltar para a Reunião do Mês (ESC)';
+    el.onclick = _voltar;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function _mostrarPilula(ligado){
+    var el = _pilula();
+    el.style.display = ligado ? 'inline-flex' : 'none';
+  }
+
+  function _voltar(){
+    _descendo = true;
+    try { if (typeof mudarPagina === 'function') mudarPagina('reuniao'); } catch(e){}
+    /* A barra de grupos fica no grupo do detalhe se não for reposta. */
+    try {
+      var btn = document.querySelector('.pTab[data-group="reuniao"]')
+             || document.querySelector('.pTab[data-page="reuniao"]');
+      if (btn && typeof mudarGrupo === 'function') mudarGrupo('reuniao', btn);
+    } catch(e){}
+    _descendo = false;
+    _mostrarPilula(false);
+  }
+
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Escape') return;
+    var el = document.getElementById('reu-voltar');
+    if (el && el.style.display !== 'none') { e.preventDefault(); _voltar(); }
+  });
+
+  /* Botão voltar do navegador. Só reage ao estado que este módulo empurrou —
+     sem isso, um back numa aba qualquer sairia do painel. */
+  window.addEventListener('popstate', function(ev){
+    if (ev.state && ev.state.reuVolta) _voltar();
+  });
+
   window.reuIr=function(id){
+    _descendo = true;
     if(typeof mudarPagina==='function') mudarPagina(id);
     /* acende o grupo certo na barra de cima, senão o usuário se perde */
     try{
@@ -19511,6 +19575,9 @@ function printAtiva(){
         if(typeof mudarSubPagina==='function') mudarSubPagina(id,null);
       }
     }catch(e){}
+    _descendo = false;
+    _mostrarPilula(true);
+    try { history.pushState({ reuVolta: 1 }, '', location.href); } catch(e){}
   };
 
   /* A classe no body liga o CSS que faz a barra lateral rolar por dentro —
@@ -19522,6 +19589,18 @@ function printAtiva(){
   function ligar(){
     render();
     if(typeof paginaAtiva!=='undefined') marcarPagina(paginaAtiva);
+    /* Se o usuário navegar por conta própria (clique numa aba), a pílula sai:
+       ela só faz sentido para desfazer a descida que ELE pediu no card. */
+    if (typeof mudarPagina === 'function' && !mudarPagina._reuVoltaHook){
+      var _orig = mudarPagina;
+      mudarPagina = function(id, btn){
+        var r = _orig.apply(this, arguments);
+        if (!_descendo && id !== 'reuniao') _mostrarPilula(false);
+        if (id === 'reuniao') _mostrarPilula(false);
+        return r;
+      };
+      mudarPagina._reuVoltaHook = true;
+    }
     if(window.DashBus&&window.DashBus.on){
       window.DashBus.on('dados:salvos',render);
       window.DashBus.on('render:feito',render);
